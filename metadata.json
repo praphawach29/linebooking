@@ -1,0 +1,6 @@
+{
+  "name": "LINE OA Booking SaaS",
+  "description": "ระบบจองบริการผ่าน LINE Official Account & LIFF แบบ Multi-tenant SaaS สำหรับธุรกิจบริการ (Spa, Clinic, Barbershop)",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

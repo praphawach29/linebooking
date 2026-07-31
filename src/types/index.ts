@@ -1,5 +1,20 @@
 export type TenantPlan = 'free' | 'pro' | 'enterprise';
 
+export type BookingFlowMode = 'service_staff_time' | 'sports_court_time' | 'service_time_only';
+
+export interface Court {
+  id: string;
+  tenantId: string;
+  serviceId: string; // Belongs to a service category e.g. Futsal
+  name: string; // e.g. "สนาม A (Indoor)"
+  code: string; // e.g. "COURT-A"
+  description?: string;
+  type?: 'indoor' | 'outdoor' | 'air_conditioned' | 'clay' | 'parquet';
+  imageUrl?: string;
+  extraPricePerHour?: number;
+  isActive: boolean;
+}
+
 export interface Tenant {
   id: string;
   name: string;
@@ -10,7 +25,7 @@ export interface Tenant {
   phone: string;
   email: string;
   address: string;
-  businessType: 'spa' | 'barbershop' | 'clinic' | 'salon' | 'other';
+  businessType: 'spa' | 'barbershop' | 'clinic' | 'salon' | 'sports' | 'other';
   plan: TenantPlan;
   planExpiresAt?: string;
   commissionRate: number;
@@ -31,6 +46,10 @@ export interface Tenant {
     lineReminderEnabled?: boolean;
     lineReminderHoursBefore?: number;
     lineBookingConfirmationEnabled?: boolean;
+    bookingFlowMode?: BookingFlowMode;
+    enableStaffSelection?: boolean;
+    enableCourtSelection?: boolean;
+    resourceTerm?: string;
   };
   createdAt: string;
 }
@@ -163,6 +182,8 @@ export interface Booking {
   staffId?: string;
   staffName?: string;
   staffAvatar?: string;
+  courtId?: string;
+  courtName?: string;
   bookingDate: string; // "2026-08-01"
   startTime: string; // "10:00"
   endTime: string; // "11:00"

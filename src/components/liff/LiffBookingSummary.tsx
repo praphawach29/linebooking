@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Service, Staff, PaymentMethod, SelectedAddon, ServiceAddon } from '../../types';
+import { Service, Staff, Court, PaymentMethod, SelectedAddon, ServiceAddon } from '../../types';
 import { useSaaS } from '../../context/SaaSContext';
 import {
   Calendar,
   Clock,
   UserCheck,
+  Trophy,
   CreditCard,
   QrCode,
   Banknote,
@@ -24,6 +25,7 @@ import {
 interface LiffBookingSummaryProps {
   service: Service;
   staff: Staff | null;
+  court?: Court | null;
   date: string;
   time: string;
   selectedAddons?: SelectedAddon[];
@@ -39,6 +41,7 @@ interface LiffBookingSummaryProps {
 export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
   service,
   staff,
+  court,
   date,
   time,
   selectedAddons: initialSelectedAddons = [],
@@ -187,15 +190,37 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-100 text-xs">
-          <UserCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-          <div className="flex-1">
-            <span className="text-[10px] text-slate-400 block">ผู้ให้บริการ (ช่าง)</span>
-            <span className="font-bold text-slate-800">
-              {staff ? staff.name : 'ช่างคนใดก็ได้'}
-            </span>
+        {court ? (
+          <div className="flex items-center gap-2 bg-emerald-50/80 p-2.5 rounded-xl border border-emerald-200/80 text-xs">
+            <Trophy className="w-4.5 h-4.5 text-emerald-600 flex-shrink-0" />
+            <div className="flex-1">
+              <span className="text-[10px] text-emerald-700 font-bold block">สนาม / คอร์ทการแข่งขัน</span>
+              <span className="font-bold text-slate-900">
+                {court.name} {court.extraPricePerHour ? `(+฿${court.extraPricePerHour})` : ''}
+              </span>
+            </div>
           </div>
-        </div>
+        ) : activeTenant.businessType === 'sports' ? (
+          <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
+            <Trophy className="w-4.5 h-4.5 text-emerald-600 flex-shrink-0" />
+            <div className="flex-1">
+              <span className="text-[10px] text-slate-400 block">สนาม / คอร์ทการแข่งขัน</span>
+              <span className="font-bold text-slate-800">
+                สนามใดก็ได้ (ระบบสุ่มคอร์ทว่าง)
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-100 text-xs">
+            <UserCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            <div className="flex-1">
+              <span className="text-[10px] text-slate-400 block">ผู้ให้บริการ (ช่าง)</span>
+              <span className="font-bold text-slate-800">
+                {staff ? staff.name : 'ช่างคนใดก็ได้'}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Service Add-ons Section */}

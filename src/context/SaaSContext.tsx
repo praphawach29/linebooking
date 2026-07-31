@@ -5,6 +5,7 @@ import {
   ServiceAddon,
   SelectedAddon,
   Staff,
+  Court,
   Booking,
   BusinessHour,
   CancellationPolicy,
@@ -19,6 +20,7 @@ import {
   INITIAL_SERVICES,
   INITIAL_SERVICE_ADDONS,
   INITIAL_STAFFS,
+  INITIAL_COURTS,
   INITIAL_BUSINESS_HOURS,
   INITIAL_CANCELLATION_POLICIES,
   INITIAL_BOOKINGS,
@@ -49,6 +51,7 @@ interface SaaSContextType {
   services: Service[];
   serviceAddons: ServiceAddon[];
   staffs: Staff[];
+  courts: Court[];
   bookings: Booking[];
   businessHours: BusinessHour[];
   cancellationPolicies: CancellationPolicy[];
@@ -66,6 +69,7 @@ interface SaaSContextType {
   createBooking: (data: {
     serviceId: string;
     staffId?: string;
+    courtId?: string;
     bookingDate: string;
     startTime: string;
     notes?: string;
@@ -90,6 +94,8 @@ interface SaaSContextType {
   deleteServiceAddon: (addonId: string) => void;
   saveStaff: (staff: Partial<Staff>) => void;
   deleteStaff: (staffId: string) => void;
+  saveCourt: (court: Partial<Court>) => void;
+  deleteCourt: (courtId: string) => void;
   updateTenantSettings: (settings: Partial<Tenant['settings']>, tenantInfo?: Partial<Tenant>) => void;
   markNotificationAsRead: (notificationId: string) => void;
   addOnboardingTenant: (tenantData: Partial<Tenant>, initialService: Partial<Service>) => void;
@@ -108,6 +114,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [services, setServices] = useState<Service[]>(INITIAL_SERVICES);
   const [serviceAddons, setServiceAddons] = useState<ServiceAddon[]>(INITIAL_SERVICE_ADDONS);
   const [staffs, setStaffs] = useState<Staff[]>(INITIAL_STAFFS);
+  const [courts, setCourts] = useState<Court[]>(INITIAL_COURTS);
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
   const [businessHours, setBusinessHours] = useState<BusinessHour[]>(INITIAL_BUSINESS_HOURS);
   const [cancellationPolicies, setCancellationPolicies] = useState<CancellationPolicy[]>(INITIAL_CANCELLATION_POLICIES);
@@ -128,6 +135,10 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const tenantStaffs = useMemo(() => {
     return staffs.filter((s) => s.tenantId === activeTenant.id);
   }, [staffs, activeTenant.id]);
+
+  const tenantCourts = useMemo(() => {
+    return courts.filter((c) => c.tenantId === activeTenant.id);
+  }, [courts, activeTenant.id]);
 
   const tenantBookings = useMemo(() => {
     return bookings.filter((b) => b.tenantId === activeTenant.id);
@@ -215,6 +226,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const createBooking = (data: {
     serviceId: string;
     staffId?: string;
+    courtId?: string;
     bookingDate: string;
     startTime: string;
     notes?: string;
@@ -227,6 +239,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }): Booking => {
     const service = services.find((s) => s.id === data.serviceId)!;
     const staff = staffs.find((st) => st.id === data.staffId);
+    const court = courts.find((c) => c.id === data.courtId);
 
     const addons = data.selectedAddons || [];
     const addonsPrice = addons.reduce((sum, a) => sum + a.price, 0);
@@ -237,7 +250,8 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const endMin = startMin + totalDuration;
     const endTime = minutesToTime(endMin);
 
-    const totalPrice = service.price + addonsPrice;
+    const courtExtraPrice = court?.extraPricePerHour || 0;
+    const totalPrice = service.price + addonsPrice + courtExtraPrice;
     const depositPct = activeTenant.settings.depositPercentage ?? 50;
     const depositAmount = (totalPrice * depositPct) / 100;
     const isPaid = data.depositPaid || data.paymentMethod === 'cash';
@@ -257,8 +271,10 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       serviceDuration: totalDuration,
       servicePrice: service.price,
       staffId: staff?.id,
-      staffName: staff?.name || 'ช่างคนใดก็ได้',
+      staffName: staff ? staff.name : (activeTenant.businessType === 'sports' ? 'ผู้ดูแลสนาม' : 'ช่างคนใดก็ได้'),
       staffAvatar: staff?.avatarUrl,
+      courtId: court?.id,
+      courtName: court?.name,
       bookingDate: data.bookingDate,
       startTime: data.startTime,
       endTime,
@@ -404,6 +420,32 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setStaffs((prev) => prev.filter((st) => st.id !== staffId));
   };
 
+  const saveCourt = (courtData: Partial<Court>) => {
+    if (courtData.id) {
+      setCourts((prev) =>
+        prev.map((c) => (c.id === courtData.id ? ({ ...c, ...courtData } as Court) : c))
+      );
+    } else {
+      const newCourt: Court = {
+        id: `court-${Date.now()}`,
+        tenantId: activeTenant.id,
+        serviceId: courtData.serviceId || '',
+        name: courtData.name || 'สนาม A',
+        code: courtData.code || `CRT-${Math.floor(10 + Math.random() * 90)}`,
+        description: courtData.description || 'สนามคุณภาพมาตรฐาน',
+        type: courtData.type || 'indoor',
+        imageUrl: courtData.imageUrl || 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=500&auto=format&fit=crop&q=80',
+        extraPricePerHour: courtData.extraPricePerHour || 0,
+        isActive: true,
+      };
+      setCourts((prev) => [...prev, newCourt]);
+    }
+  };
+
+  const deleteCourt = (courtId: string) => {
+    setCourts((prev) => prev.filter((c) => c.id !== courtId));
+  };
+
   const updateTenantSettings = (
     newSettings: Partial<Tenant['settings']>,
     tenantInfo?: Partial<Tenant>
@@ -507,6 +549,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         services: tenantServices,
         serviceAddons: tenantServiceAddons,
         staffs: tenantStaffs,
+        courts: tenantCourts,
         bookings: tenantBookings,
         businessHours,
         cancellationPolicies,
@@ -523,6 +566,8 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         deleteServiceAddon,
         saveStaff,
         deleteStaff,
+        saveCourt,
+        deleteCourt,
         updateTenantSettings,
         markNotificationAsRead,
         addOnboardingTenant,

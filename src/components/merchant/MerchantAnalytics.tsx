@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
 import {
   BarChart3,
@@ -12,10 +12,13 @@ import {
   ArrowUpRight,
   Sparkles,
   PieChart as PieIcon,
-  Filter,
+  Calendar as CalendarIcon,
+  Radio,
+  Zap,
+  CheckCircle2,
+  RefreshCw,
 } from 'lucide-react';
 import {
-  AreaChart,
   Area,
   XAxis,
   YAxis,
@@ -27,52 +30,135 @@ import {
   Cell,
   PieChart,
   Pie,
-  LineChart,
   Line,
-  Legend,
   ComposedChart,
 } from 'recharts';
 
 export const MerchantAnalytics: React.FC = () => {
   const { activeTenant, bookings, services, staffs } = useSaaS();
-  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '3m'>('7d');
 
-  // Trend Data based on selected range
-  const revenueTrendData7D = [
-    { period: '25 ก.ค.', revenue: 8500, bookings: 7, deposit: 4250 },
-    { period: '26 ก.ค.', revenue: 12000, bookings: 10, deposit: 6000 },
-    { period: '27 ก.ค.', revenue: 9500, bookings: 8, deposit: 4750 },
-    { period: '28 ก.ค.', revenue: 14000, bookings: 12, deposit: 7000 },
-    { period: '29 ก.ค.', revenue: 11000, bookings: 9, deposit: 5500 },
-    { period: '30 ก.ค.', revenue: 16500, bookings: 14, deposit: 8250 },
-    { period: '31 ก.ค.', revenue: 18700, bookings: 16, deposit: 9350 },
-  ];
+  // Date Range Selection State
+  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '3m' | 'custom'>('7d');
+  const [startDate, setStartDate] = useState<string>('2026-07-01');
+  const [endDate, setEndDate] = useState<string>('2026-07-31');
 
-  const revenueTrendData30D = [
-    { period: 'สัปดาห์ที่ 1', revenue: 62000, bookings: 52, deposit: 31000 },
-    { period: 'สัปดาห์ที่ 2', revenue: 74500, bookings: 61, deposit: 37250 },
-    { period: 'สัปดาห์ที่ 3', revenue: 81000, bookings: 68, deposit: 40500 },
-    { period: 'สัปดาห์ที่ 4', revenue: 90200, bookings: 76, deposit: 45100 },
-  ];
+  // Live Data Real-time Toggle
+  const [isLiveData, setIsLiveData] = useState<boolean>(true);
+  const [liveDataNotification, setLiveDataNotification] = useState<string | null>(null);
+  const [liveExtraRevenue, setLiveExtraRevenue] = useState<number>(0);
+  const [liveExtraBookings, setLiveExtraBookings] = useState<number>(0);
+  const [lastUpdatedTime, setLastUpdatedTime] = useState<string>('เมื่อสักครู่');
 
-  const revenueTrendData3M = [
-    { period: 'พฤษภาคม', revenue: 240000, bookings: 195, deposit: 120000 },
-    { period: 'มิถุนายน', revenue: 285000, bookings: 230, deposit: 142500 },
-    { period: 'กรกฎาคม', revenue: 307700, bookings: 257, deposit: 153850 },
-  ];
+  // Preset Trend Datasets with Previous Period Comparison
+  const [trendData7D, setTrendData7D] = useState([
+    { period: '25 ก.ค.', revenue: 8500, prevRevenue: 7100, bookings: 7, deposit: 4250 },
+    { period: '26 ก.ค.', revenue: 12000, prevRevenue: 9800, bookings: 10, deposit: 6000 },
+    { period: '27 ก.ค.', revenue: 9500, prevRevenue: 8200, bookings: 8, deposit: 4750 },
+    { period: '28 ก.ค.', revenue: 14000, prevRevenue: 11500, bookings: 12, deposit: 7000 },
+    { period: '29 ก.ค.', revenue: 11000, prevRevenue: 9300, bookings: 9, deposit: 5500 },
+    { period: '30 ก.ค.', revenue: 16500, prevRevenue: 13000, bookings: 14, deposit: 8250 },
+    { period: '31 ก.ค.', revenue: 18700, prevRevenue: 14500, bookings: 16, deposit: 9350 },
+  ]);
+
+  const [trendData30D, setTrendData30D] = useState([
+    { period: 'สัปดาห์ที่ 1', revenue: 62000, prevRevenue: 51000, bookings: 52, deposit: 31000 },
+    { period: 'สัปดาห์ที่ 2', revenue: 74500, prevRevenue: 63000, bookings: 61, deposit: 37250 },
+    { period: 'สัปดาห์ที่ 3', revenue: 81000, prevRevenue: 69000, bookings: 68, deposit: 40500 },
+    { period: 'สัปดาห์ที่ 4', revenue: 90200, prevRevenue: 75000, bookings: 76, deposit: 45100 },
+  ]);
+
+  const [trendData3M, setTrendData3M] = useState([
+    { period: 'พฤษภาคม', revenue: 240000, prevRevenue: 195000, bookings: 195, deposit: 120000 },
+    { period: 'มิถุนายน', revenue: 285000, prevRevenue: 220000, bookings: 230, deposit: 142500 },
+    { period: 'กรกฎาคม', revenue: 307700, prevRevenue: 250000, bookings: 257, deposit: 153850 },
+  ]);
+
+  // Live Simulation interval when Live Data is active
+  useEffect(() => {
+    if (!isLiveData) return;
+
+    const interval = setInterval(() => {
+      // Simulate incoming booking update
+      const randomService = services[Math.floor(Math.random() * services.length)];
+      const price = randomService ? randomService.price : 1200;
+      const deposit = Math.round(price * 0.5);
+
+      setLiveExtraRevenue((prev) => prev + price);
+      setLiveExtraBookings((prev) => prev + 1);
+
+      // Update current 7d dataset last item dynamically
+      setTrendData7D((prevData) => {
+        const newData = [...prevData];
+        const lastIdx = newData.length - 1;
+        newData[lastIdx] = {
+          ...newData[lastIdx],
+          revenue: newData[lastIdx].revenue + price,
+          bookings: newData[lastIdx].bookings + 1,
+          deposit: newData[lastIdx].deposit + deposit,
+        };
+        return newData;
+      });
+
+      // Show live toast notification
+      const now = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      setLastUpdatedTime(now);
+      setLiveDataNotification(`⚡ คิวยืนยันใหม่! "${randomService?.name || 'บริการสปา'}" +฿${price.toLocaleString()} (${now})`);
+
+      setTimeout(() => {
+        setLiveDataNotification(null);
+      }, 3500);
+    }, 6000);
+
+    return () => clearInterval(interval);
+  }, [isLiveData, services]);
+
+  // Generate Custom Date Range Data when custom range selected
+  const getCustomTrendData = () => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const dayDiff = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 3600 * 24)));
+
+    // Generate up to 7 data points for display
+    const points = Math.min(dayDiff, 7);
+    const result = [];
+    for (let i = 0; i < points; i++) {
+      const d = new Date(start);
+      d.setDate(d.getDate() + Math.floor((i * dayDiff) / points));
+      const label = `${d.getDate()} ${d.toLocaleDateString('th-TH', { month: 'short' })}`;
+      const baseRev = 8000 + (i * 1800) % 7000;
+      const prevRev = Math.round(baseRev * 0.82);
+      result.push({
+        period: label,
+        revenue: baseRev,
+        prevRevenue: prevRev,
+        bookings: Math.round(baseRev / 1200),
+        deposit: Math.round(baseRev * 0.5),
+      });
+    }
+    return result;
+  };
 
   const currentTrendData =
     timeRange === '7d'
-      ? revenueTrendData7D
+      ? trendData7D
       : timeRange === '30d'
-      ? revenueTrendData30D
-      : revenueTrendData3M;
+      ? trendData30D
+      : timeRange === '3m'
+      ? trendData3M
+      : getCustomTrendData();
 
   // Calculate Aggregates
   const totalRevenue = currentTrendData.reduce((sum, item) => sum + item.revenue, 0);
+  const totalPrevRevenue = currentTrendData.reduce((sum, item) => sum + (item.prevRevenue || 0), 0);
   const totalBookingsCount = currentTrendData.reduce((sum, item) => sum + item.bookings, 0);
   const avgOrderValue = Math.round(totalRevenue / (totalBookingsCount || 1));
   const totalDepositsCollected = currentTrendData.reduce((sum, item) => sum + item.deposit, 0);
+
+  // Growth percentage vs previous period
+  const revenueGrowthPercent =
+    totalPrevRevenue > 0
+      ? (((totalRevenue - totalPrevRevenue) / totalPrevRevenue) * 100).toFixed(1)
+      : '18.4';
 
   // Service Category Breakdown
   const serviceCategoryData = [
@@ -121,25 +207,66 @@ export const MerchantAnalytics: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto text-xs pb-12">
+      {/* Real-time Notification Banner if Live Data triggers */}
+      {liveDataNotification && (
+        <div className="bg-emerald-600 text-white px-4 py-2.5 rounded-2xl shadow-lg flex items-center justify-between animate-bounce transition-all">
+          <div className="flex items-center gap-2 font-bold">
+            <Zap className="w-4 h-4 fill-amber-300 text-amber-300 animate-pulse" />
+            <span>{liveDataNotification}</span>
+          </div>
+          <span className="text-[10px] bg-emerald-700/80 px-2 py-0.5 rounded-full font-mono">LIVE</span>
+        </div>
+      )}
+
       {/* Header & Controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs">
         <div>
           <div className="flex items-center gap-2">
             <div className="p-2 bg-emerald-100 rounded-2xl text-emerald-700">
               <BarChart3 className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-base font-extrabold text-slate-900 tracking-tight">
-                ศูนย์วิเคราะห์สถิติร้านค้า (Merchant Analytics)
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-base font-extrabold text-slate-900 tracking-tight">
+                  ศูนย์วิเคราะห์สถิติร้านค้า (Merchant Analytics)
+                </h1>
+                {/* Live Data Badge */}
+                {isLiveData && (
+                  <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                    <span>LIVE</span>
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                ติดตามแนวโน้มการจองคิว การเติบโตของรายได้ และประสิทธิภาพทีมช่างในร้าน
+                ติดตามแนวโน้มการจองคิว การเติบโตเทียบเดือนก่อน และสถานะเรียลไทม์
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Top Controls: Preset Ranges + Custom Date Range + Live Toggle + CSV */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Live Data Toggle Switch */}
+          <div className="flex items-center gap-2 bg-slate-100/90 border border-slate-200 px-3 py-1.5 rounded-2xl">
+            <div className="flex items-center gap-1.5">
+              <Radio className={`w-3.5 h-3.5 ${isLiveData ? 'text-emerald-600 animate-pulse' : 'text-slate-400'}`} />
+              <span className="font-bold text-slate-700 text-[11px]">Live Data</span>
+            </div>
+            <button
+              onClick={() => setIsLiveData(!isLiveData)}
+              className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                isLiveData ? 'bg-emerald-600' : 'bg-slate-300'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  isLiveData ? 'translate-x-4' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
           {/* Time Range Filter Buttons */}
           <div className="bg-slate-100 p-1 rounded-2xl flex items-center border border-slate-200">
             <button
@@ -172,17 +299,69 @@ export const MerchantAnalytics: React.FC = () => {
             >
               3 เดือนล่าสุด
             </button>
+            <button
+              onClick={() => setTimeRange('custom')}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1 ${
+                timeRange === 'custom'
+                  ? 'bg-white text-emerald-700 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <CalendarIcon className="w-3 h-3" />
+              <span>กำหนดเอง</span>
+            </button>
           </div>
 
+          {/* Export CSV Button */}
           <button
             onClick={handleExportCSV}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-2xl shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all active:scale-95"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3.5 py-2 rounded-2xl shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 transition-all active:scale-95"
           >
             <FileSpreadsheet className="w-4 h-4" />
-            <span>ส่งออก Excel/CSV</span>
+            <span>ส่งออก CSV</span>
           </button>
         </div>
       </div>
+
+      {/* Custom Date Range Picker Bar (Shown when timeRange === 'custom') */}
+      {timeRange === 'custom' && (
+        <div className="bg-emerald-50/80 border border-emerald-200 p-4 rounded-3xl flex flex-wrap items-center justify-between gap-3 animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <CalendarIcon className="w-4 h-4 text-emerald-700" />
+            <span className="font-extrabold text-slate-900 text-xs">
+              ช่วงเวลาที่กำหนดเอง (Custom Date Range Picker):
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
+              <span className="text-[11px] font-semibold text-slate-500">เริ่ม:</span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="text-xs font-bold text-slate-800 bg-transparent focus:outline-none"
+              />
+            </div>
+
+            <span className="text-slate-400 font-bold">ถึง</span>
+
+            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
+              <span className="text-[11px] font-semibold text-slate-500">สิ้นสุด:</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="text-xs font-bold text-slate-800 bg-transparent focus:outline-none"
+              />
+            </div>
+
+            <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-lg">
+              แสดงข้อมูลเฉพาะช่วงเวลาที่เลือก
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Overview Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -197,7 +376,7 @@ export const MerchantAnalytics: React.FC = () => {
           <p className="text-xl font-black text-slate-900">฿{totalRevenue.toLocaleString()}</p>
           <div className="flex items-center gap-1.5 mt-2 text-emerald-600 font-bold text-[11px]">
             <TrendingUp className="w-3.5 h-3.5" />
-            <span>+18.4% จากช่วงที่แล้ว</span>
+            <span>+{revenueGrowthPercent}% จากงวดก่อนหน้า</span>
           </div>
         </div>
 
@@ -247,22 +426,26 @@ export const MerchantAnalytics: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Charts Row: Revenue Growth & Booking Volume (Composed Area + Line Chart) */}
+      {/* Main Charts Row: Revenue Growth & Previous Month Comparison + Booking Volume */}
       <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
           <div>
             <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-emerald-600" />
-              การเติบโตของรายได้และปริมาณการจอง (Revenue & Booking Trends)
+              แนวโน้มรายได้ และการเปรียบเทียบเติบโตกับงวดก่อนหน้า (Revenue Growth & Comparison)
             </h2>
             <p className="text-xs text-slate-500">
-              เปรียบเทียบยอดขายสุทธิ (Area) และจำนวนคิวบริการ (Line) ตามช่วงเวลาที่เลือก
+              เส้นเขียว = รายได้งวดปัจจุบัน | เส้นประม่วง = รายได้งวดก่อนหน้า (Previous Period) | เส้นฟ้า = ปริมาณการจอง
             </p>
           </div>
-          <div className="flex items-center gap-4 text-xs font-semibold">
+          <div className="flex flex-wrap items-center gap-3 text-xs font-semibold">
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded bg-emerald-500 inline-block"></span>
-              <span className="text-slate-700">รายได้สุทธิ (฿)</span>
+              <span className="text-slate-700">รายได้ปัจจุบัน (฿)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-0.5 bg-indigo-500 inline-block border-t border-dashed border-indigo-500"></span>
+              <span className="text-indigo-700 font-bold">เทียบงวดก่อนหน้า (฿)</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded bg-blue-500 inline-block"></span>
@@ -276,7 +459,7 @@ export const MerchantAnalytics: React.FC = () => {
             <ComposedChart data={currentTrendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorRevGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.4} />
+                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.35} />
                   <stop offset="95%" stopColor="#10B981" stopOpacity={0.0} />
                 </linearGradient>
               </defs>
@@ -285,13 +468,21 @@ export const MerchantAnalytics: React.FC = () => {
               <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#64748B' }} />
               <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#64748B' }} />
               <Tooltip
-                contentStyle={{ borderRadius: '16px', fontSize: '11px', fontWeight: 'bold', border: '1px solid #E2E8F0', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+                contentStyle={{
+                  borderRadius: '16px',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  border: '1px solid #E2E8F0',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                }}
                 formatter={(value: any, name: any) => {
-                  if (name === 'revenue') return [`฿${Number(value).toLocaleString()}`, 'รายได้สุทธิ'];
+                  if (name === 'revenue') return [`฿${Number(value).toLocaleString()}`, 'รายได้งวดปัจจุบัน'];
+                  if (name === 'prevRevenue') return [`฿${Number(value).toLocaleString()}`, 'รายได้งวดก่อนหน้า'];
                   if (name === 'bookings') return [`${value} คิว`, 'จำนวนการจอง'];
                   return [value, name];
                 }}
               />
+              {/* Primary Area: Current Revenue */}
               <Area
                 yAxisId="left"
                 type="monotone"
@@ -302,13 +493,25 @@ export const MerchantAnalytics: React.FC = () => {
                 fillOpacity={1}
                 fill="url(#colorRevGrad)"
               />
+              {/* Secondary Comparison Line: Previous Period Revenue */}
+              <Line
+                yAxisId="left"
+                type="monotone"
+                dataKey="prevRevenue"
+                name="prevRevenue"
+                stroke="#6366F1"
+                strokeWidth={2.5}
+                strokeDasharray="5 5"
+                dot={{ r: 3, fill: '#6366F1' }}
+              />
+              {/* Booking Volume Line */}
               <Line
                 yAxisId="right"
                 type="monotone"
                 dataKey="bookings"
                 name="bookings"
                 stroke="#3B82F6"
-                strokeWidth={3}
+                strokeWidth={2.5}
                 dot={{ r: 4, fill: '#3B82F6' }}
               />
             </ComposedChart>

@@ -9,7 +9,7 @@ export const MerchantOnboardingWizard: React.FC = () => {
   // Form States
   const [shopName, setShopName] = useState('');
   const [slug, setSlug] = useState('');
-  const [businessType, setBusinessType] = useState<'spa' | 'barbershop' | 'clinic' | 'salon'>('spa');
+  const [businessType, setBusinessType] = useState<'spa' | 'barbershop' | 'clinic' | 'salon' | 'sports'>('spa');
   const [phone, setPhone] = useState('02-123-4567');
   const [address, setAddress] = useState('กรุงเทพมหานคร');
 
@@ -111,6 +111,7 @@ export const MerchantOnboardingWizard: React.FC = () => {
                   <option value="barbershop">ร้านตัดผมชาย (Barbershop)</option>
                   <option value="clinic">คลินิกความงาม (Clinic)</option>
                   <option value="salon">ร้านทำผม / ทำเล็บ (Salon)</option>
+                  <option value="sports">สนามกีฬา / สนามฟุตซอล / แบดมินตัน (Sports Venue)</option>
                 </select>
               </div>
 

@@ -121,15 +121,15 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
   const getAddonIcon = (iconName?: string) => {
     switch (iconName) {
       case 'Droplet':
-        return <Droplet className="w-4 h-4 text-cyan-600" />;
+        return <Droplet className="w-5 h-5 text-cyan-500" />;
       case 'Flame':
-        return <Flame className="w-4 h-4 text-amber-600" />;
+        return <Flame className="w-5 h-5 text-orange-500" />;
       case 'Clock':
-        return <Clock className="w-4 h-4 text-purple-600" />;
+        return <Clock className="w-5 h-5 text-purple-500" />;
       case 'Smile':
-        return <Smile className="w-4 h-4 text-emerald-600" />;
+        return <Smile className="w-5 h-5 text-primary" />;
       default:
-        return <Sparkles className="w-4 h-4 text-amber-500" />;
+        return <Sparkles className="w-5 h-5 text-amber-500" />;
     }
   };
 
@@ -144,78 +144,92 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
   };
 
   return (
-    <div className="p-4 space-y-4">
-      <div className="text-center space-y-1">
-        <h2 className="text-base font-bold text-slate-900">สรุปรายละเอียดการจอง</h2>
-        <p className="text-xs text-slate-500">เลือกบริการเสริม ชำระเงินมัดจำ ยืนยันคิวทันที</p>
+    <div className="p-4 space-y-5 pb-28">
+      <div className="text-center space-y-1 mt-2">
+        <h2 className="text-lg font-black text-foreground">สรุปรายละเอียดการจอง</h2>
+        <p className="text-[13px] text-slate-500 font-medium">เลือกบริการเสริม ชำระเงินมัดจำ ยืนยันคิวทันที</p>
       </div>
 
       {/* Main Booking Card */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
-        <div className="pb-3 border-b border-slate-100 flex items-start justify-between gap-2">
+      <div className="premium-card p-5 space-y-4 relative overflow-hidden">
+        {/* Decorative background element */}
+        <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/5 rounded-full blur-2xl pointer-events-none"></div>
+        
+        <div className="pb-4 border-b border-border/60 flex items-start justify-between gap-3 relative z-10">
           <div>
-            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+            <span className="text-[10px] font-black text-primary bg-primary/10 px-2.5 py-1 rounded-lg border border-primary/20">
               {service.category}
             </span>
-            <h3 className="text-sm font-bold text-slate-900 mt-1">{service.name}</h3>
+            <h3 className="text-[15px] font-black text-foreground mt-2">{service.name}</h3>
           </div>
           <div className="text-right flex-shrink-0">
-            <span className="text-sm font-extrabold text-slate-900 block">
-              ฿{(service?.price ?? 0).toLocaleString()}
+            <span className="text-xl font-black text-primary block">
+              <span className="text-sm text-primary/70 mr-0.5">฿</span>{(service?.price ?? 0).toLocaleString()}
             </span>
-            <span className="text-[10px] text-slate-400">ราคาบริการหลัก</span>
+            <span className="text-[11px] text-slate-400 font-bold">ราคาบริการหลัก</span>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 pt-1">
-          <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-100">
-            <Calendar className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+        <div className="grid grid-cols-2 gap-3 text-[13px] text-slate-600 pt-1 relative z-10">
+          <div className="flex items-start gap-2.5 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+            <div className="bg-primary/10 p-1.5 rounded-lg text-primary mt-0.5">
+                <Calendar className="w-4 h-4 flex-shrink-0" />
+            </div>
             <div>
-              <span className="text-[10px] text-slate-400 block">วันที่จอง</span>
-              <span className="font-bold text-slate-800">{formatDateThai(date)}</span>
+              <span className="text-[11px] text-slate-500 font-bold block mb-0.5">วันที่จอง</span>
+              <span className="font-black text-foreground">{formatDateThai(date)}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-100">
-            <Clock className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+          <div className="flex items-start gap-2.5 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+             <div className="bg-primary/10 p-1.5 rounded-lg text-primary mt-0.5">
+                <Clock className="w-4 h-4 flex-shrink-0" />
+            </div>
             <div>
-              <span className="text-[10px] text-slate-400 block">เวลารอบ & ระยะเวลา</span>
-              <span className="font-bold text-slate-800">
-                {time} น. ({totalDurationMinutes} นาที
-                {addonsExtraDuration > 0 && (
-                  <span className="text-emerald-600 font-normal text-[10px]"> +{addonsExtraDuration}น.</span>
-                )})
+              <span className="text-[11px] text-slate-500 font-bold block mb-0.5">เวลารอบ & ระยะเวลา</span>
+              <span className="font-black text-foreground block">
+                {time} น.
+              </span>
+              <span className="text-[10px] font-bold text-primary block mt-0.5">
+                ({totalDurationMinutes} นาที
+                {addonsExtraDuration > 0 && ` +${addonsExtraDuration}น.`})
               </span>
             </div>
           </div>
         </div>
 
         {court ? (
-          <div className="flex items-center gap-2 bg-emerald-50/80 p-2.5 rounded-xl border border-emerald-200/80 text-xs">
-            <Trophy className="w-4.5 h-4.5 text-emerald-600 flex-shrink-0" />
+          <div className="flex items-center gap-3 bg-primary/5 p-3.5 rounded-2xl border border-primary/20 text-[13px] shadow-sm relative z-10">
+            <div className="bg-primary/10 p-2 rounded-xl text-primary flex-shrink-0">
+                <Trophy className="w-5 h-5" />
+            </div>
             <div className="flex-1">
-              <span className="text-[10px] text-emerald-700 font-bold block">สนาม / คอร์ทการแข่งขัน</span>
-              <span className="font-bold text-slate-900">
-                {court.name} {court.extraPricePerHour ? `(+฿${court.extraPricePerHour})` : ''}
+              <span className="text-[11px] text-primary/80 font-black block">สนาม / คอร์ทการแข่งขัน</span>
+              <span className="font-black text-foreground">
+                {court.name} {court.extraPricePerHour ? <span className="text-primary">(+฿${court.extraPricePerHour})</span> : ''}
               </span>
             </div>
           </div>
         ) : activeTenant.businessType === 'sports' ? (
-          <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
-            <Trophy className="w-4.5 h-4.5 text-emerald-600 flex-shrink-0" />
+          <div className="flex items-center gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-[13px] relative z-10">
+            <div className="bg-white border border-slate-200 p-2 rounded-xl text-slate-500 flex-shrink-0">
+                <Trophy className="w-5 h-5" />
+            </div>
             <div className="flex-1">
-              <span className="text-[10px] text-slate-400 block">สนาม / คอร์ทการแข่งขัน</span>
-              <span className="font-bold text-slate-800">
+              <span className="text-[11px] text-slate-500 font-bold block">สนาม / คอร์ทการแข่งขัน</span>
+              <span className="font-black text-slate-800">
                 สนามใดก็ได้ (ระบบสุ่มคอร์ทว่าง)
               </span>
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-100 text-xs">
-            <UserCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+          <div className="flex items-center gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-[13px] relative z-10">
+            <div className="bg-white border border-slate-200 p-2 rounded-xl text-primary flex-shrink-0">
+                <UserCheck className="w-5 h-5" />
+            </div>
             <div className="flex-1">
-              <span className="text-[10px] text-slate-400 block">ผู้ให้บริการ (ช่าง)</span>
-              <span className="font-bold text-slate-800">
+              <span className="text-[11px] text-slate-500 font-bold block">ผู้ให้บริการ (ช่าง)</span>
+              <span className="font-black text-slate-800">
                 {staff ? staff.name : 'ช่างคนใดก็ได้'}
               </span>
             </div>
@@ -225,29 +239,29 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
 
       {/* Service Add-ons Section */}
       {serviceAddons.length > 0 && (
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <div className="p-1 bg-amber-50 text-amber-600 rounded-lg">
-                <Gift className="w-4 h-4" />
+        <div className="premium-card p-5 space-y-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-amber-50 text-amber-500 rounded-xl border border-amber-100">
+                <Gift className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-xs font-bold text-slate-900">
-                  เลือกบริการเสริมพิเศษ (Optional Add-ons)
+                <h3 className="text-[13px] font-black text-foreground">
+                  บริการเสริมพิเศษ (Add-ons)
                 </h3>
-                <p className="text-[10px] text-slate-500">
+                <p className="text-[11px] text-slate-500 font-medium">
                   เพิ่มประสบการณ์ความผ่อนคลายยิ่งขึ้น
                 </p>
               </div>
             </div>
             {selectedAddons.length > 0 && (
-              <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
-                เลือกแล้ว {selectedAddons.length} รายการ
+              <span className="text-[10px] font-black bg-primary text-white px-2.5 py-1 rounded-xl shadow-sm">
+                เลือกแล้ว {selectedAddons.length}
               </span>
             )}
           </div>
 
-          <div className="space-y-2.5 pt-1">
+          <div className="space-y-3 pt-2">
             {serviceAddons.map((addon) => {
               const selected = isAddonSelected(addon.id);
               const currentSelectedObj = selectedAddons.find((a) => a.addonId === addon.id);
@@ -255,61 +269,63 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
               return (
                 <div
                   key={addon.id}
-                  className={`p-3 rounded-2xl border transition-all ${
+                  className={`p-4 rounded-3xl border transition-all duration-300 ${
                     selected
-                      ? 'bg-emerald-50/70 border-emerald-500/80 ring-2 ring-emerald-500/15 shadow-xs'
-                      : 'bg-slate-50/60 border-slate-200/80 hover:border-slate-300'
+                      ? 'bg-primary/5 border-primary shadow-[0_4px_12px_rgba(79,70,229,0.1)] ring-2 ring-primary/10'
+                      : 'bg-slate-50/50 border-slate-200/80 hover:border-primary/40 hover:bg-slate-50'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-2.5 flex-1">
-                      <div className="p-2 rounded-xl bg-white border border-slate-200/80 shadow-2xs mt-0.5">
+                    <div className="flex items-start gap-3 flex-1">
+                      <div className={`p-2.5 rounded-2xl flex-shrink-0 transition-colors ${
+                          selected ? 'bg-white border-2 border-primary shadow-sm' : 'bg-white border border-slate-200 shadow-sm'
+                      }`}>
                         {getAddonIcon(addon.icon)}
                       </div>
-                      <div className="space-y-1 flex-1">
+                      <div className="space-y-1.5 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-xs font-bold text-slate-900">
+                          <span className="text-[13px] font-black text-foreground">
                             {addon.name}
                           </span>
                           {addon.badge && (
-                            <span className="text-[9px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded border border-amber-200/60">
+                            <span className="text-[9px] font-black bg-amber-100 text-amber-700 px-2 py-0.5 rounded-lg border border-amber-200/60 shadow-sm">
                               {addon.badge}
                             </span>
                           )}
                           {addon.extraDurationMinutes && addon.extraDurationMinutes > 0 && (
-                            <span className="text-[9px] font-medium bg-purple-50 text-purple-700 px-1.5 py-0.2 rounded border border-purple-100">
+                            <span className="text-[9px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-lg border border-primary/20">
                               +{addon.extraDurationMinutes} นาที
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] text-slate-500 leading-snug">
+                        <p className="text-[11px] text-slate-500 leading-snug font-medium">
                           {addon.description}
                         </p>
                       </div>
                     </div>
 
-                    <div className="text-right flex flex-col items-end gap-1.5 flex-shrink-0">
-                      <span className="text-xs font-extrabold text-slate-900">
+                    <div className="text-right flex flex-col items-end gap-2 flex-shrink-0">
+                      <span className="text-[13px] font-black text-foreground">
                         +฿{(addon?.price ?? 0).toLocaleString()}
                       </span>
 
                       <button
                         type="button"
                         onClick={() => toggleAddon(addon)}
-                        className={`px-3 py-1 rounded-xl text-xs font-bold flex items-center gap-1 transition-all ${
+                        className={`px-4 py-2 rounded-xl text-[11px] font-black flex items-center gap-1.5 transition-all duration-300 ${
                           selected
-                            ? 'bg-emerald-600 text-white shadow-xs'
-                            : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
+                            ? 'bg-primary text-white shadow-md shadow-primary/20 scale-105'
+                            : 'bg-white border-2 border-slate-200 text-slate-600 hover:border-primary/50 hover:text-primary'
                         }`}
                       >
                         {selected ? (
                           <>
-                            <Check className="w-3.5 h-3.5" />
+                            <Check className="w-4 h-4" />
                             <span>เลือกแล้ว</span>
                           </>
                         ) : (
                           <>
-                            <Plus className="w-3.5 h-3.5 text-slate-500" />
+                            <Plus className="w-4 h-4" />
                             <span>เพิ่ม</span>
                           </>
                         )}
@@ -319,12 +335,12 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
 
                   {/* Addon Options Dropdown (if selected & has options) */}
                   {selected && addon.options && addon.options.length > 0 && (
-                    <div className="mt-2.5 pt-2 border-t border-emerald-200/60 flex flex-col gap-1.5">
-                      <label className="text-[10px] font-bold text-emerald-800 flex items-center gap-1">
-                        <Droplet className="w-3 h-3 text-emerald-600" />
+                    <div className="mt-4 pt-3 border-t border-primary/10 flex flex-col gap-2">
+                      <label className="text-[11px] font-black text-primary/80 flex items-center gap-1.5">
+                        <Droplet className="w-3.5 h-3.5 text-primary" />
                         เลือกสูตร/กลิ่นเพิ่มเติม:
                       </label>
-                      <div className="grid grid-cols-2 gap-1.5">
+                      <div className="grid grid-cols-2 gap-2">
                         {addon.options.map((opt) => {
                           const isOptSelected =
                             currentSelectedObj?.selectedOption === opt.name ||
@@ -335,10 +351,10 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
                               key={opt.id}
                               type="button"
                               onClick={() => handleOptionChange(addon, opt.name)}
-                              className={`px-2 py-1.5 rounded-lg text-[10px] font-medium text-left truncate transition-all ${
+                              className={`px-3 py-2 rounded-xl text-[11px] font-bold text-left truncate transition-all duration-300 ${
                                 isOptSelected
-                                  ? 'bg-emerald-600 text-white font-bold shadow-2xs'
-                                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50'
+                                  ? 'bg-primary text-white shadow-sm ring-2 ring-primary/30'
+                                  : 'bg-white border border-slate-200 text-slate-600 hover:border-primary/40'
                               }`}
                             >
                               {opt.name}
@@ -356,142 +372,139 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
       )}
 
       {/* Customer Information Inputs */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
-        <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-          <ShieldCheck className="w-4 h-4 text-emerald-600" />
-          ข้อมูลผู้รับบริการ (ดึงข้อมูลจาก LINE)
+      <div className="premium-card p-5 space-y-4">
+        <h3 className="text-[13px] font-black text-foreground flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-primary" />
+          ข้อมูลผู้รับบริการ
         </h3>
 
-        <div className="space-y-2.5 text-xs">
+        <div className="space-y-3.5 text-[13px]">
           <div>
-            <label className="block text-slate-500 font-medium mb-1">ชื่อ-นามสกุล</label>
+            <label className="block text-slate-600 font-bold mb-1.5">ชื่อ-นามสกุล</label>
             <input
               type="text"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all font-medium text-foreground shadow-inner"
             />
           </div>
 
           <div>
-            <label className="block text-slate-500 font-medium mb-1">เบอร์โทรศัพท์ติดต่อ</label>
+            <label className="block text-slate-600 font-bold mb-1.5">เบอร์โทรศัพท์ติดต่อ</label>
             <input
               type="tel"
               value={customerPhone}
               onChange={(e) => setCustomerPhone(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all font-mono font-bold text-foreground shadow-inner"
             />
           </div>
 
           <div>
-            <label className="block text-slate-500 font-medium mb-1 flex items-center gap-1">
-              <FileText className="w-3.5 h-3.5 text-slate-400" />
-              ข้อความเพิ่มเติม/เน้นบริเวณพิเศษ (Optional)
+            <label className="block text-slate-600 font-bold mb-1.5 flex items-center gap-1.5">
+              <FileText className="w-4 h-4 text-slate-400" />
+              ข้อความเพิ่มเติม (Optional)
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="เช่น เน้นบ่าไหล่, แพ้น้ำมันหอมระเหยบางชนิด..."
               rows={2}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all font-medium text-foreground shadow-inner resize-none"
             />
           </div>
         </div>
       </div>
 
       {/* Payment Summary Box */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
-        <h3 className="text-xs font-bold text-slate-900">ช่องทางชำระเงินมัดจำ</h3>
+      <div className="premium-card p-5 space-y-4">
+        <h3 className="text-[13px] font-black text-foreground">ช่องทางชำระเงินมัดจำ</h3>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           {/* PromptPay QR */}
           <div
             onClick={() => setPaymentMethod('promptpay')}
-            className={`p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all ${
+            className={`p-4 rounded-2xl border flex items-center gap-4 cursor-pointer transition-all duration-300 ${
               paymentMethod === 'promptpay'
-                ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/20'
+                ? 'bg-primary/5 border-primary ring-2 ring-primary/20 shadow-sm scale-[1.01]'
                 : 'bg-white border-slate-200 hover:border-slate-300'
             }`}
           >
-            <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
-              <QrCode className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md flex-shrink-0">
+              <QrCode className="w-6 h-6" />
             </div>
             <div className="flex-1">
-              <p className="text-xs font-bold text-slate-900">PromptPay QR Code (พร้อมเพย์)</p>
-              <p className="text-[10px] text-slate-500">สแกนผ่านแอปธนาคาร ยืนยันคิวทันที</p>
+              <p className="text-[13px] font-black text-foreground">PromptPay QR Code</p>
+              <p className="text-[11px] text-slate-500 font-medium">สแกนผ่านแอปธนาคาร ยืนยันคิวทันที</p>
             </div>
-            <input
-              type="radio"
-              checked={paymentMethod === 'promptpay'}
-              onChange={() => setPaymentMethod('promptpay')}
-              className="w-4 h-4 text-emerald-600"
-            />
+             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
+                paymentMethod === 'promptpay' ? 'border-primary' : 'border-slate-300'
+              }`}>
+                  {paymentMethod === 'promptpay' && <div className="w-2.5 h-2.5 bg-primary rounded-full"></div>}
+              </div>
           </div>
 
           {/* Credit Card */}
           <div
             onClick={() => setPaymentMethod('credit_card')}
-            className={`p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all ${
+            className={`p-4 rounded-2xl border flex items-center gap-4 cursor-pointer transition-all duration-300 ${
               paymentMethod === 'credit_card'
-                ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/20'
+                ? 'bg-primary/5 border-primary ring-2 ring-primary/20 shadow-sm scale-[1.01]'
                 : 'bg-white border-slate-200 hover:border-slate-300'
             }`}
           >
-            <div className="w-8 h-8 rounded-lg bg-slate-800 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
-              <CreditCard className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-slate-800 text-white flex items-center justify-center shadow-md flex-shrink-0">
+              <CreditCard className="w-6 h-6" />
             </div>
             <div className="flex-1">
-              <p className="text-xs font-bold text-slate-900">บัตรเครดิต / เดบิต (Omise Gateway)</p>
-              <p className="text-[10px] text-slate-500">รองรับ Visa, Mastercard, JCB</p>
+              <p className="text-[13px] font-black text-foreground">บัตรเครดิต / เดบิต</p>
+              <p className="text-[11px] text-slate-500 font-medium">รองรับ Visa, Mastercard, JCB</p>
             </div>
-            <input
-              type="radio"
-              checked={paymentMethod === 'credit_card'}
-              onChange={() => setPaymentMethod('credit_card')}
-              className="w-4 h-4 text-emerald-600"
-            />
+             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
+                paymentMethod === 'credit_card' ? 'border-primary' : 'border-slate-300'
+              }`}>
+                  {paymentMethod === 'credit_card' && <div className="w-2.5 h-2.5 bg-primary rounded-full"></div>}
+              </div>
           </div>
 
           {/* Cash */}
           <div
             onClick={() => setPaymentMethod('cash')}
-            className={`p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all ${
+            className={`p-4 rounded-2xl border flex items-center gap-4 cursor-pointer transition-all duration-300 ${
               paymentMethod === 'cash'
-                ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/20'
+                ? 'bg-primary/5 border-primary ring-2 ring-primary/20 shadow-sm scale-[1.01]'
                 : 'bg-white border-slate-200 hover:border-slate-300'
             }`}
           >
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
-              <Banknote className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-success text-white flex items-center justify-center shadow-md flex-shrink-0">
+              <Banknote className="w-6 h-6" />
             </div>
             <div className="flex-1">
-              <p className="text-xs font-bold text-slate-900">ชำระเงินสดหน้างาน (Cash on Service)</p>
-              <p className="text-[10px] text-slate-500">ชำระเต็มจำนวน ณ วันเข้าใช้บริการ</p>
+              <p className="text-[13px] font-black text-foreground">ชำระเงินสดหน้างาน</p>
+              <p className="text-[11px] text-slate-500 font-medium">ชำระเต็มจำนวน ณ วันเข้าใช้บริการ</p>
             </div>
-            <input
-              type="radio"
-              checked={paymentMethod === 'cash'}
-              onChange={() => setPaymentMethod('cash')}
-              className="w-4 h-4 text-emerald-600"
-            />
+             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
+                paymentMethod === 'cash' ? 'border-primary' : 'border-slate-300'
+              }`}>
+                  {paymentMethod === 'cash' && <div className="w-2.5 h-2.5 bg-primary rounded-full"></div>}
+              </div>
           </div>
         </div>
 
         {/* Pricing Breakdown */}
-        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-1.5 text-xs pt-2">
-          <div className="flex justify-between text-slate-600">
+        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-2 text-[13px] pt-3 shadow-inner mt-2">
+          <div className="flex justify-between text-slate-600 font-bold">
             <span>บริการหลัก ({service.name})</span>
-            <span className="font-semibold">฿{(service?.price ?? 0).toLocaleString()}</span>
+            <span>฿{(service?.price ?? 0).toLocaleString()}</span>
           </div>
 
           {selectedAddons.length > 0 && (
-            <div className="space-y-1 py-1 border-t border-b border-slate-200/60 my-1">
-              <div className="flex justify-between font-medium text-emerald-800">
+            <div className="space-y-2 py-2 border-t border-b border-slate-200/60 my-2">
+              <div className="flex justify-between font-black text-primary">
                 <span>บริการเสริม ({selectedAddons.length} รายการ)</span>
                 <span>+฿{(addonsTotalPrice ?? 0).toLocaleString()}</span>
               </div>
               {selectedAddons.map((a) => (
-                <div key={a.id} className="flex justify-between text-[11px] text-slate-500 pl-2">
+                <div key={a.id} className="flex justify-between text-[11px] text-slate-500 font-bold pl-2">
                   <span>
                     • {a.name}
                     {a.selectedOption ? ` (${a.selectedOption})` : ''}
@@ -502,88 +515,90 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
             </div>
           )}
 
-          <div className="flex justify-between text-slate-900 font-bold text-xs pt-1">
+          <div className="flex justify-between text-foreground font-black text-[13px] pt-1">
             <span>ยอดรวมทั้งสิ้น ({totalDurationMinutes} นาที)</span>
-            <span>฿{(totalPrice ?? 0).toLocaleString()}</span>
+            <span className="text-primary">฿{(totalPrice ?? 0).toLocaleString()}</span>
           </div>
 
-          <div className="flex justify-between text-emerald-700 font-extrabold pt-1">
-            <span>ยอดชำระมัดจำวันนี้ ({depositPct}%)</span>
-            <span>฿{(depositAmount ?? 0).toLocaleString()}</span>
+          <div className="flex justify-between text-warning-dark font-black pt-2">
+            <span className="bg-warning/20 px-2 py-0.5 rounded-md">ยอดชำระมัดจำวันนี้ ({depositPct}%)</span>
+            <span className="text-lg">฿{(depositAmount ?? 0).toLocaleString()}</span>
           </div>
-          <div className="flex justify-between text-slate-500 text-[11px] pt-1 border-t border-slate-200">
+          <div className="flex justify-between text-slate-500 font-bold text-[11px] pt-2 border-t border-slate-200 mt-2">
             <span>ชำระส่วนที่เหลือ ณ หน้าร้าน</span>
             <span>฿{(remainingAmount ?? 0).toLocaleString()}</span>
           </div>
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="fixed bottom-[80px] left-0 right-0 px-4 z-50 max-w-[400px] mx-auto flex flex-col gap-2">
         <button
           type="button"
           onClick={() => setShowSummaryModal(true)}
-          className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 px-4 rounded-2xl flex items-center justify-center gap-2 transition-colors text-xs border border-slate-200"
+          className="w-full bg-white/90 backdrop-blur-md hover:bg-white text-slate-700 font-black py-3 px-4 rounded-2xl flex items-center justify-center gap-2 transition-colors text-[11px] border border-slate-200 shadow-sm"
         >
-          <Sparkles className="w-4 h-4 text-emerald-600" />
-          <span>🔍 ดูสรุปยอดค่าใช้จ่าย & บริการเสริม (Summary Breakdown Modal)</span>
+          <Sparkles className="w-4 h-4 text-primary" />
+          <span>ดูสรุปยอดค่าใช้จ่าย (Summary Modal)</span>
         </button>
 
         <button
           type="button"
           onClick={handleSubmit}
-          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 transition-colors text-sm"
+          className="w-full btn-primary py-4 px-6 text-[15px] shadow-premium flex items-center justify-between group"
         >
           <span>ไปที่หน้าชำระเงิน (฿{(depositAmount ?? 0).toLocaleString()})</span>
-          <ChevronRight className="w-4 h-4" />
+          <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center group-hover:translate-x-1 transition-transform">
+              <ChevronRight className="w-5 h-5 text-white" />
+          </div>
         </button>
       </div>
 
       {/* Summary Modal Popup */}
       {showSummaryModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-white max-w-sm w-full p-5 rounded-3xl shadow-2xl space-y-4 text-xs border border-slate-200">
-            <div className="text-center space-y-1 pb-2 border-b border-slate-100">
-              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white max-w-[360px] w-full p-6 rounded-[32px] shadow-2xl space-y-5 border border-slate-200 transform animate-slideUp">
+            <div className="text-center space-y-2 pb-4 border-b border-slate-100">
+              <span className="text-[10px] font-black text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
                 Booking Summary Breakdown
               </span>
-              <h3 className="font-extrabold text-slate-900 text-sm mt-1">สรุปรายละเอียดการจอง & ค่าใช้จ่าย</h3>
-              <p className="text-[11px] text-slate-500">ตรวจสอบความถูกต้องก่อนเข้าสู่ขั้นตอนชำระมัดจำ</p>
+              <h3 className="font-black text-foreground text-[17px] mt-2">สรุปรายละเอียดการจอง</h3>
+              <p className="text-[11px] text-slate-500 font-medium">ตรวจสอบความถูกต้องก่อนชำระมัดจำ</p>
             </div>
 
             {/* Service & Add-ons breakdown table */}
-            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
-              <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+              <div className="flex justify-between items-center pb-3 border-b border-slate-200">
                 <div>
-                  <p className="font-bold text-slate-900">{service.name}</p>
-                  <p className="text-[10px] text-slate-500">ระยะเวลา {service.durationMinutes} นาที</p>
+                  <p className="font-black text-[13px] text-foreground">{service.name}</p>
+                  <p className="text-[11px] text-slate-500 font-medium mt-0.5">ระยะเวลา {service.durationMinutes} นาที</p>
                 </div>
-                <span className="font-bold text-slate-900">฿{(service?.price ?? 0).toLocaleString()}</span>
+                <span className="font-black text-[13px] text-foreground">฿{(service?.price ?? 0).toLocaleString()}</span>
               </div>
 
               {selectedAddons.length > 0 ? (
-                <div className="space-y-1.5 pt-1">
-                  <p className="text-[11px] font-bold text-emerald-800">รายการบริการเสริมที่เลือก:</p>
+                <div className="space-y-2 pt-1">
+                  <p className="text-[11px] font-black text-primary">รายการบริการเสริมที่เลือก:</p>
                   {selectedAddons.map((addon) => (
-                    <div key={addon.id} className="flex justify-between items-center text-[11px] text-slate-700 pl-2">
+                    <div key={addon.id} className="flex justify-between items-center text-[11px] text-slate-700 font-bold pl-2">
                       <span>• {addon.name} {addon.selectedOption ? `(${addon.selectedOption})` : ''}</span>
-                      <span className="font-semibold text-slate-900">+฿{(addon?.price ?? 0).toLocaleString()}</span>
+                      <span className="font-black text-slate-900">+฿{(addon?.price ?? 0).toLocaleString()}</span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-[10px] text-slate-400 italic">ไม่ได้เลือกบริการเสริมเพิ่มเติม</p>
+                <p className="text-[11px] text-slate-400 italic font-medium">ไม่ได้เลือกบริการเสริมเพิ่มเติม</p>
               )}
 
-              <div className="pt-2 border-t border-slate-200 space-y-1 font-bold text-slate-900">
-                <div className="flex justify-between text-xs">
-                  <span>ราคารวมทั้งสิ้น ({totalDurationMinutes} นาที):</span>
-                  <span>฿{(totalPrice ?? 0).toLocaleString()}</span>
+              <div className="pt-3 border-t border-slate-200 space-y-2 font-black text-slate-900">
+                <div className="flex justify-between text-[13px]">
+                  <span>ราคารวมทั้งสิ้น:</span>
+                  <span className="text-primary">฿{(totalPrice ?? 0).toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-xs text-emerald-700 pt-1">
-                  <span>ยอดชำระมัดจำวันนี้ ({depositPct}%):</span>
-                  <span className="text-sm font-extrabold">฿{(depositAmount ?? 0).toLocaleString()}</span>
+                <div className="flex justify-between text-[13px] text-warning-dark pt-1 bg-warning/10 p-2 rounded-xl">
+                  <span>มัดจำ ({depositPct}%):</span>
+                  <span className="text-[15px]">฿{(depositAmount ?? 0).toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-[11px] text-slate-500 font-normal">
+                <div className="flex justify-between text-[11px] text-slate-500 font-bold pt-1">
                   <span>ยอดคงเหลือชำระหน้าร้าน:</span>
                   <span>฿{(remainingAmount ?? 0).toLocaleString()}</span>
                 </div>
@@ -591,30 +606,40 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
             </div>
 
             {/* Customer & Slot details */}
-            <div className="bg-emerald-50/70 p-3 rounded-2xl border border-emerald-100 text-[11px] space-y-1">
-              <p className="text-slate-700"><strong>วันที่นัดหมาย:</strong> {formatDateThai(date)} ({time} น.)</p>
-              <p className="text-slate-700"><strong>ผู้ให้บริการ:</strong> {staff ? staff.name : 'ช่างคนใดก็ได้'}</p>
-              <p className="text-slate-700"><strong>ผู้จอง:</strong> {customerName || 'ลูกค้าทั่วไป'} ({customerPhone || 'ไม่ระบุ'})</p>
+            <div className="bg-primary/5 p-4 rounded-2xl border border-primary/20 text-[11px] space-y-1.5 font-medium">
+              <p className="text-slate-700 flex items-start gap-2">
+                <Calendar className="w-3.5 h-3.5 text-primary mt-0.5" />
+                <span><strong className="text-foreground">วันที่นัด:</strong> {formatDateThai(date)} ({time} น.)</span>
+              </p>
+              <p className="text-slate-700 flex items-start gap-2">
+                 <UserCheck className="w-3.5 h-3.5 text-primary mt-0.5" />
+                <span><strong className="text-foreground">ผู้ให้บริการ:</strong> {staff ? staff.name : 'ช่างคนใดก็ได้'}</span>
+              </p>
+              <p className="text-slate-700 flex items-start gap-2">
+                 <FileText className="w-3.5 h-3.5 text-primary mt-0.5" />
+                <span><strong className="text-foreground">ผู้จอง:</strong> {customerName || 'ลูกค้าทั่วไป'} ({customerPhone || 'ไม่ระบุ'})</span>
+              </p>
             </div>
 
-            <div className="flex items-center gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setShowSummaryModal(false)}
-                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"
-              >
-                ย้อนกลับไปแก้ไข
-              </button>
-
+            <div className="flex flex-col gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => {
                   setShowSummaryModal(false);
                   handleSubmit();
                 }}
-                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-md"
+                className="w-full btn-primary py-3.5 rounded-xl text-[13px] shadow-md flex items-center justify-center gap-2"
               >
-                ยืนยันชำระมัดจำ
+                <span>ยืนยันชำระมัดจำ</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => setShowSummaryModal(false)}
+                className="w-full py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors text-[13px]"
+              >
+                ย้อนกลับไปแก้ไข
               </button>
             </div>
           </div>

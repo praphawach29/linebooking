@@ -256,3 +256,54 @@ export interface AvailableSlot {
   reason?: string; // "BOOKED" | "OUT_OF_HOURS" | "STAFF_UNAVAILABLE"
   price: number;
 }
+
+// -----------------------------------------
+// Member & Loyalty System Types
+// -----------------------------------------
+
+export type MembershipTier = 'Silver' | 'Gold' | 'Platinum';
+
+export interface Membership {
+  id: string;
+  tenantId: string;
+  userId: string;
+  points: number; // Current points
+  totalPointsEarned: number; // Lifetime points
+  tier: MembershipTier;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type PointTransactionType = 'earn' | 'redeem' | 'adjust';
+
+export interface PointTransaction {
+  id: string;
+  membershipId: string;
+  bookingId?: string;
+  points: number; // Can be positive or negative
+  type: PointTransactionType;
+  description: string;
+  createdAt: string;
+}
+
+export interface Reward {
+  id: string;
+  tenantId: string;
+  name: string;
+  description: string;
+  pointsRequired: number;
+  imageUrl?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export type RewardRedemptionStatus = 'pending' | 'used' | 'expired';
+
+export interface RewardRedemption {
+  id: string;
+  membershipId: string;
+  rewardId: string;
+  status: RewardRedemptionStatus;
+  redeemedAt: string;
+  usedAt?: string;
+}

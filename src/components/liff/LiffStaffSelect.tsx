@@ -31,30 +31,30 @@ export const LiffStaffSelect: React.FC<LiffStaffSelectProps> = ({
   };
 
   return (
-    <div className="p-4 space-y-4">
-      <div className="bg-emerald-50 border border-emerald-200/80 p-3 rounded-2xl flex items-center justify-between">
+    <div className="p-4 space-y-5 pb-28">
+      <div className="bg-primary/5 border border-primary/20 p-4 rounded-3xl flex items-center justify-between shadow-sm">
         <div>
-          <span className="text-[10px] text-emerald-700 font-bold uppercase tracking-wider block">
+          <span className="text-[10px] text-primary/80 font-black uppercase tracking-wider block mb-1">
             บริการที่เลือก
           </span>
-          <p className="text-xs font-bold text-slate-900 line-clamp-1">{service.name}</p>
+          <p className="text-[13px] font-black text-foreground line-clamp-1">{service.name}</p>
           {selectedAddons.length > 0 && (
-            <span className="text-[10px] text-slate-500 font-medium block">
+            <span className="text-[11px] text-slate-500 font-medium block mt-1">
               รวมบริการเสริม ({selectedAddons.length} รายการ)
             </span>
           )}
         </div>
-        <span className="text-xs font-extrabold text-emerald-700">
-          ฿{totalPrice.toLocaleString()}
+        <span className="text-lg font-black text-primary">
+          <span className="text-xs mr-0.5">฿</span>{totalPrice.toLocaleString()}
         </span>
       </div>
 
       <div className="space-y-1">
-        <h2 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-          <UserCheck className="w-4 h-4 text-emerald-600" />
+        <h2 className="text-[15px] font-black text-foreground flex items-center gap-2">
+          <UserCheck className="w-5 h-5 text-primary" />
           เลือกผู้ให้บริการ (ช่าง)
         </h2>
-        <p className="text-xs text-slate-500">
+        <p className="text-[11px] text-slate-500 font-medium">
           คุณสามารถเลือกช่างคนโปรด หรือเลือกช่างคนใดก็ได้ที่มีคิวว่าง
         </p>
       </div>
@@ -62,82 +62,87 @@ export const LiffStaffSelect: React.FC<LiffStaffSelectProps> = ({
       {/* Option: Any Available Staff */}
       <div
         onClick={() => setSelectedStaffId('any')}
-        className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center gap-3.5 ${
+        className={`p-4 rounded-3xl border transition-all duration-300 cursor-pointer flex items-center gap-4 ${
           selectedStaffId === 'any'
-            ? 'bg-emerald-50/80 border-emerald-500 shadow-xs ring-2 ring-emerald-500/20'
-            : 'bg-white border-slate-200 hover:border-slate-300'
+            ? 'bg-primary/5 border-primary shadow-[0_4px_12px_rgba(79,70,229,0.1)] ring-2 ring-primary/20 scale-[1.02]'
+            : 'bg-white border-border hover:border-slate-300 shadow-sm'
         }`}
       >
-        <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 flex-shrink-0">
-          <Sparkles className="w-6 h-6" />
+        <div className={`w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+           selectedStaffId === 'any' ? 'bg-primary/20 border-2 border-primary/30 text-primary' : 'bg-slate-100 border-2 border-slate-200 text-slate-400'
+        }`}>
+          <Sparkles className="w-7 h-7" />
         </div>
         <div className="flex-1">
-          <h3 className="text-xs font-bold text-slate-900">ช่างคนใดก็ได้ (แนะนำ)</h3>
-          <p className="text-[11px] text-slate-500">
+          <h3 className="text-[13px] font-black text-foreground">ช่างคนใดก็ได้ (แนะนำ)</h3>
+          <p className="text-[11px] text-slate-500 font-medium mt-0.5">
             ระบบจะจัดคิวช่างที่มีความเชี่ยวชาญและว่างตรงเวลานั้นให้อัตโนมัติ
           </p>
         </div>
-        <input
-          type="radio"
-          name="staff"
-          checked={selectedStaffId === 'any'}
-          onChange={() => setSelectedStaffId('any')}
-          className="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
-        />
+        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+          selectedStaffId === 'any' ? 'border-primary' : 'border-slate-300'
+        }`}>
+            {selectedStaffId === 'any' && <div className="w-2.5 h-2.5 bg-primary rounded-full"></div>}
+        </div>
       </div>
 
       {/* Specific Staff Members List */}
-      <div className="space-y-2.5">
+      <div className="space-y-3">
         {qualifiedStaffs.map((staff) => {
           const isSelected = selectedStaffId === staff.id;
           return (
             <div
               key={staff.id}
               onClick={() => setSelectedStaffId(staff.id)}
-              className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center gap-3.5 ${
+              className={`p-4 rounded-3xl border transition-all duration-300 cursor-pointer flex items-center gap-4 ${
                 isSelected
-                  ? 'bg-emerald-50/80 border-emerald-500 shadow-xs ring-2 ring-emerald-500/20'
-                  : 'bg-white border-slate-200 hover:border-slate-300'
+                  ? 'bg-primary/5 border-primary shadow-[0_4px_12px_rgba(79,70,229,0.1)] ring-2 ring-primary/20 scale-[1.02]'
+                  : 'bg-white border-border hover:border-slate-300 shadow-sm'
               }`}
             >
               <img
                 src={staff.avatarUrl}
                 alt={staff.name}
-                className="w-12 h-12 rounded-full object-cover border-2 border-slate-200 flex-shrink-0"
+                className={`w-14 h-14 rounded-full object-cover border-2 flex-shrink-0 transition-colors ${
+                  isSelected ? 'border-primary' : 'border-slate-200'
+                }`}
               />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-900 truncate">
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="text-[13px] font-black text-foreground truncate">
                     {staff.name}
                   </h4>
-                  <span className="text-[10px] font-bold text-amber-600 flex items-center gap-0.5 bg-amber-50 px-1.5 py-0.5 rounded">
-                    <Star className="w-2.5 h-2.5 fill-current text-amber-500" />
+                  <span className="text-[10px] font-black text-amber-700 flex items-center gap-1 bg-amber-100/80 px-2 py-0.5 rounded-lg border border-amber-200">
+                    <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
                     {staff.rating} ({staff.reviewsCount})
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                <p className="text-[11px] text-slate-500 line-clamp-1 font-medium">
                   {staff.bio}
                 </p>
               </div>
-              <input
-                type="radio"
-                name="staff"
-                checked={isSelected}
-                onChange={() => setSelectedStaffId(staff.id)}
-                className="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
-              />
+              
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
+                isSelected ? 'border-primary' : 'border-slate-300'
+              }`}>
+                  {isSelected && <div className="w-2.5 h-2.5 bg-primary rounded-full"></div>}
+              </div>
             </div>
           );
         })}
       </div>
 
-      <button
-        onClick={handleConfirm}
-        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-2xl shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 transition-colors text-sm mt-4"
-      >
-        <span>ถัดไป: เลือกวันและเวลา</span>
-        <ChevronRight className="w-4 h-4" />
-      </button>
+      <div className="fixed bottom-[80px] left-0 right-0 px-4 z-50 max-w-[400px] mx-auto">
+          <button
+            onClick={handleConfirm}
+            className="w-full btn-primary py-4 px-6 text-[15px] shadow-premium flex items-center justify-between group"
+          >
+            <span>ถัดไป: เลือกวันและเวลา</span>
+            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center group-hover:translate-x-1 transition-transform">
+                <ChevronRight className="w-5 h-5 text-white" />
+            </div>
+          </button>
+      </div>
     </div>
   );
 };

@@ -62,8 +62,8 @@ export const LiffPromptPayPayment: React.FC<LiffPromptPayPaymentProps> = ({
 
   const handleSimulatePayment = () => {
     setIsProcessing(true);
-    setTimeout(() => {
-      const newBooking = createBooking({
+    setTimeout(async () => {
+      const newBooking = await createBooking({
         serviceId: service.id,
         staffId: staff?.id,
         bookingDate: date,
@@ -77,110 +77,113 @@ export const LiffPromptPayPayment: React.FC<LiffPromptPayPaymentProps> = ({
         source: 'line_liff',
       });
       setIsProcessing(false);
-      onBookingComplete(newBooking);
+      if (newBooking) {
+        onBookingComplete(newBooking);
+      }
     }, 1200);
   };
 
   return (
-    <div className="p-4 space-y-4">
-      <div className="text-center space-y-1">
-        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100 uppercase tracking-wider">
+    <div className="p-4 space-y-6 pb-28">
+      <div className="text-center space-y-1 mt-2">
+        <span className="text-[10px] font-black text-primary bg-primary/10 px-3 py-1 rounded-lg border border-primary/20 uppercase tracking-wider shadow-sm">
           Omise PromptPay Gateway
         </span>
-        <h2 className="text-base font-bold text-slate-900">ชำระเงินมัดจำผ่าน PromptPay QR</h2>
-        <p className="text-xs text-slate-500">สแกนชำระเงินด้วยแอปพลิเคชันทุกธนาคาร</p>
+        <h2 className="text-lg font-black text-foreground mt-2">ชำระเงินมัดจำผ่าน PromptPay QR</h2>
+        <p className="text-[13px] text-slate-500 font-medium">สแกนชำระเงินด้วยแอปพลิเคชันทุกธนาคาร</p>
       </div>
 
       {/* QR Code Canvas Frame */}
-      <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-md text-center space-y-4">
-        
+      <div className="premium-card p-6 text-center space-y-5 relative overflow-hidden">
+        {/* Decorative background element */}
+        <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/5 rounded-full blur-2xl pointer-events-none"></div>
+
         {/* PromptPay Header Banner */}
-        <div className="bg-blue-900 text-white py-2 px-4 rounded-xl flex items-center justify-between">
+        <div className="bg-[#113566] text-white py-3 px-4 rounded-xl flex items-center justify-between shadow-md relative z-10">
           <div className="flex items-center gap-2">
             <QrCode className="w-5 h-5 text-blue-300" />
-            <span className="text-xs font-bold tracking-wider">PROMPTPAY</span>
+            <span className="text-[13px] font-black tracking-widest">PROMPTPAY</span>
           </div>
-          <span className="text-[10px] bg-blue-800 text-blue-200 px-2 py-0.5 rounded">
+          <span className="text-[10px] font-bold bg-white/20 text-white px-2 py-1 rounded-lg backdrop-blur-sm">
             Thai QR Payment
           </span>
         </div>
 
         {/* QR Image Simulation */}
-        <div className="relative inline-block bg-white p-3 border-2 border-slate-900 rounded-2xl shadow-inner">
+        <div className="relative inline-block bg-white p-4 border-2 border-[#113566]/20 rounded-3xl shadow-lg relative z-10">
           <img
             src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=00020101021229370016A000000677010111${promptpayNo}`}
             alt="PromptPay QR Code"
             className="w-48 h-48 mx-auto"
           />
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
-            <Sparkles className="w-16 h-16 text-slate-900" />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03]">
+            <Sparkles className="w-20 h-20 text-[#113566]" />
           </div>
         </div>
 
         {/* Payment Amount & Account Details */}
-        <div className="space-y-1">
-          <p className="text-xs text-slate-500 font-medium">ยอดเงินมัดจำชำระสุทธิวันนี้</p>
-          <div className="text-2xl font-black text-emerald-600 tracking-tight">
+        <div className="space-y-1 relative z-10">
+          <p className="text-[13px] text-slate-500 font-bold">ยอดเงินมัดจำชำระสุทธิวันนี้</p>
+          <div className="text-3xl font-black text-primary tracking-tight">
             ฿{(depositAmount ?? 0).toLocaleString()}
           </div>
           {selectedAddons.length > 0 && (
-            <p className="text-[10px] text-slate-500 font-medium">
+            <p className="text-[11px] text-slate-400 font-bold mt-1">
               (รวมบริการเสริม {selectedAddons.length} รายการ: +฿{(addonsTotalPrice ?? 0).toLocaleString()})
             </p>
           )}
         </div>
 
-        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-xs space-y-2 text-left">
+        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-[13px] space-y-3 text-left shadow-inner relative z-10">
           <div className="flex justify-between items-center">
-            <span className="text-slate-500">บัญชีผู้รับเงิน:</span>
-            <span className="font-bold text-slate-900">{promptpayName}</span>
+            <span className="text-slate-500 font-bold">บัญชีผู้รับเงิน:</span>
+            <span className="font-black text-foreground">{promptpayName}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-slate-500">หมายเลขพร้อมเพย์:</span>
-            <div className="flex items-center gap-1.5">
-              <span className="font-mono font-bold text-slate-900">{promptpayNo}</span>
+            <span className="text-slate-500 font-bold">หมายเลขพร้อมเพย์:</span>
+            <div className="flex items-center gap-2">
+              <span className="font-mono font-black text-primary">{promptpayNo}</span>
               <button
                 type="button"
                 onClick={handleCopyNo}
-                className="p-1 hover:bg-slate-200 rounded text-slate-600 transition-colors"
+                className="p-1.5 hover:bg-primary/10 rounded-lg text-slate-400 hover:text-primary transition-colors border border-transparent hover:border-primary/20"
                 title="คัดลอกหมายเลข"
               >
-                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
               </button>
             </div>
           </div>
         </div>
 
         {/* Timer Alert */}
-        <div className="flex items-center justify-center gap-2 text-amber-800 bg-amber-50 py-2 px-3 rounded-xl text-xs font-semibold border border-amber-200/80">
-          <Clock className="w-4 h-4 text-amber-600 animate-spin" />
-          <span>กรุณาชำระเงินภายในเวลา: <strong className="font-mono text-amber-900">{formatTimer(secondsLeft)}</strong></span>
+        <div className="flex items-center justify-center gap-2 text-warning-dark bg-warning/10 py-3 px-4 rounded-xl text-[13px] font-bold border border-warning/20 shadow-sm relative z-10">
+          <Clock className="w-5 h-5 text-warning-dark animate-spin-slow" />
+          <span>กรุณาชำระเงินภายในเวลา: <strong className="font-mono text-warning-dark text-sm ml-1">{formatTimer(secondsLeft)}</strong></span>
         </div>
       </div>
 
-      {/* Simulator Payment Confirmation Button */}
-      <div className="space-y-2">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-xl border-t border-slate-200/60 z-40 max-w-[400px] mx-auto space-y-3">
         <button
           type="button"
           onClick={handleSimulatePayment}
           disabled={isProcessing}
-          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 transition-colors text-sm disabled:opacity-50"
+          className="w-full btn-primary py-4 px-6 text-[15px] shadow-premium flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed group"
         >
           {isProcessing ? (
             <span className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               กำลังตรวจสอบรายการชำระเงิน...
             </span>
           ) : (
             <>
-              <ShieldCheck className="w-5 h-5" />
-              <span>จำลองการสแกนชำระเงินสำเร็จ (Simulate Paid)</span>
+              <ShieldCheck className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              <span>จำลองการสแกนชำระเงินสำเร็จ</span>
             </>
           )}
         </button>
 
-        <p className="text-[10px] text-center text-slate-400 flex items-center justify-center gap-1">
-          <AlertCircle className="w-3 h-3" />
+        <p className="text-[11px] text-center text-slate-400 font-bold flex items-center justify-center gap-1.5">
+          <AlertCircle className="w-3.5 h-3.5" />
           ระบบจะสแกน Webhook ยืนยันสลิปอัตโนมัติภายใน 1-2 วินาที
         </p>
       </div>

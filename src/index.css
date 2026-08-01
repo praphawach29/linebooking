@@ -1,1 +1,72 @@
 @import "tailwindcss";
+
+@theme inline {
+  /* Colors - Premium Indigo & Emerald */
+  --color-primary: #4F46E5;
+  --color-primary-foreground: #ffffff;
+  --color-primary-hover: #4338CA;
+  
+  --color-secondary: #EEF2FF;
+  --color-secondary-foreground: #312E81;
+  
+  --color-success: #10B981;
+  --color-success-foreground: #ffffff;
+  --color-success-hover: #059669;
+
+  --color-danger: #EF4444;
+  --color-danger-foreground: #ffffff;
+  --color-danger-hover: #DC2626;
+
+  --color-warning: #F59E0B;
+  --color-warning-foreground: #ffffff;
+  
+  --color-background: #F8FAFC;
+  --color-foreground: #0F172A;
+  
+  --color-surface: #ffffff;
+  --color-surface-hover: #F1F5F9;
+  
+  --color-border: #E2E8F0;
+  --color-ring: #818CF8;
+
+  /* Additional Layout specific */
+  --color-admin-sidebar: #0B0F19;
+  --color-admin-sidebar-text: #94A3B8;
+  --color-admin-sidebar-active: #4F46E5;
+  
+  --color-merchant-sidebar: #1E293B;
+  --color-merchant-sidebar-text: #CBD5E1;
+  --color-merchant-sidebar-active: #10B981;
+
+  /* Shadows for depth */
+  --shadow-premium: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  --shadow-premium-hover: 0 10px 30px -4px rgba(0, 0, 0, 0.1);
+  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground antialiased font-sans;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-white/70 backdrop-blur-lg border border-white/40 shadow-glass rounded-2xl;
+  }
+  .premium-card {
+    @apply bg-white border border-border shadow-premium rounded-2xl transition-all duration-300 hover:shadow-premium-hover;
+  }
+  .btn-primary {
+    @apply bg-primary text-primary-foreground font-semibold px-4 py-2 rounded-xl transition-all duration-300 hover:bg-primary-hover active:scale-95 shadow-sm shadow-primary/25;
+  }
+  .btn-success {
+    @apply bg-success text-success-foreground font-semibold px-4 py-2 rounded-xl transition-all duration-300 hover:bg-success-hover active:scale-95 shadow-sm shadow-success/25;
+  }
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground font-semibold px-4 py-2 rounded-xl transition-all duration-300 hover:bg-secondary/70 active:scale-95;
+  }
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-xl border border-border bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all duration-200 placeholder:text-slate-400;
+  }
+}

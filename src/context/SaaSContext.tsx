@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
+import { supabase } from '../lib/supabase';
 import {
   Tenant,
   Service,
@@ -14,21 +15,12 @@ import {
   AvailableSlot,
   BookingStatus,
   PaymentMethod,
+  Membership,
+  PointTransaction,
+  Reward,
+  RewardRedemption,
 } from '../types';
-import {
-  INITIAL_TENANTS,
-  INITIAL_SERVICES,
-  INITIAL_SERVICE_ADDONS,
-  INITIAL_STAFFS,
-  INITIAL_COURTS,
-  INITIAL_BUSINESS_HOURS,
-  INITIAL_CANCELLATION_POLICIES,
-  INITIAL_BOOKINGS,
-  INITIAL_NOTIFICATIONS,
-  CURRENT_MOCK_USER,
-} from '../data/mockData';
 
-type ViewMode = 'liff' | 'merchant' | 'admin' | 'line_simulator';
 type MerchantTab =
   | 'dashboard'
   | 'calendar'
@@ -43,11 +35,14 @@ type MerchantTab =
   | 'onboarding';
 
 interface SaaSContextType {
+  isLoading: boolean;
+  error: string | null;
+
   tenants: Tenant[];
-  activeTenant: Tenant;
-  viewMode: ViewMode;
+  activeTenant: Tenant | null;
+
   merchantTab: MerchantTab;
-  currentUser: User;
+  currentUser: User | null;
   services: Service[];
   serviceAddons: ServiceAddon[];
   staffs: Staff[];
@@ -57,8 +52,11 @@ interface SaaSContextType {
   cancellationPolicies: CancellationPolicy[];
   notifications: NotificationItem[];
   
+  memberships: Membership[];
+  pointTransactions: PointTransaction[];
+  rewards: Reward[];
+  
   // Actions
-  setViewMode: (mode: ViewMode) => void;
   setMerchantTab: (tab: MerchantTab) => void;
   switchTenant: (tenantId: string) => void;
   
@@ -79,7 +77,7 @@ interface SaaSContextType {
     source?: 'line_liff' | 'walk_in' | 'admin';
     customerName?: string;
     customerPhone?: string;
-  }) => Booking;
+  }) => Promise<Booking | null>;
   
   updateBookingStatus: (
     bookingId: string,
@@ -100,53 +98,171 @@ interface SaaSContextType {
   markNotificationAsRead: (notificationId: string) => void;
   addOnboardingTenant: (tenantData: Partial<Tenant>, initialService: Partial<Service>) => void;
   updateCancellationPolicies: (policies: CancellationPolicy[]) => void;
+
+  // Loyalty Actions
+  fetchMembership: (userId: string) => Membership | undefined;
+  redeemReward: (rewardId: string, userId: string) => boolean;
+  completeBooking: (bookingId: string) => void;
 }
 
 const SaaSContext = createContext<SaaSContextType | undefined>(undefined);
 
 export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [tenants, setTenants] = useState<Tenant[]>(INITIAL_TENANTS);
-  const [activeTenantId, setActiveTenantId] = useState<string>('tenant-001');
-  const [viewMode, setViewMode] = useState<ViewMode>('liff');
-  const [merchantTab, setMerchantTab] = useState<MerchantTab>('dashboard');
-  const [currentUser] = useState<User>(CURRENT_MOCK_USER);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [services, setServices] = useState<Service[]>(INITIAL_SERVICES);
-  const [serviceAddons, setServiceAddons] = useState<ServiceAddon[]>(INITIAL_SERVICE_ADDONS);
-  const [staffs, setStaffs] = useState<Staff[]>(INITIAL_STAFFS);
-  const [courts, setCourts] = useState<Court[]>(INITIAL_COURTS);
-  const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
-  const [businessHours, setBusinessHours] = useState<BusinessHour[]>(INITIAL_BUSINESS_HOURS);
-  const [cancellationPolicies, setCancellationPolicies] = useState<CancellationPolicy[]>(INITIAL_CANCELLATION_POLICIES);
-  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [activeTenantId, setActiveTenantId] = useState<string | null>(null);
+
+  const [merchantTab, setMerchantTab] = useState<MerchantTab>('dashboard');
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  const [services, setServices] = useState<Service[]>([]);
+  const [serviceAddons, setServiceAddons] = useState<ServiceAddon[]>([]);
+  const [staffs, setStaffs] = useState<Staff[]>([]);
+  const [courts, setCourts] = useState<Court[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [businessHours, setBusinessHours] = useState<BusinessHour[]>([]);
+  const [cancellationPolicies, setCancellationPolicies] = useState<CancellationPolicy[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [memberships, setMemberships] = useState<Membership[]>([]);
+  const [pointTransactions, setPointTransactions] = useState<PointTransaction[]>([]);
+  const [rewards, setRewards] = useState<Reward[]>([]);
+
+  // Initial Data Fetching from Supabase
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setIsLoading(true);
+
+        // For now, we will fetch the first user to simulate a logged-in user
+        const { data: users, error: userError } = await supabase.from('users').select('*').limit(1);
+        if (users && users.length > 0) {
+          setCurrentUser(users[0] as unknown as User);
+        }
+
+        const [
+          { data: tenantsData },
+          { data: servicesData },
+          { data: addonsData },
+          { data: staffData },
+          { data: courtsData },
+          { data: hoursData },
+          { data: bookingsData },
+          { data: policiesData },
+          { data: rewardsData },
+        ] = await Promise.all([
+          supabase.from('tenants').select('*'),
+          supabase.from('services').select('*'),
+          supabase.from('service_addons').select('*'),
+          supabase.from('staff').select('*'),
+          supabase.from('courts').select('*'),
+          supabase.from('business_hours').select('*'),
+          supabase.from('bookings').select('*').order('created_at', { ascending: false }),
+          supabase.from('cancellation_policies').select('*'),
+          supabase.from('rewards').select('*'),
+        ]);
+
+        if (tenantsData) {
+          setTenants(tenantsData as unknown as Tenant[]);
+          if (tenantsData.length > 0) setActiveTenantId(tenantsData[0].id);
+        }
+        if (servicesData) setServices(servicesData as unknown as Service[]);
+        if (addonsData) setServiceAddons(addonsData as unknown as ServiceAddon[]);
+        if (staffData) setStaffs(staffData as unknown as Staff[]);
+        if (courtsData) setCourts(courtsData as unknown as Court[]);
+        if (hoursData) setBusinessHours(hoursData as unknown as BusinessHour[]);
+        if (bookingsData) setBookings(bookingsData as unknown as Booking[]);
+        if (policiesData) setCancellationPolicies(policiesData as unknown as CancellationPolicy[]);
+        if (rewardsData) setRewards(rewardsData as unknown as Reward[]);
+
+      } catch (err: any) {
+        console.error('Error fetching data from Supabase:', err);
+        setError(err.message || 'Failed to fetch data');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchData();
+  }, []);
 
   const activeTenant = useMemo(() => {
-    return tenants.find((t) => t.id === activeTenantId) || tenants[0];
+    return tenants.find((t) => t.id === activeTenantId) || null;
   }, [tenants, activeTenantId]);
 
   const tenantServices = useMemo(() => {
-    return services.filter((s) => s.tenantId === activeTenant.id);
-  }, [services, activeTenant.id]);
+    return activeTenant ? services.filter((s) => s.tenantId === activeTenant.id) : [];
+  }, [services, activeTenant]);
 
   const tenantServiceAddons = useMemo(() => {
-    return serviceAddons.filter((a) => a.tenantId === activeTenant.id && a.isActive);
-  }, [serviceAddons, activeTenant.id]);
+    return activeTenant ? serviceAddons.filter((a) => a.tenantId === activeTenant.id && a.isActive) : [];
+  }, [serviceAddons, activeTenant]);
 
   const tenantStaffs = useMemo(() => {
-    return staffs.filter((s) => s.tenantId === activeTenant.id);
-  }, [staffs, activeTenant.id]);
+    return activeTenant ? staffs.filter((s) => s.tenantId === activeTenant.id) : [];
+  }, [staffs, activeTenant]);
 
   const tenantCourts = useMemo(() => {
-    return courts.filter((c) => c.tenantId === activeTenant.id);
-  }, [courts, activeTenant.id]);
+    return activeTenant ? courts.filter((c) => c.tenantId === activeTenant.id) : [];
+  }, [courts, activeTenant]);
 
   const tenantBookings = useMemo(() => {
-    return bookings.filter((b) => b.tenantId === activeTenant.id);
-  }, [bookings, activeTenant.id]);
+    return activeTenant ? bookings.filter((b) => b.tenantId === activeTenant.id) : [];
+  }, [bookings, activeTenant]);
 
   const tenantNotifications = useMemo(() => {
-    return notifications.filter((n) => n.tenantId === activeTenant.id);
-  }, [notifications, activeTenant.id]);
+    return activeTenant ? notifications.filter((n) => n.tenantId === activeTenant.id) : [];
+  }, [notifications, activeTenant]);
+
+  const tenantRewards = useMemo(() => {
+    return activeTenant ? rewards.filter((r) => r.tenantId === activeTenant.id) : [];
+  }, [rewards, activeTenant]);
+
+  const fetchMembership = (userId: string) => {
+    if (!activeTenant) return undefined;
+    return memberships.find(m => m.tenantId === activeTenant.id && m.userId === userId);
+  };
+
+  const redeemReward = (rewardId: string, userId: string) => {
+    if (!activeTenant) return false;
+    const reward = rewards.find(r => r.id === rewardId);
+    const membership = memberships.find(m => m.tenantId === activeTenant.id && m.userId === userId);
+
+    if (!reward || !membership || membership.points < reward.pointsRequired) {
+      return false;
+    }
+
+    // Update local state (in a real app, this should be a Supabase RPC or transaction)
+    setMemberships(prev => prev.map(m => {
+      if (m.id === membership.id) {
+        return { ...m, points: m.points - reward.pointsRequired };
+      }
+      return m;
+    }));
+
+    const newTx: PointTransaction = {
+      id: `pt-${Date.now()}`,
+      membershipId: membership.id,
+      bookingId: undefined,
+      points: -reward.pointsRequired,
+      type: 'redeem',
+      description: `แลกของรางวัล: ${reward.name}`,
+      createdAt: new Date().toISOString(),
+    };
+    setPointTransactions(prev => [newTx, ...prev]);
+
+    return true;
+  };
+
+  const completeBooking = (bookingId: string) => {
+    if (!activeTenant) return;
+    const booking = bookings.find(b => b.id === bookingId);
+    if (!booking) return;
+
+    updateBookingStatus(bookingId, 'completed');
+    // Simplified loyalty calculation for now...
+  };
 
   const switchTenant = (tenantId: string) => {
     setActiveTenantId(tenantId);
@@ -223,7 +339,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return slots;
   };
 
-  const createBooking = (data: {
+  const createBooking = async (data: {
     serviceId: string;
     staffId?: string;
     courtId?: string;
@@ -236,8 +352,11 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     source?: 'line_liff' | 'walk_in' | 'admin';
     customerName?: string;
     customerPhone?: string;
-  }): Booking => {
-    const service = services.find((s) => s.id === data.serviceId)!;
+  }): Promise<Booking | null> => {
+    if (!activeTenant || !currentUser) return null;
+
+    const service = services.find((s) => s.id === data.serviceId);
+    if (!service) return null;
     const staff = staffs.find((st) => st.id === data.staffId);
     const court = courts.find((c) => c.id === data.courtId);
 
@@ -258,59 +377,56 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const refNo = `BK${data.bookingDate.replace(/-/g, '').slice(2)}${Math.floor(10 + Math.random() * 90)}`;
 
-    const newBooking: Booking = {
-      id: `bk-${Date.now()}`,
-      refNo,
-      tenantId: activeTenant.id,
-      userId: currentUser.id,
-      userName: data.customerName || currentUser.displayName,
-      userPhone: data.customerPhone || currentUser.phone || '081-234-5678',
-      userAvatar: currentUser.avatarUrl,
-      serviceId: service.id,
-      serviceName: service.name,
-      serviceDuration: totalDuration,
-      servicePrice: service.price,
-      staffId: staff?.id,
-      staffName: staff ? staff.name : (activeTenant.businessType === 'sports' ? 'ผู้ดูแลสนาม' : 'ช่างคนใดก็ได้'),
-      staffAvatar: staff?.avatarUrl,
-      courtId: court?.id,
-      courtName: court?.name,
-      bookingDate: data.bookingDate,
-      startTime: data.startTime,
-      endTime,
+    const newBooking = {
+      ref_no: refNo,
+      tenant_id: activeTenant.id,
+      user_id: currentUser.id,
+      user_name: data.customerName || currentUser.displayName,
+      user_phone: data.customerPhone || currentUser.phone || '081-234-5678',
+      service_id: service.id,
+      service_name: service.name,
+      service_duration: totalDuration,
+      service_price: service.price,
+      staff_id: staff?.id || null,
+      staff_name: staff ? staff.name : (activeTenant.businessType === 'sports' ? 'ผู้ดูแลสนาม' : 'ช่างคนใดก็ได้'),
+      court_id: court?.id || null,
+      court_name: court?.name || null,
+      booking_date: data.bookingDate,
+      start_time: data.startTime,
+      end_time: endTime,
       status: isPaid ? 'confirmed' : 'pending',
       price: totalPrice,
-      discountAmount: 0,
-      finalPrice: totalPrice,
-      depositAmount,
-      paymentStatus: isPaid ? 'paid' : 'unpaid',
-      paymentMethod: data.paymentMethod,
+      discount_amount: 0,
+      final_price: totalPrice,
+      deposit_amount: depositAmount,
+      payment_status: isPaid ? 'paid' : 'unpaid',
+      payment_method: data.paymentMethod,
       source: data.source || 'line_liff',
-      notes: data.notes,
-      addons: addons.length > 0 ? addons : undefined,
-      addonsTotalPrice: addonsPrice > 0 ? addonsPrice : undefined,
-      createdAt: new Date().toISOString(),
+      notes: data.notes || null,
+      addons: addons.length > 0 ? addons : null,
+      addons_total_price: addonsPrice > 0 ? addonsPrice : 0,
     };
 
-    setBookings((prev) => [newBooking, ...prev]);
+    try {
+      const { data: insertedData, error } = await supabase
+        .from('bookings')
+        .insert([newBooking])
+        .select()
+        .single();
 
-    // Create Notification
-    const newNotif: NotificationItem = {
-      id: `notif-${Date.now()}`,
-      tenantId: activeTenant.id,
-      userId: currentUser.id,
-      bookingId: newBooking.id,
-      title: 'การจองคิวใหม่สำเร็จ 🟢',
-      message: `บริการ ${service.name} วันที่ ${data.bookingDate} เวลา ${data.startTime} น. ได้รับการจองแล้ว`,
-      type: 'booking_confirmation',
-      channel: 'line',
-      status: 'unread',
-      createdAt: new Date().toISOString(),
-    };
-
-    setNotifications((prev) => [newNotif, ...prev]);
-
-    return newBooking;
+      if (error) {
+        console.error('Error inserting booking:', error);
+        return null;
+      }
+      
+      const savedBooking = insertedData as unknown as Booking;
+      setBookings((prev) => [savedBooking, ...prev]);
+      
+      return savedBooking;
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      return null;
+    }
   };
 
   const updateBookingStatus = (bookingId: string, status: BookingStatus, reason?: string) => {
@@ -543,7 +659,6 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       value={{
         tenants,
         activeTenant,
-        viewMode,
         merchantTab,
         currentUser,
         services: tenantServices,
@@ -554,7 +669,9 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         businessHours,
         cancellationPolicies,
         notifications: tenantNotifications,
-        setViewMode,
+        memberships,
+        pointTransactions,
+        rewards: tenantRewards,
         setMerchantTab,
         switchTenant,
         getAvailableSlots,
@@ -572,6 +689,9 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         markNotificationAsRead,
         addOnboardingTenant,
         updateCancellationPolicies,
+        fetchMembership,
+        redeemReward,
+        completeBooking,
       }}
     >
       {children}

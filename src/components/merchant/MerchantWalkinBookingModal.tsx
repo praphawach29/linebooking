@@ -18,11 +18,11 @@ export const MerchantWalkinBookingModal: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [successMsg, setSuccessMsg] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerName || !selectedServiceId) return;
 
-    createBooking({
+    await createBooking({
       serviceId: selectedServiceId,
       staffId: selectedStaffId || undefined,
       bookingDate,

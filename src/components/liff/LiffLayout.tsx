@@ -8,7 +8,6 @@ import {
   ChevronLeft,
   Share2,
   X,
-  Smartphone,
 } from 'lucide-react';
 import { LiffHome } from './LiffHome';
 import { LiffServiceDetail } from './LiffServiceDetail';
@@ -20,6 +19,8 @@ import { LiffBookingConfirmation } from './LiffBookingConfirmation';
 import { LiffMyBookings } from './LiffMyBookings';
 import { LiffNotifications } from './LiffNotifications';
 import { LiffProfile } from './LiffProfile';
+import LiffRewards from './LiffRewards';
+import LiffPointHistory from './LiffPointHistory';
 import { Service, Staff, Booking, SelectedAddon, PaymentMethod } from '../../types';
 
 export type LiffStep =
@@ -32,7 +33,9 @@ export type LiffStep =
   | 'booking_confirmation'
   | 'my_bookings'
   | 'notifications'
-  | 'profile';
+  | 'profile'
+  | 'rewards'
+  | 'point_history';
 
 export const LiffLayout: React.FC = () => {
   const { activeTenant, notifications } = useSaaS();
@@ -105,22 +108,22 @@ export const LiffLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-slate-100 dark:bg-slate-950 py-6 px-2 sm:px-4 flex justify-center items-start">
+    <div className="min-h-[calc(100vh-5rem)] bg-transparent py-4 sm:py-8 px-2 sm:px-4 flex justify-center items-start">
       
       {/* Smartphone Viewport Simulation Frame */}
-      <div className="w-full max-w-[420px] bg-white text-slate-900 rounded-[38px] shadow-2xl overflow-hidden border-[8px] border-slate-900 min-h-[820px] flex flex-col relative font-sans">
+      <div className="w-full max-w-[400px] bg-white text-slate-900 rounded-[44px] shadow-2xl overflow-hidden border-[10px] border-slate-900 min-h-[820px] max-h-[850px] flex flex-col relative font-sans ring-4 ring-white/10">
         
         {/* Phone Speaker Notch */}
-        <div className="bg-slate-900 h-6 w-full flex justify-center items-center relative z-40">
-          <div className="w-20 h-3.5 bg-slate-900 rounded-b-xl flex items-center justify-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-700"></div>
-            <div className="w-10 h-1 bg-slate-800 rounded-full"></div>
+        <div className="bg-slate-900 h-7 w-full flex justify-center items-center relative z-40">
+          <div className="w-28 h-5 bg-slate-900 rounded-b-2xl flex items-center justify-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-slate-800 border-2 border-slate-700 shadow-inner"></div>
+            <div className="w-12 h-1.5 bg-slate-800 rounded-full"></div>
           </div>
         </div>
 
         {/* LIFF Header */}
-        <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-xs">
-          <div className="flex items-center gap-2">
+        <div className="bg-primary text-white px-5 py-4 flex items-center justify-between sticky top-0 z-30 shadow-md">
+          <div className="flex items-center gap-3">
             {currentStep !== 'home' && currentStep !== 'my_bookings' && currentStep !== 'notifications' && currentStep !== 'profile' && (
               <button
                 onClick={() => {
@@ -131,7 +134,7 @@ export const LiffLayout: React.FC = () => {
                   else if (currentStep === 'promptpay_payment') setCurrentStep('booking_summary');
                   else setCurrentStep('home');
                 }}
-                className="p-1 rounded-full hover:bg-slate-100 text-slate-700 transition-colors"
+                className="p-1.5 -ml-2 rounded-full hover:bg-white/20 text-white transition-colors"
               >
                 <ChevronLeft className="w-6 h-6" />
               </button>
@@ -139,39 +142,39 @@ export const LiffLayout: React.FC = () => {
             <img
               src={activeTenant.logoUrl}
               alt={activeTenant.name}
-              className="w-8 h-8 rounded-full object-cover border border-slate-200"
+              className="w-9 h-9 rounded-full object-cover border-2 border-white/20 shadow-sm"
             />
             <div>
-              <h1 className="font-bold text-sm text-slate-900 truncate max-w-[170px]">
+              <h1 className="font-extrabold text-[15px] truncate max-w-[150px]">
                 {activeTenant.name}
               </h1>
-              <p className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                LINE Official Account LIFF
+              <p className="text-[10px] text-blue-200 font-semibold flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+                ออนไลน์
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1 text-slate-500">
+          <div className="flex items-center gap-0.5 text-white">
             <button
               onClick={() => alert(`แชร์ลิงก์ LIFF App: https://liff.line.me/${activeTenant.liffId || '2001234567-AbCdEfGh'}`)}
-              className="p-1.5 hover:bg-slate-100 rounded-full transition-colors"
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
               title="แชร์ลิงก์"
             >
-              <Share2 className="w-4 h-4" />
+              <Share2 className="w-5 h-5" />
             </button>
             <button
               onClick={() => setCurrentStep('home')}
-              className="p-1.5 hover:bg-slate-100 rounded-full transition-colors"
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
               title="ปิด LIFF"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
         {/* LIFF Main Scrollable Body */}
-        <div className="flex-1 overflow-y-auto bg-slate-50 pb-20 scrollbar-none">
+        <div className="flex-1 overflow-y-auto bg-slate-50 pb-24 scrollbar-none">
           {currentStep === 'home' && (
             <LiffHome onSelectService={handleSelectService} />
           )}
@@ -241,62 +244,66 @@ export const LiffLayout: React.FC = () => {
 
           {currentStep === 'notifications' && <LiffNotifications />}
 
-          {currentStep === 'profile' && <LiffProfile />}
+          {currentStep === 'profile' && <LiffProfile onNavigate={(step) => setCurrentStep(step)} />}
+
+          {currentStep === 'rewards' && <LiffRewards onBack={() => setCurrentStep('profile')} />}
+          
+          {currentStep === 'point_history' && <LiffPointHistory onBack={() => setCurrentStep('profile')} />}
         </div>
 
-        {/* LIFF Bottom Navigation Bar */}
-        <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-3 py-2 flex justify-around items-center z-40 shadow-lg">
+        {/* Floating Bottom Navigation Bar */}
+        <div className="absolute bottom-5 left-4 right-4 bg-white/90 backdrop-blur-xl border border-border/50 rounded-3xl px-2 py-2 flex justify-around items-center z-40 shadow-premium">
           <button
             onClick={() => handleTabChange('home')}
-            className={`flex flex-col items-center gap-1 text-[11px] font-medium transition-colors ${
-              activeTab === 'home' ? 'text-emerald-600 font-bold' : 'text-slate-500 hover:text-slate-800'
+            className={`flex flex-col items-center gap-1 p-2 w-16 transition-all duration-300 ${
+              activeTab === 'home' ? 'text-primary scale-110' : 'text-slate-400 hover:text-slate-600'
             }`}
           >
-            <Home className="w-5 h-5" />
-            <span>หน้าหลัก</span>
+            <Home className={`w-5 h-5 ${activeTab === 'home' ? 'fill-primary/20' : ''}`} />
+            <span className={`text-[10px] ${activeTab === 'home' ? 'font-bold' : 'font-medium'}`}>หน้าแรก</span>
           </button>
 
           <button
             onClick={() => handleTabChange('my_bookings')}
-            className={`flex flex-col items-center gap-1 text-[11px] font-medium transition-colors ${
-              activeTab === 'my_bookings' ? 'text-emerald-600 font-bold' : 'text-slate-500 hover:text-slate-800'
+            className={`flex flex-col items-center gap-1 p-2 w-16 transition-all duration-300 ${
+              activeTab === 'my_bookings' ? 'text-primary scale-110' : 'text-slate-400 hover:text-slate-600'
             }`}
           >
-            <Calendar className="w-5 h-5" />
-            <span>การจองของฉัน</span>
+            <Calendar className={`w-5 h-5 ${activeTab === 'my_bookings' ? 'fill-primary/20' : ''}`} />
+            <span className={`text-[10px] ${activeTab === 'my_bookings' ? 'font-bold' : 'font-medium'}`}>คิวของฉัน</span>
           </button>
 
           <button
             onClick={() => handleTabChange('notifications')}
-            className={`flex flex-col items-center gap-1 text-[11px] font-medium transition-colors relative ${
-              activeTab === 'notifications' ? 'text-emerald-600 font-bold' : 'text-slate-500 hover:text-slate-800'
+            className={`flex flex-col items-center gap-1 p-2 w-16 transition-all duration-300 relative ${
+              activeTab === 'notifications' ? 'text-primary scale-110' : 'text-slate-400 hover:text-slate-600'
             }`}
           >
             <div className="relative">
-              <Bell className="w-5 h-5" />
+              <Bell className={`w-5 h-5 ${activeTab === 'notifications' ? 'fill-primary/20' : ''}`} />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                <span className="absolute -top-1.5 -right-1.5 bg-danger text-white text-[9px] w-[18px] h-[18px] rounded-full flex items-center justify-center font-bold ring-2 ring-white">
                   {unreadCount}
                 </span>
               )}
             </div>
-            <span>แจ้งเตือน</span>
+            <span className={`text-[10px] ${activeTab === 'notifications' ? 'font-bold' : 'font-medium'}`}>แจ้งเตือน</span>
           </button>
 
           <button
             onClick={() => handleTabChange('profile')}
-            className={`flex flex-col items-center gap-1 text-[11px] font-medium transition-colors ${
-              activeTab === 'profile' ? 'text-emerald-600 font-bold' : 'text-slate-500 hover:text-slate-800'
+            className={`flex flex-col items-center gap-1 p-2 w-16 transition-all duration-300 ${
+              activeTab === 'profile' ? 'text-primary scale-110' : 'text-slate-400 hover:text-slate-600'
             }`}
           >
-            <UserIcon className="w-5 h-5" />
-            <span>โปรไฟล์</span>
+            <UserIcon className={`w-5 h-5 ${activeTab === 'profile' ? 'fill-primary/20' : ''}`} />
+            <span className={`text-[10px] ${activeTab === 'profile' ? 'font-bold' : 'font-medium'}`}>ฉัน</span>
           </button>
         </div>
 
         {/* Bottom Home Indicator Bar */}
-        <div className="bg-white h-4 w-full flex justify-center items-center pb-1">
-          <div className="w-32 h-1 bg-slate-300 rounded-full"></div>
+        <div className="bg-transparent absolute bottom-0 h-4 w-full flex justify-center items-center pb-1 z-50 pointer-events-none">
+          <div className="w-32 h-1.5 bg-slate-900 rounded-full"></div>
         </div>
 
       </div>

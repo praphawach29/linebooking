@@ -7,8 +7,6 @@ import {
   Clock,
   DollarSign,
   TrendingUp,
-  UserCheck,
-  UserX,
   AlertCircle,
   Eye,
   PlusCircle,
@@ -25,8 +23,7 @@ export const MerchantDashboard: React.FC = () => {
 
   const confirmedCount = todayBookings.filter((b) => b.status === 'confirmed' || b.status === 'checked_in').length;
   const pendingCount = todayBookings.filter((b) => b.status === 'pending').length;
-  const cancelledCount = todayBookings.filter((b) => b.status === 'cancelled').length;
-
+  
   const todayRevenue = todayBookings
     .filter((b) => b.status !== 'cancelled')
     .reduce((sum, b) => sum + b.finalPrice, 0);
@@ -39,109 +36,116 @@ export const MerchantDashboard: React.FC = () => {
       fullName: svc.name,
       count: svcBookings.length,
       revenue: svcBookings.reduce((sum, b) => sum + b.finalPrice, 0),
-      color: svc.colorCode,
+      color: svc.colorCode || '#4F46E5', // Use primary as fallback
     };
   });
 
   const getStatusBadge = (status: Booking['status']) => {
     switch (status) {
       case 'confirmed':
-        return <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-0.5 rounded-full border border-emerald-200">ยืนยันแล้ว</span>;
+        return <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-lg border border-emerald-200 shadow-sm">ยืนยันแล้ว</span>;
       case 'checked_in':
-        return <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-0.5 rounded-full border border-blue-200">เช็คอินแล้ว</span>;
+        return <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-lg border border-blue-200 shadow-sm">เช็คอินแล้ว</span>;
       case 'completed':
-        return <span className="bg-slate-100 text-slate-700 text-xs font-bold px-2.5 py-0.5 rounded-full border border-slate-200">เสร็จสิ้น</span>;
+        return <span className="bg-slate-100 text-slate-700 text-xs font-bold px-2.5 py-1 rounded-lg border border-slate-200 shadow-sm">เสร็จสิ้น</span>;
       case 'pending':
-        return <span className="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-0.5 rounded-full border border-amber-200">รอชำระเงิน</span>;
+        return <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2.5 py-1 rounded-lg border border-amber-200 shadow-sm">รอชำระเงิน</span>;
       case 'cancelled':
-        return <span className="bg-red-100 text-red-800 text-xs font-bold px-2.5 py-0.5 rounded-full border border-red-200">ยกเลิก</span>;
+        return <span className="bg-red-100 text-red-700 text-xs font-bold px-2.5 py-1 rounded-lg border border-red-200 shadow-sm">ยกเลิก</span>;
       default:
         return null;
     }
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6">
       
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-6 sm:px-8">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-extrabold text-slate-900">
-              ภาพรวมแดชบอร์ด ({activeTenant.name})
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-extrabold text-foreground tracking-tight">
+              ภาพรวมแดชบอร์ด
             </h1>
-            <span className="bg-emerald-500/10 text-emerald-600 text-xs font-bold px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+            <span className="bg-primary/10 text-primary text-xs font-extrabold px-3 py-1 rounded-full border border-primary/20 shadow-sm">
               {activeTenant.businessType}
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            สรุปยอดคิวจอง รายได้ประจำวัน และสถิติบริการแบบ Real-time
+          <p className="text-sm text-slate-500 mt-1 font-medium">
+            สรุปยอดคิวจอง รายได้ประจำวัน และสถิติบริการของร้าน {activeTenant.name} แบบ Real-time
           </p>
         </div>
 
         <button
           onClick={() => setMerchantTab('walkin')}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 transition-colors"
+          className="btn-primary flex items-center justify-center gap-2 py-3 px-6 text-sm"
         >
-          <PlusCircle className="w-4 h-4" />
-          <span>+ ลงคิว Walk-in ใหม่</span>
+          <PlusCircle className="w-5 h-5" />
+          <span>เพิ่มคิวใหม่ (Walk-in)</span>
         </button>
       </div>
 
       {/* KPI Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
         
-        {/* Card 1: Today's Bookings */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400">คิวจองวันนี้ทั้งหมด</span>
-            <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
-              <Calendar className="w-5 h-5" />
+        <div className="premium-card p-6 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm font-bold text-slate-500">คิวจองวันนี้ทั้งหมด</span>
+            <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl shadow-inner">
+              <Calendar className="w-6 h-6" />
             </div>
           </div>
-          <p className="text-2xl font-black text-slate-900">{todayBookings.length} คิว</p>
-          <p className="text-[11px] text-slate-500 flex items-center gap-1">
-            <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-            <span>อัปเดตล่าสุด ณ ปัจจุบัน</span>
-          </p>
+          <div>
+            <p className="text-3xl font-black text-foreground">{todayBookings.length} <span className="text-base font-bold text-slate-400">คิว</span></p>
+            <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-2 font-medium">
+              <TrendingUp className="w-4 h-4 text-success" />
+              <span className="text-success font-semibold">อัปเดตล่าสุด ณ ปัจจุบัน</span>
+            </p>
+          </div>
         </div>
 
-        {/* Card 2: Confirmed */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400">ยืนยันคิวแล้ว</span>
-            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
-              <CheckCircle2 className="w-5 h-5" />
+        <div className="premium-card p-6 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm font-bold text-slate-500">ยืนยันคิวแล้ว</span>
+            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl shadow-inner">
+              <CheckCircle2 className="w-6 h-6" />
             </div>
           </div>
-          <p className="text-2xl font-black text-emerald-600">{confirmedCount} คิว</p>
-          <p className="text-[11px] text-slate-500">พร้อมเข้ารับบริการตามนัด</p>
+          <div>
+            <p className="text-3xl font-black text-success">{confirmedCount} <span className="text-base font-bold text-slate-400">คิว</span></p>
+            <p className="text-xs text-slate-500 mt-2 font-medium">พร้อมเข้ารับบริการตามนัด</p>
+          </div>
         </div>
 
-        {/* Card 3: Pending */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400">รอชำระมัดจำ</span>
-            <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
-              <Clock className="w-5 h-5" />
+        <div className="premium-card p-6 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm font-bold text-slate-500">รอชำระมัดจำ</span>
+            <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl shadow-inner">
+              <Clock className="w-6 h-6" />
             </div>
           </div>
-          <p className="text-2xl font-black text-amber-600">{pendingCount} คิว</p>
-          <p className="text-[11px] text-slate-500">รอสแกน PromptPay QR</p>
+          <div>
+            <p className="text-3xl font-black text-warning">{pendingCount} <span className="text-base font-bold text-slate-400">คิว</span></p>
+            <p className="text-xs text-slate-500 mt-2 font-medium">รอสแกน PromptPay QR</p>
+          </div>
         </div>
 
-        {/* Card 4: Today Revenue */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400">รายได้วันนี้</span>
-            <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
-              <DollarSign className="w-5 h-5" />
+        <div className="premium-card p-6 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm font-bold text-slate-500">รายได้วันนี้ (โดยประมาณ)</span>
+            <div className="p-3 bg-primary/10 text-primary rounded-2xl shadow-inner">
+              <DollarSign className="w-6 h-6" />
             </div>
           </div>
-          <p className="text-2xl font-black text-slate-900">฿{(todayRevenue ?? 0).toLocaleString()}</p>
-          <p className="text-[11px] text-emerald-600 font-semibold">
-            รวมมัดจำออนไลน์ & หน้าร้าน
-          </p>
+          <div>
+            <p className="text-3xl font-black text-foreground">
+              <span className="text-xl text-slate-400">฿</span>
+              {(todayRevenue ?? 0).toLocaleString()}
+            </p>
+            <p className="text-xs text-primary font-bold mt-2">
+              รวมมัดจำออนไลน์ & หน้าร้าน
+            </p>
+          </div>
         </div>
 
       </div>
@@ -150,61 +154,67 @@ export const MerchantDashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Today's Appointments Feed (2 cols) */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-emerald-600" />
+        <div className="lg:col-span-2 premium-card p-6 sm:p-8">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-extrabold text-foreground flex items-center gap-2">
+              <Clock className="w-5 h-5 text-primary" />
               ตารางคิวจองวันนี้ ({todayStr})
             </h3>
             <button
               onClick={() => setMerchantTab('calendar')}
-              className="text-xs text-emerald-600 hover:text-emerald-700 font-bold"
+              className="text-sm text-primary hover:text-primary-hover font-bold transition-colors bg-primary/5 hover:bg-primary/10 px-4 py-2 rounded-xl"
             >
-              ดูในรูปแบบปฏิทิน &rarr;
+              ดูปฏิทินทั้งหมด &rarr;
             </button>
           </div>
 
           {todayBookings.length === 0 ? (
-            <div className="p-8 text-center border-2 border-dashed border-slate-200 rounded-2xl">
-              <p className="text-xs text-slate-500 font-medium">ยังไม่มีคิวจองสำหรับวันนี้</p>
+            <div className="p-12 text-center border-2 border-dashed border-border rounded-3xl bg-slate-50/50">
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Calendar className="w-8 h-8 text-slate-400" />
+              </div>
+              <p className="text-sm text-slate-500 font-bold">ยังไม่มีคิวจองสำหรับวันนี้</p>
+              <p className="text-xs text-slate-400 mt-2">เริ่มต้นโดยการเพิ่มคิว Walk-in ให้ลูกค้า</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {todayBookings.map((booking) => (
                 <div
                   key={booking.id}
                   onClick={() => setSelectedBooking(booking)}
-                  className="p-4 rounded-2xl border border-slate-200/80 hover:border-emerald-500 transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 group bg-slate-50/50 hover:bg-white"
+                  className="p-4 sm:p-5 rounded-2xl border border-border hover:border-primary/50 transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4 group bg-white shadow-sm hover:shadow-md"
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="bg-slate-900 text-white px-3 py-2 rounded-xl text-center flex-shrink-0">
-                      <span className="text-xs font-bold block">{booking.startTime}</span>
-                      <span className="text-[9px] text-slate-300">ถึง {booking.endTime}</span>
+                  <div className="flex items-start gap-4">
+                    <div className="bg-foreground text-white px-4 py-3 rounded-xl text-center flex-shrink-0 min-w-[90px] shadow-sm">
+                      <span className="text-sm font-black block">{booking.startTime}</span>
+                      <span className="text-[10px] text-slate-400 font-medium">ถึง {booking.endTime}</span>
                     </div>
 
-                    <div className="space-y-0.5">
+                    <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-xs text-slate-900 group-hover:text-emerald-600 transition-colors">
+                        <span className="font-extrabold text-sm text-foreground group-hover:text-primary transition-colors">
                           {booking.userName}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-mono">({booking.userPhone})</span>
+                        <span className="text-[11px] text-slate-400 font-mono bg-slate-100 px-2 py-0.5 rounded-md">{booking.userPhone}</span>
                       </div>
-                      <p className="text-xs font-medium text-slate-700">{booking.serviceName}</p>
-                      <p className="text-[11px] text-slate-500">
-                        ช่าง: <strong className="text-slate-800">{booking.staffName}</strong> | แหล่งที่มา: {booking.source}
+                      <p className="text-sm font-bold text-slate-600">{booking.serviceName}</p>
+                      <p className="text-[12px] text-slate-500 font-medium flex items-center gap-2">
+                        <span>ช่าง: <strong className="text-slate-800">{booking.staffName}</strong></span>
+                        <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                        <span>มาทาง: {booking.source}</span>
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200">
-                    <div className="text-right">
-                      <p className="text-xs font-extrabold text-slate-900">
+                  <div className="flex items-center justify-between sm:justify-end gap-4 pt-4 sm:pt-0 border-t sm:border-t-0 border-border">
+                    <div className="text-right flex flex-col items-end gap-1.5">
+                      <p className="text-sm font-black text-foreground">
                         ฿{(booking?.finalPrice ?? booking?.price ?? 0).toLocaleString()}
                       </p>
                       {getStatusBadge(booking.status)}
                     </div>
-                    <button className="p-2 text-slate-400 group-hover:text-emerald-600 hover:bg-slate-100 rounded-xl transition-colors">
-                      <Eye className="w-4 h-4" />
+                    <button className="w-10 h-10 flex items-center justify-center text-slate-400 group-hover:text-primary hover:bg-primary/10 rounded-xl transition-all">
+                      <Eye className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
@@ -214,27 +224,28 @@ export const MerchantDashboard: React.FC = () => {
         </div>
 
         {/* Top Services Chart (1 col) */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4 flex flex-col justify-between">
+        <div className="premium-card p-6 flex flex-col justify-between">
           <div>
-            <h3 className="text-sm font-extrabold text-slate-900 mb-1">
-              บริการยอดนิยม (Most Popular Services)
+            <h3 className="text-lg font-extrabold text-foreground mb-1">
+              บริการยอดนิยม
             </h3>
-            <p className="text-xs text-slate-500 mb-4">
-              จำนวนการจองแยกตามหมวดหมู่บริการ
+            <p className="text-xs text-slate-500 mb-6 font-medium">
+              สถิติการถูกจองแยกตามหมวดหมู่บริการ
             </p>
 
-            <div className="h-56 w-full">
+            <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={serviceStats} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} />
-                  <YAxis tick={{ fontSize: 10 }} />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 'bold', fill: '#64748B' }} interval={0} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fontWeight: 'bold', fill: '#64748B' }} axisLine={false} tickLine={false} />
                   <Tooltip
-                    contentStyle={{ borderRadius: '12px', fontSize: '11px', fontWeight: 'bold' }}
+                    contentStyle={{ borderRadius: '16px', fontSize: '12px', fontWeight: 'bold', border: 'none', boxShadow: '0 10px 30px -5px rgba(0,0,0,0.1)' }}
                     formatter={(val: any) => [`${val} คิว`, 'จำนวนจอง']}
+                    cursor={{fill: '#F1F5F9'}}
                   />
-                  <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                  <Bar dataKey="count" radius={[6, 6, 6, 6]} barSize={32}>
                     {serviceStats.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color || '#3B82F6'} />
+                      <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -242,10 +253,10 @@ export const MerchantDashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 text-xs text-slate-500 space-y-1">
-            <div className="flex justify-between font-semibold text-slate-700">
-              <span>จำนวนบริการทั้งหมดในระบบ</span>
-              <span>{services.length} บริการ</span>
+          <div className="pt-4 border-t border-border text-sm text-slate-500 space-y-1 mt-4">
+            <div className="flex justify-between font-bold text-slate-700 bg-slate-50 p-3 rounded-xl">
+              <span>บริการในระบบทั้งหมด</span>
+              <span className="text-primary">{services.length} บริการ</span>
             </div>
           </div>
         </div>

@@ -9,6 +9,9 @@ import {
   CancellationPolicy,
   NotificationItem,
   User,
+  Membership,
+  PointTransaction,
+  Reward,
 } from '../types';
 
 export const INITIAL_TENANTS: Tenant[] = [
@@ -980,4 +983,48 @@ export const INITIAL_COURTS: Court[] = [
     imageUrl: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=500&auto=format&fit=crop&q=80',
     isActive: true,
   },
+];
+
+export const INITIAL_MEMBERSHIPS: Membership[] = [
+  {
+    id: 'mem-001',
+    tenantId: 'tenant-001',
+    userId: 'usr-999',
+    tier: 'Gold',
+    points: 1250,
+    totalPointsEarned: 2500,
+    createdAt: '2026-05-10T10:00:00Z',
+  }
+];
+
+export const INITIAL_POINT_TRANSACTIONS: PointTransaction[] = [
+  {
+    id: 'pt-001',
+    membershipId: 'mem-001',
+    amount: 100,
+    type: 'earn',
+    description: 'Earned from booking BK26080101',
+    createdAt: new Date().toISOString(),
+  }
+];
+
+export const INITIAL_REWARDS: Reward[] = [
+  {
+    id: 'rew-001',
+    tenantId: 'tenant-001',
+    name: 'ส่วนลด 10% สำหรับการนวดครั้งต่อไป',
+    description: 'ใช้เป็นส่วนลด 10% ในการจองบริการนวดทุกประเภท',
+    pointsRequired: 500,
+    imageUrl: 'https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?w=500&auto=format&fit=crop&q=80',
+    isActive: true,
+  },
+  {
+    id: 'rew-002',
+    tenantId: 'tenant-001',
+    name: 'ฟรี นวดประคบสมุนไพร 30 นาที',
+    description: 'รับบริการนวดประคบสมุนไพรฟรี 30 นาที (ต้องจองพร้อมบริการหลัก)',
+    pointsRequired: 1200,
+    imageUrl: 'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=500&auto=format&fit=crop&q=80',
+    isActive: true,
+  }
 ];

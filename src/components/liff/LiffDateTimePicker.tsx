@@ -13,7 +13,6 @@ import {
   Grid,
   ListFilter,
   Sparkles,
-  Info,
   CheckCircle2,
   XCircle,
 } from 'lucide-react';
@@ -53,7 +52,7 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
 
   const monthNamesThai = [
     'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตูลากร', 'พฤศจิกายน', 'ธันวาคม'
+    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
   ];
 
   const shortMonthNamesThai = [
@@ -133,65 +132,66 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
   const availableCount = slots.filter((s) => s.isAvailable).length;
 
   return (
-    <div className="p-4 space-y-4 font-sans text-slate-800">
+    <div className="p-4 space-y-5 pb-28">
       {/* Service & Staff Info Header Card */}
-      <div className="bg-gradient-to-br from-emerald-600 to-teal-700 text-white p-4 rounded-2xl shadow-md space-y-2">
-        <div className="flex items-center justify-between text-xs opacity-90 border-b border-white/20 pb-2">
-          <span className="font-semibold flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5" />
+      <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-5 rounded-[24px] shadow-premium space-y-3 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-10 -mt-10"></div>
+        <div className="flex items-center justify-between text-xs opacity-90 border-b border-white/10 pb-3 relative z-10">
+          <span className="font-extrabold flex items-center gap-1.5 text-primary-light">
+            <Sparkles className="w-4 h-4" />
             เลือกรอบเวลาการจอง
           </span>
-          <span className="bg-white/20 px-2.5 py-0.5 rounded-full font-bold">
+          <span className="bg-white/10 px-3 py-1 rounded-full font-black text-white backdrop-blur-md">
             {totalDurationMinutes} นาที
           </span>
         </div>
-        <div className="flex items-center justify-between pt-1">
+        <div className="flex items-center justify-between pt-1 relative z-10">
           <div>
-            <h2 className="font-extrabold text-base leading-tight truncate max-w-[220px]">
+            <h2 className="font-black text-[15px] leading-tight truncate max-w-[200px]">
               {service.name}
             </h2>
-            <p className="text-xs text-emerald-100 font-medium mt-0.5">
-              ผู้ให้บริการ: {staff ? staff.name : 'ช่างคนใดก็ได้ (จัดสรรให้อัตโนมัติ)'}
+            <p className="text-[11px] text-slate-300 font-medium mt-1">
+              ผู้ให้บริการ: <span className="font-bold text-white">{staff ? staff.name : 'จัดสรรให้อัตโนมัติ'}</span>
             </p>
           </div>
           <div className="text-right">
-            <span className="text-xs opacity-80 block">
+            <span className="text-[10px] text-slate-400 block font-bold">
               {selectedAddons.length > 0 ? 'ราคารวม' : 'ค่าบริการ'}
             </span>
-            <span className="text-lg font-black text-amber-300">
-              ฿{totalPrice.toLocaleString()}
+            <span className="text-xl font-black text-primary-light drop-shadow-sm">
+              <span className="text-sm mr-0.5">฿</span>{totalPrice.toLocaleString()}
             </span>
           </div>
         </div>
       </div>
 
       {/* Calendar View Toggle Header */}
-      <div className="flex items-center justify-between pt-1">
-        <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-          <CalendarIcon className="w-4 h-4 text-emerald-600" />
+      <div className="flex items-center justify-between pt-2">
+        <h3 className="text-[13px] font-black text-foreground flex items-center gap-2">
+          <CalendarIcon className="w-4 h-4 text-primary" />
           เลือกวันที่ต้องการเข้าใช้บริการ
         </h3>
-        <div className="bg-slate-200/80 p-0.5 rounded-xl flex gap-1 text-[11px] font-bold">
+        <div className="bg-slate-100 p-1 rounded-xl flex gap-1 text-[11px] font-black shadow-inner">
           <button
             onClick={() => setViewType('strip')}
-            className={`px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all ${
+            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all duration-300 ${
               viewType === 'strip'
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white text-primary shadow-sm scale-[1.02]'
+                : 'text-slate-500 hover:text-slate-900'
             }`}
           >
-            <ListFilter className="w-3 h-3" />
+            <ListFilter className="w-3.5 h-3.5" />
             รายวัน
           </button>
           <button
             onClick={() => setViewType('month')}
-            className={`px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all ${
+            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all duration-300 ${
               viewType === 'month'
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white text-primary shadow-sm scale-[1.02]'
+                : 'text-slate-500 hover:text-slate-900'
             }`}
           >
-            <Grid className="w-3 h-3" />
+            <Grid className="w-3.5 h-3.5" />
             ปฏิทิน
           </button>
         </div>
@@ -200,7 +200,7 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
       {/* View 1: Scrollable Date Strip View */}
       {viewType === 'strip' && (
         <div className="space-y-2">
-          <div className="flex gap-2 overflow-x-auto pb-1.5 scrollbar-none snap-x">
+          <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-none snap-x">
             {dateStrip.map((item) => {
               const isSelected = item.dateStr === activeDate;
               return (
@@ -210,23 +210,25 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
                     setActiveDate(item.dateStr);
                     setActiveTime(''); // Reset time when date changes
                   }}
-                  className={`flex-shrink-0 flex flex-col items-center justify-center w-14 py-2.5 rounded-2xl border transition-all snap-start ${
+                  className={`flex-shrink-0 flex flex-col items-center justify-center w-16 py-3 rounded-2xl border transition-all duration-300 snap-start ${
                     isSelected
-                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm ring-2 ring-emerald-500/20'
-                      : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                      ? 'bg-primary text-white border-primary shadow-[0_4px_12px_rgba(79,70,229,0.3)] ring-2 ring-primary/20 scale-[1.05]'
+                      : 'bg-white text-slate-700 border-border hover:border-primary/30 shadow-sm'
                   }`}
                 >
                   <span
-                    className={`text-[10px] font-semibold ${
-                      isSelected ? 'text-emerald-100' : 'text-slate-400'
+                    className={`text-[11px] font-black ${
+                      isSelected ? 'text-white/80' : 'text-slate-400'
                     }`}
                   >
                     {item.dayName}
                   </span>
-                  <span className="text-base font-extrabold my-0.5">
+                  <span className="text-xl font-black my-0.5">
                     {item.dayNumber}
                   </span>
-                  <span className="text-[9px] opacity-80">{item.monthName}</span>
+                  <span className={`text-[10px] font-bold ${
+                    isSelected ? 'text-white' : 'text-slate-500'
+                  }`}>{item.monthName}</span>
                 </button>
               );
             })}
@@ -236,38 +238,38 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
 
       {/* View 2: Full Interactive Month Calendar Grid View */}
       {viewType === 'month' && (
-        <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+        <div className="premium-card p-4 space-y-4">
           {/* Month Header Navigation */}
-          <div className="flex items-center justify-between px-1">
+          <div className="flex items-center justify-between px-2">
             <button
               onClick={handlePrevMonth}
-              className="p-1.5 hover:bg-slate-100 rounded-xl text-slate-600 transition-colors"
+              className="p-2 hover:bg-slate-100 rounded-xl text-slate-600 transition-colors active:scale-95"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-5 h-5" />
             </button>
-            <span className="text-xs font-bold text-slate-900">
+            <span className="text-[13px] font-black text-foreground">
               {monthNamesThai[calendarMonth]} {calendarYear + 543}
             </span>
             <button
               onClick={handleNextMonth}
-              className="p-1.5 hover:bg-slate-100 rounded-xl text-slate-600 transition-colors"
+              className="p-2 hover:bg-slate-100 rounded-xl text-slate-600 transition-colors active:scale-95"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-5 h-5" />
             </button>
           </div>
 
           {/* Weekday Labels */}
-          <div className="grid grid-cols-7 text-center text-[10px] font-bold text-slate-400 border-b border-slate-100 pb-2">
+          <div className="grid grid-cols-7 text-center text-[11px] font-black text-slate-400 border-b border-border/50 pb-2">
             {dayNamesThai.map((d) => (
               <div key={d}>{d}</div>
             ))}
           </div>
 
           {/* Day Cells Matrix */}
-          <div className="grid grid-cols-7 gap-1 text-center text-xs">
+          <div className="grid grid-cols-7 gap-1.5 text-center text-[13px]">
             {/* Empty offset cells */}
             {Array.from({ length: firstDay }).map((_, idx) => (
-              <div key={`empty-${idx}`} className="h-8" />
+              <div key={`empty-${idx}`} className="h-10" />
             ))}
 
             {/* Actual Month Days */}
@@ -296,19 +298,19 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
                     setActiveDate(dateKey);
                     setActiveTime('');
                   }}
-                  className={`h-9 w-full rounded-xl flex flex-col items-center justify-center font-bold text-xs transition-all ${
+                  className={`h-10 w-full rounded-xl flex flex-col items-center justify-center font-bold text-[13px] transition-all duration-300 ${
                     isPast
-                      ? 'text-slate-300 cursor-not-allowed bg-slate-50'
+                      ? 'text-slate-300 cursor-not-allowed bg-slate-50/50'
                       : isSelected
-                      ? 'bg-emerald-600 text-white font-extrabold shadow-sm ring-2 ring-emerald-500/20'
+                      ? 'bg-primary text-white font-black shadow-md shadow-primary/30 ring-2 ring-primary/20 scale-110'
                       : isToday
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                      : 'hover:bg-slate-100 text-slate-800'
+                      ? 'bg-primary/10 text-primary border border-primary/20'
+                      : 'hover:bg-slate-100 text-slate-700 hover:scale-105'
                   }`}
                 >
                   <span>{dayNum}</span>
                   {isSelected && (
-                    <span className="w-1 h-1 rounded-full bg-amber-300 -mt-0.5"></span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-white -mt-1 shadow-sm"></span>
                   )}
                 </button>
               );
@@ -318,55 +320,55 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
       )}
 
       {/* Selected Date Summary Banner */}
-      <div className="bg-emerald-50/80 border border-emerald-200/80 p-3 rounded-2xl flex items-center justify-between text-xs text-emerald-900">
-        <div className="flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+      <div className="bg-primary/5 border border-primary/20 p-3 rounded-2xl flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-2.5">
+          <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
           <div>
-            <p className="font-bold text-slate-900">วันที่เลือก: {activeDateThai}</p>
-            <p className="text-[10px] text-emerald-700 font-medium mt-0.5">
-              มีรอบเวลาว่าง {availableCount} ช่วงเวลา
+            <p className="font-black text-[13px] text-foreground">วันที่เลือก: {activeDateThai}</p>
+            <p className="text-[11px] text-slate-500 font-bold mt-0.5">
+              มีรอบเวลาว่าง <span className="text-primary">{availableCount} ช่วงเวลา</span>
             </p>
           </div>
         </div>
-        <span className="text-[10px] font-bold bg-emerald-600 text-white px-2.5 py-1 rounded-xl">
+        <span className="text-[10px] font-black bg-success/10 text-success border border-success/20 px-2.5 py-1.5 rounded-xl">
           เปิดให้บริการ
         </span>
       </div>
 
       {/* Time Slots Selection Area */}
-      <div className="space-y-3 pt-1">
+      <div className="space-y-4 pt-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-            <Clock className="w-4 h-4 text-emerald-600" />
-            เลือกรอบเวลาที่สะดวก (Time Slots)
+          <h3 className="text-[13px] font-black text-foreground flex items-center gap-2">
+            <Clock className="w-4 h-4 text-primary" />
+            เลือกรอบเวลาที่สะดวก
           </h3>
           {slots.length > 0 && (
-            <span className="text-[10px] text-slate-500 font-medium">
+            <span className="text-[11px] text-slate-500 font-medium">
               คลิกเพื่อเลือกเวลา
             </span>
           )}
         </div>
 
         {slots.length === 0 ? (
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 text-center space-y-2 py-8">
-            <XCircle className="w-8 h-8 text-rose-400 mx-auto opacity-80" />
-            <p className="text-xs text-slate-700 font-bold">
+          <div className="premium-card text-center space-y-2 py-10 px-6">
+            <XCircle className="w-10 h-10 text-danger/80 mx-auto mb-2" />
+            <p className="text-[13px] text-slate-800 font-black">
               ไม่มีรอบเวลาบริการว่างในวันที่เลือก
             </p>
-            <p className="text-[11px] text-slate-400">
-              ร้านปิดบริการหรือคิวเต็มแล้ว กรุณาเลือกวันอื่นในปฏิทิน
+            <p className="text-[11px] text-slate-500 font-medium">
+              ร้านอาจปิดบริการหรือคิวเต็มแล้ว กรุณาเลือกวันอื่นในปฏิทิน
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {/* Morning Period */}
             {morningSlots.length > 0 && (
-              <div className="bg-white p-3 rounded-2xl border border-slate-200 space-y-2 shadow-2xs">
-                <div className="flex items-center gap-1.5 text-amber-600 text-[11px] font-bold">
+              <div className="premium-card p-4 space-y-3">
+                <div className="flex items-center gap-1.5 text-amber-500 text-[11px] font-black bg-amber-50 w-fit px-2.5 py-1 rounded-lg">
                   <Sun className="w-3.5 h-3.5" />
                   <span>ช่วงเช้า (09:00 - 12:00 น.)</span>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-2.5">
                   {morningSlots.map((slot) => {
                     const isSelected = activeTime === slot.startTime;
                     return (
@@ -374,25 +376,24 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
                         key={slot.startTime}
                         disabled={!slot.isAvailable}
                         onClick={() => setActiveTime(slot.startTime)}
-                        className={`py-2 px-2.5 rounded-xl border text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 ${
+                        className={`py-2.5 px-2 rounded-2xl border text-[13px] font-bold transition-all duration-300 flex flex-col items-center justify-center gap-1 ${
                           !slot.isAvailable
-                            ? 'bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed line-through'
+                            ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed line-through'
                             : isSelected
-                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs ring-2 ring-emerald-500/20'
-                            : 'bg-white text-slate-800 border-slate-200 hover:border-emerald-500'
+                            ? 'bg-primary text-white border-primary shadow-md shadow-primary/20 ring-2 ring-primary/20 scale-[1.03]'
+                            : 'bg-white text-slate-700 border-border hover:border-primary/40 hover:bg-slate-50'
                         }`}
                       >
                         <div className="flex items-center gap-1">
-                          <span>{slot.startTime} น.</span>
-                          {isSelected && <Check className="w-3 h-3 text-white" />}
+                          <span>{slot.startTime}</span>
                         </div>
                         <span
-                          className={`text-[9px] font-semibold ${
+                          className={`text-[9px] font-black ${
                             !slot.isAvailable
                               ? 'text-slate-300'
                               : isSelected
-                              ? 'text-emerald-100'
-                              : 'text-emerald-600'
+                              ? 'text-white/90'
+                              : 'text-primary'
                           }`}
                         >
                           {slot.isAvailable ? 'ว่าง' : 'เต็มแล้ว'}
@@ -406,12 +407,12 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
 
             {/* Afternoon Period */}
             {afternoonSlots.length > 0 && (
-              <div className="bg-white p-3 rounded-2xl border border-slate-200 space-y-2 shadow-2xs">
-                <div className="flex items-center gap-1.5 text-orange-600 text-[11px] font-bold">
+              <div className="premium-card p-4 space-y-3">
+                <div className="flex items-center gap-1.5 text-orange-500 text-[11px] font-black bg-orange-50 w-fit px-2.5 py-1 rounded-lg">
                   <Sunset className="w-3.5 h-3.5" />
                   <span>ช่วงบ่าย (12:00 - 17:00 น.)</span>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-2.5">
                   {afternoonSlots.map((slot) => {
                     const isSelected = activeTime === slot.startTime;
                     return (
@@ -419,25 +420,24 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
                         key={slot.startTime}
                         disabled={!slot.isAvailable}
                         onClick={() => setActiveTime(slot.startTime)}
-                        className={`py-2 px-2.5 rounded-xl border text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 ${
+                        className={`py-2.5 px-2 rounded-2xl border text-[13px] font-bold transition-all duration-300 flex flex-col items-center justify-center gap-1 ${
                           !slot.isAvailable
-                            ? 'bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed line-through'
+                            ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed line-through'
                             : isSelected
-                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs ring-2 ring-emerald-500/20'
-                            : 'bg-white text-slate-800 border-slate-200 hover:border-emerald-500'
+                            ? 'bg-primary text-white border-primary shadow-md shadow-primary/20 ring-2 ring-primary/20 scale-[1.03]'
+                            : 'bg-white text-slate-700 border-border hover:border-primary/40 hover:bg-slate-50'
                         }`}
                       >
                         <div className="flex items-center gap-1">
-                          <span>{slot.startTime} น.</span>
-                          {isSelected && <Check className="w-3 h-3 text-white" />}
+                          <span>{slot.startTime}</span>
                         </div>
                         <span
-                          className={`text-[9px] font-semibold ${
+                          className={`text-[9px] font-black ${
                             !slot.isAvailable
                               ? 'text-slate-300'
                               : isSelected
-                              ? 'text-emerald-100'
-                              : 'text-emerald-600'
+                              ? 'text-white/90'
+                              : 'text-primary'
                           }`}
                         >
                           {slot.isAvailable ? 'ว่าง' : 'เต็มแล้ว'}
@@ -451,12 +451,12 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
 
             {/* Evening Period */}
             {eveningSlots.length > 0 && (
-              <div className="bg-white p-3 rounded-2xl border border-slate-200 space-y-2 shadow-2xs">
-                <div className="flex items-center gap-1.5 text-indigo-600 text-[11px] font-bold">
+              <div className="premium-card p-4 space-y-3">
+                <div className="flex items-center gap-1.5 text-indigo-500 text-[11px] font-black bg-indigo-50 w-fit px-2.5 py-1 rounded-lg">
                   <Moon className="w-3.5 h-3.5" />
                   <span>ช่วงเย็น/ค่ำ (17:00 - 20:00 น.)</span>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-2.5">
                   {eveningSlots.map((slot) => {
                     const isSelected = activeTime === slot.startTime;
                     return (
@@ -464,25 +464,24 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
                         key={slot.startTime}
                         disabled={!slot.isAvailable}
                         onClick={() => setActiveTime(slot.startTime)}
-                        className={`py-2 px-2.5 rounded-xl border text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 ${
+                        className={`py-2.5 px-2 rounded-2xl border text-[13px] font-bold transition-all duration-300 flex flex-col items-center justify-center gap-1 ${
                           !slot.isAvailable
-                            ? 'bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed line-through'
+                            ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed line-through'
                             : isSelected
-                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs ring-2 ring-emerald-500/20'
-                            : 'bg-white text-slate-800 border-slate-200 hover:border-emerald-500'
+                            ? 'bg-primary text-white border-primary shadow-md shadow-primary/20 ring-2 ring-primary/20 scale-[1.03]'
+                            : 'bg-white text-slate-700 border-border hover:border-primary/40 hover:bg-slate-50'
                         }`}
                       >
                         <div className="flex items-center gap-1">
-                          <span>{slot.startTime} น.</span>
-                          {isSelected && <Check className="w-3 h-3 text-white" />}
+                          <span>{slot.startTime}</span>
                         </div>
                         <span
-                          className={`text-[9px] font-semibold ${
+                          className={`text-[9px] font-black ${
                             !slot.isAvailable
                               ? 'text-slate-300'
                               : isSelected
-                              ? 'text-emerald-100'
-                              : 'text-emerald-600'
+                              ? 'text-white/90'
+                              : 'text-primary'
                           }`}
                         >
                           {slot.isAvailable ? 'ว่าง' : 'เต็มแล้ว'}
@@ -498,21 +497,22 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
       </div>
 
       {/* Confirmation Sticky/Bottom Action Button */}
-      <div className="pt-2 sticky bottom-2">
+      <div className="fixed bottom-[80px] left-0 right-0 px-4 z-50 max-w-[400px] mx-auto">
         <button
           disabled={!activeTime}
           onClick={() => onSelectSlot(activeDate, activeTime)}
-          className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold py-3 px-4 rounded-2xl shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all text-sm disabled:cursor-not-allowed disabled:shadow-none"
+          className="w-full btn-primary py-4 px-6 text-[15px] shadow-premium flex items-center justify-between group disabled:bg-slate-300 disabled:shadow-none disabled:border-slate-300 disabled:text-slate-500"
         >
           <span>
             {activeTime
               ? `ยืนยันรอบเวลา ${activeTime} น.`
               : 'กรุณาเลือกรอบเวลาที่ต้องการ'}
           </span>
-          <ChevronRight className="w-4 h-4" />
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform ${activeTime ? 'bg-white/20 group-hover:translate-x-1' : 'bg-transparent'}`}>
+              <ChevronRight className="w-5 h-5 text-white" />
+          </div>
         </button>
       </div>
     </div>
   );
 };
-

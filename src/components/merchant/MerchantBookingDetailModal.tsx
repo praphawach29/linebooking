@@ -25,13 +25,15 @@ export const MerchantBookingDetailModal: React.FC<MerchantBookingDetailModalProp
   booking,
   onClose,
 }) => {
-  const { updateBookingStatus } = useSaaS();
+  const { updateBookingStatus, completeBooking } = useSaaS();
   const [cancelReason, setCancelReason] = useState('');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   const handleStatusChange = (newStatus: BookingStatus) => {
     if (newStatus === 'cancelled') {
       setShowCancelDialog(true);
+    } else if (newStatus === 'completed') {
+      completeBooking(booking.id);
     } else {
       updateBookingStatus(booking.id, newStatus);
     }

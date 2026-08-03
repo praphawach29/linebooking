@@ -74,10 +74,14 @@
     @apply w-full px-4 py-2.5 rounded-xl border border-border bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 transition-all duration-200 placeholder:text-slate-400;
   }
 
-  .no-scrollbar::-webkit-scrollbar {
+  .no-scrollbar::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  html::-webkit-scrollbar {
     display: none;
   }
-  .no-scrollbar {
+  .no-scrollbar,
+  body,
+  html {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }

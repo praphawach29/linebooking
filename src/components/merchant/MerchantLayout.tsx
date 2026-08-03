@@ -261,7 +261,7 @@ export const MerchantLayout: React.FC = () => {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 min-w-0 p-4 sm:p-6 md:p-8 space-y-6 overflow-y-auto">
+      <main className="flex-1 min-w-0 p-4 sm:p-6 md:p-8 space-y-6 overflow-y-auto no-scrollbar">
         {/* Live Trial & Quota Banner */}
         {quotaInfo && quotaInfo.isTrial && (
           <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10 border border-emerald-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-slate-800 shadow-sm">

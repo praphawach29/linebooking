@@ -28,10 +28,10 @@ export const HeroSection: React.FC = () => {
         </div>
 
         {/* Main Headline */}
-        <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-[1.2] mb-6">
+        <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-[1.25] mb-6">
           เปลี่ยน LINE OA ให้เป็น <br />
           <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
-            พนักงานจองคิวอัตโนมัติ 24 ชั่วโมง
+            พนักงานจองคิวอัตโนมัติ <br className="inline sm:hidden" /> 24 ชั่วโมง
           </span>
         </h1>
 

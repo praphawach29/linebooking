@@ -168,14 +168,61 @@ export const MerchantDemoSection: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Queue Table */}
+                {/* Queue Table Container */}
                 <div className="rounded-2xl border border-white/10 bg-slate-950 overflow-hidden">
-                  <div className="px-5 py-3.5 border-b border-white/10 flex items-center justify-between">
-                    <h4 className="text-sm font-bold text-white">ตารางคิวนัดหมายประจำวัน (Live Bookings)</h4>
-                    <span className="text-xs text-cyan-400 font-medium cursor-pointer hover:underline">ดูทั้งหมด →</span>
+                  <div className="px-4 sm:px-5 py-3.5 border-b border-white/10 flex items-center justify-between">
+                    <h4 className="text-xs sm:text-sm font-bold text-white">ตารางคิวนัดหมายประจำวัน (Live Bookings)</h4>
+                    <span className="text-[11px] sm:text-xs text-cyan-400 font-medium cursor-pointer hover:underline">ดูทั้งหมด →</span>
                   </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs text-slate-300">
+
+                  {/* Mobile Booking Card View (Visible on Mobile screens) */}
+                  <div className="block sm:hidden divide-y divide-white/5 p-2 space-y-2">
+                    <div className="p-3 bg-white/5 rounded-xl space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-mono font-bold text-cyan-400">BK-8819</span>
+                        <span className="bg-emerald-500/20 text-emerald-400 font-bold px-2.5 py-0.5 rounded-full text-[10px] border border-emerald-500/30">
+                          ✓ ยืนยันแล้ว
+                        </span>
+                      </div>
+                      <div className="text-xs font-bold text-white">คุณณัฐนันท์ — นวดอโรม่าผ่อนคลาย (90 นาที)</div>
+                      <div className="flex items-center justify-between text-[11px] text-slate-400 border-t border-white/5 pt-1.5 mt-1">
+                        <span>รอบเวลา: <strong className="text-emerald-400">15:30 น.</strong></span>
+                        <span>ผู้ดูแล: คุณมุก</span>
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-white/5 rounded-xl space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-mono font-bold text-cyan-400">BK-8820</span>
+                        <span className="bg-amber-500/20 text-amber-300 font-bold px-2.5 py-0.5 rounded-full text-[10px] border border-amber-500/30">
+                          ⏳ รอตรวจสอบสลิป
+                        </span>
+                      </div>
+                      <div className="text-xs font-bold text-white">คุณกิตติศักดิ์ — ตัดผมชายเซ็ตทรง (45 นาที)</div>
+                      <div className="flex items-center justify-between text-[11px] text-slate-400 border-t border-white/5 pt-1.5 mt-1">
+                        <span>รอบเวลา: <strong className="text-white">16:15 น.</strong></span>
+                        <span>ผู้ดูแล: ⚡ สุ่มช่างอัตโนมัติ</span>
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-white/5 rounded-xl space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-mono font-bold text-cyan-400">BK-8821</span>
+                        <span className="bg-emerald-500/20 text-emerald-400 font-bold px-2.5 py-0.5 rounded-full text-[10px] border border-emerald-500/30">
+                          ✓ ยืนยันแล้ว
+                        </span>
+                      </div>
+                      <div className="text-xs font-bold text-white">คุณภัทรพล — สนามแบด A1 (2 ชม.)</div>
+                      <div className="flex items-center justify-between text-[11px] text-slate-400 border-t border-white/5 pt-1.5 mt-1">
+                        <span>รอบเวลา: <strong className="text-white">19:00 น.</strong></span>
+                        <span>ผู้ดูแล: Court A1</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Full Table View (Visible on Tablet & Desktop) */}
+                  <div className="hidden sm:block overflow-x-auto">
+                    <table className="w-full text-left text-xs text-slate-300 min-w-[600px]">
                       <thead className="bg-white/5 text-slate-400 uppercase text-[10px] font-bold">
                         <tr>
                           <th className="px-5 py-3">รหัสคิว</th>

@@ -122,6 +122,7 @@ CREATE POLICY "invoices_update" ON subscription_invoices
 -- 4. View สาธารณะ — เปิดเฉพาะฟิลด์ที่ปลอดภัยให้ร้านค้าอ่านตอนจ่ายเงิน
 --    (ไม่มี omise_secret_key เด็ดขาด)
 -- ---------------------------------------------------------------
+DROP VIEW IF EXISTS platform_billing_public CASCADE;
 CREATE OR REPLACE VIEW platform_billing_public
 WITH (security_invoker = false) AS
 SELECT

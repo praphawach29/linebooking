@@ -9,6 +9,7 @@ import {
   Share2,
   X,
   Star,
+  Store,
 } from 'lucide-react';
 import { LiffHome } from './LiffHome';
 import { LiffServiceDetail } from './LiffServiceDetail';
@@ -40,7 +41,7 @@ export type LiffStep =
   | 'point_history';
 
 export const LiffLayout: React.FC = () => {
-  const { activeTenant, services, staffs, courts, notifications, reviews } = useSaaS();
+  const { activeTenant, services, staffs, courts, notifications, reviews, isLoading } = useSaaS();
   const [currentStep, setCurrentStep] = useState<LiffStep>('home');
   const [activeTab, setActiveTab] = useState<'home' | 'my_bookings' | 'notifications' | 'profile'>('home');
 
@@ -64,12 +65,40 @@ export const LiffLayout: React.FC = () => {
     ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1) 
     : '0';
 
-  if (!activeTenant) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-slate-900 text-white font-prompt">
         <div className="animate-pulse flex flex-col items-center">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p>Loading Shop Data...</p>
+          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-slate-400 text-sm">กำลังโหลดข้อมูลระบบ...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!activeTenant) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white font-prompt p-6 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/10">
+          <Store className="w-8 h-8 text-emerald-400" />
+        </div>
+        <h2 className="text-xl font-extrabold mb-2 text-white">ยังไม่มีร้านค้าในระบบ</h2>
+        <p className="text-slate-400 text-sm max-w-xs mb-6 leading-relaxed">
+          กรุณาสมัครเปิดร้านค้าใหม่เพื่อเริ่มใช้งานระบบจองคิว LINE OA หรือเข้าสู่ระบบร้านค้า
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
+          <a
+            href="/merchant/register"
+            className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 px-5 rounded-xl transition-all shadow-lg shadow-emerald-500/25 text-sm flex items-center justify-center gap-2"
+          >
+            🚀 สมัครเปิดร้านค้าฟรี
+          </a>
+          <a
+            href="/merchant/login"
+            className="w-full border border-white/10 hover:border-white/20 bg-white/5 hover:bg-white/10 text-slate-200 font-semibold py-3 px-5 rounded-xl transition-all text-sm flex items-center justify-center gap-2"
+          >
+            🔑 เข้าสู่ระบบร้านค้า
+          </a>
         </div>
       </div>
     );

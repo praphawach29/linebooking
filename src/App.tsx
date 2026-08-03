@@ -7,6 +7,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { SaaSProvider } from './context/SaaSContext';
 import { AuthProvider } from './context/AuthContext';
+import { SaaSLandingPage } from './components/landing/SaaSLandingPage';
 import { LiffLayout } from './components/liff/LiffLayout';
 import { MerchantLayout } from './components/merchant/MerchantLayout';
 import { AdminDashboard } from './components/admin/AdminDashboard';
@@ -20,8 +21,10 @@ const AppLayout: React.FC = () => {
     <div className="min-h-screen bg-background text-foreground font-sans antialiased flex flex-col">
       <main className="flex-1 w-full">
         <Routes>
+          {/* Main SaaS Landing Page */}
+          <Route path="/" element={<SaaSLandingPage />} />
+
           {/* Public LIFF routes (customer-facing) */}
-          <Route path="/" element={<LiffLayout />} />
           <Route path="/liff" element={<LiffLayout />} />
           <Route path="/liff/:tenantId" element={<LiffLayout />} />
 

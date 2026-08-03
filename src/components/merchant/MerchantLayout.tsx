@@ -19,7 +19,8 @@ import {
   LogOut,
   ShieldAlert,
   ShieldCheck,
-  Store
+  Store,
+  Gift
 } from 'lucide-react';
 import { MerchantDashboard } from './MerchantDashboard';
 import { MerchantCalendarView } from './MerchantCalendarView';
@@ -35,6 +36,7 @@ import { MerchantOnboardingWizard } from './MerchantOnboardingWizard';
 import { MerchantReviews } from './MerchantReviews';
 import { MerchantShopSettings } from './MerchantShopSettings';
 import { MerchantSubscriptionModal } from './MerchantSubscriptionModal';
+import { MerchantLoyaltyManager } from './MerchantLoyaltyManager';
 import { getTenantQuotaInfo, FREE_PLAN_MONTHLY_BOOKING_LIMIT } from '../../lib/quota-manager';
 
 export const MerchantLayout: React.FC = () => {
@@ -103,6 +105,7 @@ export const MerchantLayout: React.FC = () => {
         { tab: 'booking_flow', icon: Sparkles, label: 'ตั้งค่าขั้นตอนการจอง (Flow)' },
         { tab: 'payments', icon: CreditCard, label: 'การชำระเงิน (QR Code)' },
         { tab: 'booking_settings', icon: Settings, label: 'ตั้งค่าการจองและยกเลิก' },
+        { tab: 'loyalty', icon: Gift, label: 'ระบบสมาชิก & ของรางวัล' },
         { tab: 'line_settings', icon: MessageSquare, label: 'LINE OA Setup' },
         { tab: 'analytics', icon: BarChart3, label: 'สถิติและรายงาน' },
         { tab: 'reviews', icon: Star, label: 'รีวิว & คะแนน' },
@@ -346,6 +349,7 @@ export const MerchantLayout: React.FC = () => {
         {merchantTab === 'booking_flow' && <MerchantBookingFlowSettings />}
         {merchantTab === 'payments' && <MerchantPaymentSettings />}
         {merchantTab === 'booking_settings' && <MerchantBookingSettings />}
+        {merchantTab === 'loyalty' && <MerchantLoyaltyManager />}
         {merchantTab === 'analytics' && <MerchantAnalytics />}
         {merchantTab === 'line_settings' && <MerchantLineOASettings />}
         {merchantTab === 'onboarding' && <MerchantOnboardingWizard />}

@@ -27,6 +27,7 @@ import {
   BookingStatus,
   PaymentMethod,
   Membership,
+  MembershipTier,
   PointTransaction,
   Reward,
   RewardRedemption,
@@ -143,10 +144,13 @@ interface SaaSContextType {
    */
   fetchMyBookings: (lineUserId?: string) => Promise<Booking[]>;
 
-  // Loyalty Actions
+  // Loyalty & Reward Actions
   fetchMembership: (userId: string) => Membership | undefined;
   redeemReward: (rewardId: string, userId: string) => boolean;
   completeBooking: (bookingId: string) => void;
+  saveReward: (reward: Partial<Reward>) => void;
+  deleteReward: (rewardId: string) => void;
+  adjustCustomerPoints: (userId: string, pointsDelta: number, reason: string) => void;
 }
 
 const SaaSContext = createContext<SaaSContextType | undefined>(undefined);
@@ -900,6 +904,76 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Optionally insert to supabase here
   };
 
+  const saveReward = async (rewardData: Partial<Reward>) => {
+    if (!activeTenantId) return;
+    const isNew = !rewardData.id;
+    const rewardId = rewardData.id || `reward-${Date.now()}`;
+
+    const newReward: Reward = {
+      id: rewardId,
+      tenantId: activeTenantId,
+      name: rewardData.name || 'ของรางวัลใหม่',
+      description: rewardData.description || '',
+      pointsRequired: rewardData.pointsRequired || 100,
+      imageUrl: rewardData.imageUrl || 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=300',
+      isActive: rewardData.isActive ?? true,
+      createdAt: rewardData.createdAt || new Date().toISOString(),
+    };
+
+    setRewards((prev) => (isNew ? [newReward, ...prev] : prev.map((r) => (r.id === rewardId ? newReward : r))));
+
+    const dbRow = {
+      id: rewardId,
+      tenant_id: activeTenantId,
+      name: newReward.name,
+      description: newReward.description,
+      points_required: newReward.pointsRequired,
+      image_url: newReward.imageUrl,
+      is_active: newReward.isActive,
+    };
+
+    const { error } = await supabase.from('rewards').upsert(dbRow);
+    if (error) console.error('Error saving reward to Supabase:', error.message);
+  };
+
+  const deleteReward = async (rewardId: string) => {
+    setRewards((prev) => prev.filter((r) => r.id !== rewardId));
+    const { error } = await supabase.from('rewards').delete().eq('id', rewardId);
+    if (error) console.error('Error deleting reward from Supabase:', error.message);
+  };
+
+  const adjustCustomerPoints = async (userId: string, pointsDelta: number, reason: string) => {
+    if (!activeTenantId) return;
+
+    setMemberships((prev) => {
+      const existing = prev.find((m) => m.userId === userId && m.tenantId === activeTenantId);
+      if (existing) {
+        const newPoints = Math.max(0, existing.points + pointsDelta);
+        const newTotalEarned = pointsDelta > 0 ? existing.totalPointsEarned + pointsDelta : existing.totalPointsEarned;
+        const newTier: MembershipTier =
+          newTotalEarned >= 1000 ? 'Platinum' : newTotalEarned >= 500 ? 'Gold' : 'Silver';
+
+        return prev.map((m) =>
+          m.id === existing.id
+            ? { ...m, points: newPoints, totalPointsEarned: newTotalEarned, tier: newTier, updatedAt: new Date().toISOString() }
+            : m
+        );
+      } else {
+        const newMem: Membership = {
+          id: `mem-${Date.now()}`,
+          tenantId: activeTenantId,
+          userId,
+          points: Math.max(0, pointsDelta),
+          totalPointsEarned: Math.max(0, pointsDelta),
+          tier: pointsDelta >= 1000 ? 'Platinum' : pointsDelta >= 500 ? 'Gold' : 'Silver',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        return [newMem, ...prev];
+      }
+    });
+  };
+
   return (
     <SaaSContext.Provider
       value={{
@@ -945,6 +1019,9 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         fetchMembership,
         redeemReward,
         completeBooking,
+        saveReward,
+        deleteReward,
+        adjustCustomerPoints,
       }}
     >
       {children}

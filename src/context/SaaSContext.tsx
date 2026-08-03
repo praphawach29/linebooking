@@ -263,7 +263,37 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     }
 
+    function resetState() {
+      setTenants([]);
+      setActiveTenantId(null);
+      setCurrentUser(null);
+      setServices([]);
+      setServiceAddons([]);
+      setStaffs([]);
+      setCourts([]);
+      setBookings([]);
+      setBusinessHours([]);
+      setCancellationPolicies([]);
+      setReviews([]);
+      setRewards([]);
+      setMemberships([]);
+      setIsLoading(false);
+    }
+
+    // Initial fetch on mount
     fetchData();
+
+    // Re-fetch when user signs in (handles logout → login with different account)
+    // Reset state when user signs out
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') {
+        fetchData();
+      } else if (event === 'SIGNED_OUT') {
+        resetState();
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const activeTenant = useMemo(() => {

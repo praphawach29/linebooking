@@ -48,18 +48,18 @@ export const FeaturesSection: React.FC = () => {
     <section id="features" className="py-24 px-4 sm:px-6 lg:px-8 bg-slate-950 relative">
       <div ref={ref} className="max-w-7xl mx-auto opacity-0 transition-all duration-700">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-3">
+        <div className="text-center max-w-3xl mx-auto mb-14">
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold tracking-wider mb-3">
             <Sparkles className="w-3.5 h-3.5" />
             ฟีเจอร์เด่นระบบ SaaS
           </div>
-          <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight mb-4">
+          <h2 className="text-2.5xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-4">
             ทุกสิ่งที่คุณต้องการเพื่อ <br />
             <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
               ยกระดับระบบจองคิวหน้าร้าน
             </span>
           </h2>
-          <p className="text-slate-400 text-base sm:text-lg">
+          <p className="text-slate-400 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto">
             ออกแบบโครงสร้างรองรับทุกประเภทธุรกิจ ใช้งานง่ายทั้งฝั่งเจ้าของร้านและลูกค้า
           </p>
         </div>
@@ -71,15 +71,15 @@ export const FeaturesSection: React.FC = () => {
             return (
               <div
                 key={idx}
-                className="p-8 rounded-3xl bg-white/5 border border-white/10 hover:border-emerald-500/40 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1.5 group shadow-xl"
+                className="p-6 sm:p-8 rounded-3xl bg-white/5 border border-white/10 hover:border-emerald-500/40 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1.5 group shadow-xl"
               >
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${f.color} flex items-center justify-center shadow-lg shadow-emerald-500/20 mb-6 group-hover:scale-110 transition-transform`}>
-                  <Icon className="w-7 h-7 text-white" />
+                <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br ${f.color} flex items-center justify-center shadow-lg shadow-emerald-500/20 mb-5 group-hover:scale-110 transition-transform`}>
+                  <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2 group-hover:text-emerald-400 transition-colors">
+                <h3 className="text-lg sm:text-xl font-bold text-white mb-2 group-hover:text-emerald-400 transition-colors">
                   {f.title}
                 </h3>
-                <p className="text-slate-400 text-sm leading-relaxed">{f.desc}</p>
+                <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">{f.desc}</p>
               </div>
             );
           })}

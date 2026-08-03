@@ -15,14 +15,14 @@ export const CtaSection: React.FC = () => {
           <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-white/10 blur-2xl pointer-events-none" />
 
           <div className="relative z-10">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-bold uppercase mb-4">
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/20 text-white text-xs font-bold tracking-wider mb-4">
               <Sparkles className="w-3.5 h-3.5" />
               พร้อมเปลี่ยนระบบจองคิวร้านคุณแล้วหรือยัง?
             </div>
-            <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight mb-4">
+            <h2 className="text-2.5xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-4">
               เริ่มต้นเปิดร้านและรับคิวผ่าน LINE ฟรีวันนี้
             </h2>
-            <p className="text-white/90 text-base sm:text-lg max-w-2xl mx-auto mb-8 font-medium">
+            <p className="text-white/90 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto mb-8 font-medium">
               ทดลองใช้งานระบบจัดการคิวงานผ่าน LINE OA ได้ฟรี 14 วัน ไม่ต้องกรอกบัตรเครดิต เซ็ตอัพเสร็จใน 5 นาที
             </p>
 

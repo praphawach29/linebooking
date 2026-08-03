@@ -22,13 +22,13 @@ export const HeroSection: React.FC = () => {
 
       <div ref={ref} className="relative z-10 max-w-6xl mx-auto text-center opacity-0 transition-all duration-700">
         {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs sm:text-sm font-semibold mb-8 backdrop-blur-md animate-bounce">
+        <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold tracking-wider mb-6 backdrop-blur-md">
           <Sparkles className="w-4 h-4 text-emerald-400" />
           <span>ระบบจองคิวผ่าน LINE OA อันดับ 1 สำหรับธุรกิจไทย</span>
         </div>
 
         {/* Main Headline */}
-        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-white tracking-tight leading-[1.15] mb-6">
+        <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-[1.2] mb-6">
           เปลี่ยน LINE OA ให้เป็น <br />
           <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
             พนักงานจองคิวอัตโนมัติ 24 ชั่วโมง
@@ -36,7 +36,7 @@ export const HeroSection: React.FC = () => {
         </h1>
 
         {/* Subtitle */}
-        <p className="max-w-2xl mx-auto text-base sm:text-xl text-slate-400 font-normal leading-relaxed mb-10">
+        <p className="max-w-2xl mx-auto text-sm sm:text-base lg:text-lg text-slate-400 font-normal leading-relaxed mb-8">
           ลูกค้าจองคิวได้ง่ายผ่าน LINE LIFF ไม่ต้องดาวน์โหลดแอป รองรับการเลือกช่าง/สนาม ปรับสเต็ปตามประเภทธุรกิจ ออก QR Code มัดจำอัตโนมัติ
         </p>
 

@@ -176,14 +176,14 @@ export const LiffDemoSection: React.FC = () => {
       <div ref={ref} className="max-w-6xl mx-auto opacity-0 transition-all duration-700">
         {/* Section Title */}
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-3">
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold tracking-wider mb-3">
             <Sparkles className="w-3.5 h-3.5" />
             ตัวอย่างหน้าจอจองคิวจริง (Real LINE LIFF Experience)
           </div>
-          <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight mb-4">
+          <h2 className="text-2.5xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-4">
             การ์ดบริการสวยงามใน <span className="text-emerald-400">LINE LIFF Mobile App</span>
           </h2>
-          <p className="text-slate-400 text-base sm:text-lg">
+          <p className="text-slate-400 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto">
             ลูกค้าเห็นรูปพรีวิวบริการชัดเจน กดเลือกบริการ เลือกช่าง และนัดเวลาได้เองอย่างสวยงามสะดวกรวดเร็ว
           </p>
         </div>

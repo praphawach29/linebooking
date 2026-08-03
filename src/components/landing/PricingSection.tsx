@@ -64,15 +64,15 @@ export const PricingSection: React.FC = () => {
   return (
     <section id="pricing" className="py-24 px-4 sm:px-6 lg:px-8 bg-slate-950 relative">
       <div ref={ref} className="max-w-7xl mx-auto opacity-0 transition-all duration-700">
-        <div className="text-center max-w-3xl mx-auto mb-12">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-3">
+        <div className="text-center max-w-3xl mx-auto mb-14">
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold tracking-wider mb-3">
             <Sparkles className="w-3.5 h-3.5" />
             แพ็กเกจราคาโปร่งใส
           </div>
-          <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight mb-4">
+          <h2 className="text-2.5xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-4">
             เลือกแพ็กเกจที่เหมาะกับธุรกิจของคุณ
           </h2>
-          <p className="text-slate-400 text-base sm:text-lg mb-8">
+          <p className="text-slate-400 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto mb-8">
             ไม่มีค่าธรรมเนียมแอบแฝง สามารถยกเลิกหรืออัปเกรดได้ตลอดเวลา
           </p>
 
@@ -80,7 +80,7 @@ export const PricingSection: React.FC = () => {
           <div className="inline-flex items-center p-1.5 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-xl">
             <button
               onClick={() => setIsYearly(false)}
-              className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
+              className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
                 !isYearly ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25' : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -88,7 +88,7 @@ export const PricingSection: React.FC = () => {
             </button>
             <button
               onClick={() => setIsYearly(true)}
-              className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
                 isYearly ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25' : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -98,13 +98,13 @@ export const PricingSection: React.FC = () => {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 items-stretch">
           {plans.map((p, idx) => {
             const price = isYearly ? p.priceYearly : p.priceMonthly;
             return (
               <div
                 key={idx}
-                className={`relative rounded-3xl p-8 flex flex-col justify-between transition-all duration-300 ${
+                className={`relative rounded-3xl p-6 sm:p-8 flex flex-col justify-between transition-all duration-300 ${
                   p.highlight
                     ? 'bg-gradient-to-b from-slate-900 via-slate-900 to-emerald-950/60 border-2 border-emerald-500/80 shadow-2xl shadow-emerald-500/20 lg:-translate-y-2'
                     : 'bg-white/5 border border-white/10 hover:border-white/20'

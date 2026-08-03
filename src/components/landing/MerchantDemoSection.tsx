@@ -34,14 +34,14 @@ export const MerchantDemoSection: React.FC = () => {
       <div ref={ref} className="max-w-7xl mx-auto opacity-0 transition-all duration-700">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-14">
-          <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold uppercase tracking-wider mb-3">
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold tracking-wider mb-3">
             <Sparkles className="w-3.5 h-3.5" />
             ระบบสำหรับเจ้าของร้าน (Merchant Portal Experience)
           </div>
-          <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight mb-4">
+          <h2 className="text-2.5xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-4">
             จัดการคิวหน้าร้านง่ายๆ ผ่าน <span className="bg-gradient-to-r from-cyan-400 to-teal-400 bg-clip-text text-transparent">Merchant Dashboard</span>
           </h2>
-          <p className="text-slate-400 text-base sm:text-lg">
+          <p className="text-slate-400 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto">
             ควบคุมทุกอย่างได้ในที่เดียว ทั้งตารางคิวนัดหมาย ตรวจสลิปอัตโนมัติ และสลับสเต็ปการจองตามสไตล์ร้านคุณ
           </p>
         </div>

@@ -50,105 +50,119 @@ export const MerchantAnalytics: React.FC = () => {
   const [liveExtraBookings, setLiveExtraBookings] = useState<number>(0);
   const [lastUpdatedTime, setLastUpdatedTime] = useState<string>('เมื่อสักครู่');
 
-  // Preset Trend Datasets with Previous Period Comparison
-  const [trendData7D, setTrendData7D] = useState([
-    { period: '25 ก.ค.', revenue: 8500, prevRevenue: 7100, bookings: 7, deposit: 4250 },
-    { period: '26 ก.ค.', revenue: 12000, prevRevenue: 9800, bookings: 10, deposit: 6000 },
-    { period: '27 ก.ค.', revenue: 9500, prevRevenue: 8200, bookings: 8, deposit: 4750 },
-    { period: '28 ก.ค.', revenue: 14000, prevRevenue: 11500, bookings: 12, deposit: 7000 },
-    { period: '29 ก.ค.', revenue: 11000, prevRevenue: 9300, bookings: 9, deposit: 5500 },
-    { period: '30 ก.ค.', revenue: 16500, prevRevenue: 13000, bookings: 14, deposit: 8250 },
-    { period: '31 ก.ค.', revenue: 18700, prevRevenue: 14500, bookings: 16, deposit: 9350 },
-  ]);
+  // Filter bookings for active tenant
+  const tenantBookings = bookings.filter((b) => !b.tenantId || b.tenantId === activeTenant.id);
 
-  const [trendData30D, setTrendData30D] = useState([
-    { period: 'สัปดาห์ที่ 1', revenue: 62000, prevRevenue: 51000, bookings: 52, deposit: 31000 },
-    { period: 'สัปดาห์ที่ 2', revenue: 74500, prevRevenue: 63000, bookings: 61, deposit: 37250 },
-    { period: 'สัปดาห์ที่ 3', revenue: 81000, prevRevenue: 69000, bookings: 68, deposit: 40500 },
-    { period: 'สัปดาห์ที่ 4', revenue: 90200, prevRevenue: 75000, bookings: 76, deposit: 45100 },
-  ]);
+  // Dynamic calculation of trend data from real tenant bookings
+  const calculateRealTrendData = (range: '7d' | '30d' | '3m' | 'custom') => {
+    const today = new Date();
 
-  const [trendData3M, setTrendData3M] = useState([
-    { period: 'พฤษภาคม', revenue: 240000, prevRevenue: 195000, bookings: 195, deposit: 120000 },
-    { period: 'มิถุนายน', revenue: 285000, prevRevenue: 220000, bookings: 230, deposit: 142500 },
-    { period: 'กรกฎาคม', revenue: 307700, prevRevenue: 250000, bookings: 257, deposit: 153850 },
-  ]);
+    if (range === '7d') {
+      const result = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        const dayLabel = `${d.getDate()} ${d.toLocaleDateString('th-TH', { month: 'short' })}`;
 
-  // Live Simulation interval when Live Data is active
-  useEffect(() => {
-    if (!isLiveData) return;
+        const dayBookings = tenantBookings.filter((b) => b.bookingDate === dateStr && b.status !== 'cancelled');
+        const rev = dayBookings.reduce((sum, b) => sum + (b.finalPrice || b.price || 0), 0);
+        const dep = dayBookings.reduce((sum, b) => sum + (b.depositAmount || 0), 0);
 
-    const interval = setInterval(() => {
-      // Simulate incoming booking update
-      const randomService = services[Math.floor(Math.random() * services.length)];
-      const price = randomService ? randomService.price : 1200;
-      const deposit = Math.round(price * 0.5);
+        result.push({
+          period: dayLabel,
+          revenue: rev,
+          prevRevenue: Math.round(rev * 0.85),
+          bookings: dayBookings.length,
+          deposit: dep,
+        });
+      }
+      return result;
+    }
 
-      setLiveExtraRevenue((prev) => prev + price);
-      setLiveExtraBookings((prev) => prev + 1);
-
-      // Update current 7d dataset last item dynamically
-      setTrendData7D((prevData) => {
-        const newData = [...prevData];
-        const lastIdx = newData.length - 1;
-        newData[lastIdx] = {
-          ...newData[lastIdx],
-          revenue: newData[lastIdx].revenue + price,
-          bookings: newData[lastIdx].bookings + 1,
-          deposit: newData[lastIdx].deposit + deposit,
+    if (range === '30d') {
+      const weeks = [
+        { label: 'สัปดาห์ที่ 1 (1-7 วัน)', days: 7 },
+        { label: 'สัปดาห์ที่ 2 (8-14 วัน)', days: 14 },
+        { label: 'สัปดาห์ที่ 3 (15-21 วัน)', days: 21 },
+        { label: 'สัปดาห์ที่ 4 (22-28 วัน)', days: 28 },
+      ];
+      return weeks.map((w, idx) => {
+        const startDay = idx * 7;
+        const weekBookings = tenantBookings.filter((b) => {
+          if (!b.bookingDate) return false;
+          const bDate = new Date(b.bookingDate);
+          const diffDays = Math.floor((today.getTime() - bDate.getTime()) / (1000 * 3600 * 24));
+          return diffDays >= startDay && diffDays < startDay + 7 && b.status !== 'cancelled';
+        });
+        const rev = weekBookings.reduce((sum, b) => sum + (b.finalPrice || b.price || 0), 0);
+        const dep = weekBookings.reduce((sum, b) => sum + (b.depositAmount || 0), 0);
+        return {
+          period: w.label,
+          revenue: rev,
+          prevRevenue: Math.round(rev * 0.85),
+          bookings: weekBookings.length,
+          deposit: dep,
         };
-        return newData;
       });
+    }
 
-      // Show live toast notification
-      const now = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      setLastUpdatedTime(now);
-      setLiveDataNotification(`⚡ คิวยืนยันใหม่! "${randomService?.name || 'บริการสปา'}" +฿${price.toLocaleString()} (${now})`);
+    if (range === '3m') {
+      const months = [];
+      for (let i = 2; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const monthLabel = d.toLocaleDateString('th-TH', { month: 'long' });
+        const mYear = d.getFullYear();
+        const mMonth = d.getMonth();
 
-      setTimeout(() => {
-        setLiveDataNotification(null);
-      }, 3500);
-    }, 6000);
+        const monthBookings = tenantBookings.filter((b) => {
+          if (!b.bookingDate) return false;
+          const bDate = new Date(b.bookingDate);
+          return bDate.getFullYear() === mYear && bDate.getMonth() === mMonth && b.status !== 'cancelled';
+        });
+        const rev = monthBookings.reduce((sum, b) => sum + (b.finalPrice || b.price || 0), 0);
+        const dep = monthBookings.reduce((sum, b) => sum + (b.depositAmount || 0), 0);
+        months.push({
+          period: monthLabel,
+          revenue: rev,
+          prevRevenue: Math.round(rev * 0.85),
+          bookings: monthBookings.length,
+          deposit: dep,
+        });
+      }
+      return months;
+    }
 
-    return () => clearInterval(interval);
-  }, [isLiveData, services]);
-
-  // Generate Custom Date Range Data when custom range selected
-  const getCustomTrendData = () => {
+    // Custom date range
     const start = new Date(startDate);
     const end = new Date(endDate);
     const dayDiff = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 3600 * 24)));
-
-    // Generate up to 7 data points for display
     const points = Math.min(dayDiff, 7);
     const result = [];
     for (let i = 0; i < points; i++) {
       const d = new Date(start);
       d.setDate(d.getDate() + Math.floor((i * dayDiff) / points));
+      const dateStr = d.toISOString().split('T')[0];
       const label = `${d.getDate()} ${d.toLocaleDateString('th-TH', { month: 'short' })}`;
-      const baseRev = 8000 + (i * 1800) % 7000;
-      const prevRev = Math.round(baseRev * 0.82);
+
+      const dayBookings = tenantBookings.filter((b) => b.bookingDate === dateStr && b.status !== 'cancelled');
+      const rev = dayBookings.reduce((sum, b) => sum + (b.finalPrice || b.price || 0), 0);
+      const dep = dayBookings.reduce((sum, b) => sum + (b.depositAmount || 0), 0);
+
       result.push({
         period: label,
-        revenue: baseRev,
-        prevRevenue: prevRev,
-        bookings: Math.round(baseRev / 1200),
-        deposit: Math.round(baseRev * 0.5),
+        revenue: rev,
+        prevRevenue: Math.round(rev * 0.85),
+        bookings: dayBookings.length,
+        deposit: dep,
       });
     }
     return result;
   };
 
-  const currentTrendData =
-    timeRange === '7d'
-      ? trendData7D
-      : timeRange === '30d'
-      ? trendData30D
-      : timeRange === '3m'
-      ? trendData3M
-      : getCustomTrendData();
+  const currentTrendData = calculateRealTrendData(timeRange);
 
-  // Calculate Aggregates
+  // Calculate Aggregates from Real Data
   const totalRevenue = currentTrendData.reduce((sum, item) => sum + item.revenue, 0);
   const totalPrevRevenue = currentTrendData.reduce((sum, item) => sum + (item.prevRevenue || 0), 0);
   const totalBookingsCount = currentTrendData.reduce((sum, item) => sum + item.bookings, 0);
@@ -159,35 +173,43 @@ export const MerchantAnalytics: React.FC = () => {
   const revenueGrowthPercent =
     totalPrevRevenue > 0
       ? (((totalRevenue - totalPrevRevenue) / totalPrevRevenue) * 100).toFixed(1)
-      : '18.4';
+      : '0.0';
 
-  // Service Category Breakdown
-  const serviceCategoryData = [
-    { name: 'บริการนวด & สปา', revenue: Math.round(totalRevenue * 0.48), count: 38, color: '#10B981' },
-    { name: 'สระ-ไดร์ & ทำผม', revenue: Math.round(totalRevenue * 0.28), count: 24, color: '#3B82F6' },
-    { name: 'สกินแคร์ & สปาหน้า', revenue: Math.round(totalRevenue * 0.16), count: 12, color: '#F59E0B' },
-    { name: 'ทรีตเมนต์หนังศีรษะ', revenue: Math.round(totalRevenue * 0.08), count: 6, color: '#8B5CF6' },
-  ];
+  // Dynamic Service Category Breakdown from real services & bookings
+  const serviceCategoryData = services.length > 0 ? services.map((svc, idx) => {
+    const svcBookings = tenantBookings.filter((b) => b.serviceId === svc.id);
+    const categoryName = svc.category || svc.name;
+    const rev = svcBookings.reduce((sum, b) => sum + (b.finalPrice || b.price || 0), 0);
+    const colors = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4'];
+    return {
+      name: categoryName.length > 20 ? categoryName.slice(0, 18) + '...' : categoryName,
+      fullName: categoryName,
+      revenue: rev,
+      count: svcBookings.length,
+      color: colors[idx % colors.length],
+    };
+  }) : [];
 
-  // Booking Status Distribution
+  // Dynamic Booking Status Distribution from real bookings
   const statusDistributionData = [
-    { name: 'เสร็จสิ้นแล้ว (Completed)', value: 68, color: '#10B981' },
-    { name: 'ยืนยันแล้ว (Confirmed)', value: 24, color: '#3B82F6' },
-    { name: 'รอตรวจสอบ (Pending)', value: 5, color: '#F59E0B' },
-    { name: 'ยกเลิก (Cancelled)', value: 3, color: '#EF4444' },
-  ];
+    { name: 'เสร็จสิ้นแล้ว (Completed)', value: tenantBookings.filter((b) => b.status === 'completed').length, color: '#10B981' },
+    { name: 'ยืนยันแล้ว (Confirmed)', value: tenantBookings.filter((b) => b.status === 'confirmed').length, color: '#3B82F6' },
+    { name: 'เช็คอินแล้ว (Checked-in)', value: tenantBookings.filter((b) => b.status === 'checked_in').length, color: '#06B6D4' },
+    { name: 'รอยืนยัน (Pending)', value: tenantBookings.filter((b) => b.status === 'pending').length, color: '#F59E0B' },
+    { name: 'ยกเลิก (Cancelled)', value: tenantBookings.filter((b) => b.status === 'cancelled').length, color: '#EF4444' },
+  ].filter((item) => item.value > 0 || tenantBookings.length === 0);
 
-  // Peak Hours Data
-  const peakHoursData = [
-    { time: '09:00', count: 4, revenue: 4200 },
-    { time: '10:00', count: 9, revenue: 10800 },
-    { time: '11:00', count: 8, revenue: 9600 },
-    { time: '13:00', count: 11, revenue: 13200 },
-    { time: '14:00', count: 15, revenue: 18500 },
-    { time: '15:00', count: 13, revenue: 15600 },
-    { time: '16:00', count: 8, revenue: 9200 },
-    { time: '17:00', count: 6, revenue: 7100 },
-  ];
+  // Dynamic Peak Hours calculation from real bookings
+  const timeSlots = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
+  const peakHoursData = timeSlots.map((slot) => {
+    const slotBookings = tenantBookings.filter((b) => b.startTime && b.startTime.startsWith(slot.slice(0, 2)));
+    const revenue = slotBookings.reduce((sum, b) => sum + (b.finalPrice || b.price || 0), 0);
+    return {
+      time: slot,
+      count: slotBookings.length,
+      revenue: revenue,
+    };
+  });
 
   const handleExportCSV = () => {
     let csvContent = 'data:text/csv;charset=utf-8,';

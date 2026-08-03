@@ -135,7 +135,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         `}
       >
-        <div className="p-5 space-y-6 overflow-y-auto">
+        <div className="p-5 space-y-6 overflow-y-auto no-scrollbar">
           {/* Brand */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">

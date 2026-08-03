@@ -155,7 +155,7 @@ export const MerchantLayout: React.FC = () => {
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         `}
       >
-        <div className="p-5 space-y-6 overflow-y-auto">
+        <div className="p-5 space-y-6 overflow-y-auto no-scrollbar">
           {/* Brand & Active Tenant Header */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">

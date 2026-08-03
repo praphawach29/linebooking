@@ -73,9 +73,20 @@ export const MerchantLoginPage: React.FC = () => {
 
           {/* Error */}
           {error && (
-            <div className="mb-4 flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{error}</span>
+            <div className="mb-4 flex flex-col gap-2 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+              {error.includes('ยังไม่ได้ลงทะเบียนเปิดร้านค้า') && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/merchant/register', { state: { email } })}
+                  className="mt-1 bg-primary hover:bg-emerald-600 text-white font-extrabold text-xs py-2 px-3 rounded-lg text-center transition-all shadow-md active:scale-95"
+                >
+                  👉 คลิกที่นี่เพื่อกรอกข้อมูลเปิดร้านค้าทันที (ใช้เวลา 10 วินาที)
+                </button>
+              )}
             </div>
           )}
 

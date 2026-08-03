@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   Eye, EyeOff, Mail, Lock, User, Phone, Store, Loader2,
@@ -20,6 +20,7 @@ const BUSINESS_TYPES = [
 export const MerchantRegisterPage: React.FC = () => {
   const { signUp } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -30,7 +31,7 @@ export const MerchantRegisterPage: React.FC = () => {
 
   // Form state
   const [form, setForm] = useState({
-    email: '',
+    email: (location.state as any)?.email || '',
     password: '',
     confirmPassword: '',
     displayName: '',

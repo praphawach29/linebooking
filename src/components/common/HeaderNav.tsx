@@ -102,14 +102,16 @@ export const HeaderNav: React.FC = () => {
                   ))}
                 </div>
                 <div className="mt-2 pt-2 border-t border-white/5 px-3 pb-1">
-                  <button
-                    onClick={() => {
-                      setMerchantTab('onboarding');
-                    }}
-                    className="w-full text-center py-2 text-xs font-bold text-success hover:text-white bg-success/10 hover:bg-success border border-success/20 hover:border-success rounded-xl transition-all duration-300 shadow-sm"
-                  >
-                    + เพิ่มร้านค้าใหม่
-                  </button>
+                  {authUser?.role === 'platform_admin' && (
+                    <button
+                      onClick={() => {
+                        setMerchantTab('onboarding');
+                      }}
+                      className="w-full text-center py-2 text-xs font-bold text-success hover:text-white bg-success/10 hover:bg-success border border-success/20 hover:border-success rounded-xl transition-all duration-300 shadow-sm"
+                    >
+                      + เพิ่มร้านค้าใหม่
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

@@ -92,7 +92,46 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error: error.message };
     if (data.user) {
-      const user = await fetchDbUser(data.user);
+      let user = await fetchDbUser(data.user);
+
+      // Auto-recovery: If account exists in Auth but shop profile wasn't created yet in DB
+      if (!user) {
+        const tenantId = crypto.randomUUID();
+        const defaultShopName = `ร้านค้าของ ${data.user.email?.split('@')[0] || 'ฉัน'}`;
+        const slug = 'shop-' + Date.now().toString(36);
+
+        // 1. Create tenant record
+        const { error: tenantError } = await supabase.from('tenants').insert({
+          id: tenantId,
+          name: defaultShopName,
+          slug,
+          business_type: 'other',
+          is_active: true,
+          settings: { currency: 'THB', autoConfirm: false, depositPercentage: 0 },
+        });
+
+        if (!tenantError) {
+          // 2. Create user record
+          const userPayload: Record<string, any> = {
+            id: data.user.id,
+            tenant_id: tenantId,
+            display_name: data.user.email?.split('@')[0] || 'เจ้าของร้าน',
+            email: data.user.email || email,
+          };
+
+          const { error: userError } = await supabase.from('users').insert(userPayload);
+
+          if (!userError) {
+            await supabase
+              .from('tenants')
+              .update({ owner_user_id: data.user.id })
+              .eq('id', tenantId);
+
+            user = await fetchDbUser(data.user);
+          }
+        }
+      }
+
       if (!user) {
         return {
           error: 'บัญชีนี้ยังไม่ได้ลงทะเบียนเปิดร้านค้า กรุณาไปที่หน้าสมัครสมาชิกเพื่อกรอกข้อมูลเปิดร้าน',

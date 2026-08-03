@@ -2,7 +2,7 @@ import React from 'react';
 import { Navbar } from './Navbar';
 import { HeroSection } from './HeroSection';
 import { FeaturesSection } from './FeaturesSection';
-import { ChatDemoSection } from './ChatDemoSection';
+import { LiffDemoSection } from './LiffDemoSection';
 import { HowItWorksSection } from './HowItWorksSection';
 import { PricingSection } from './PricingSection';
 import { CtaSection } from './CtaSection';
@@ -15,7 +15,7 @@ export const SaaSLandingPage: React.FC = () => {
       <main>
         <HeroSection />
         <FeaturesSection />
-        <ChatDemoSection />
+        <LiffDemoSection />
         <HowItWorksSection />
         <PricingSection />
         <CtaSection />

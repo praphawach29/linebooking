@@ -366,9 +366,9 @@ export const MerchantServiceManager: React.FC = () => {
 
       {/* Edit / Add Service Modal */}
       {editingService && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-white max-w-lg w-full rounded-3xl shadow-2xl p-6 border border-slate-200 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150 overflow-y-auto">
+          <div className="bg-white max-w-lg w-full max-h-[90vh] rounded-3xl shadow-2xl p-6 border border-slate-200 flex flex-col justify-between my-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
               <h3 className="font-bold text-sm text-slate-900">
                 {editingService.id ? 'แก้ไขบริการหลัก' : 'เพิ่มบริการหลักใหม่'}
               </h3>
@@ -381,7 +381,7 @@ export const MerchantServiceManager: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSaveService} className="space-y-3">
+            <form onSubmit={handleSaveService} className="flex-1 overflow-y-auto space-y-3.5 my-2 pr-1">
               <div>
                 <label className="block text-slate-700 font-bold mb-1">ชื่อบริการ *</label>
                 <input
@@ -774,17 +774,17 @@ export const MerchantServiceManager: React.FC = () => {
                 />
               </div>
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2 pt-3 border-t border-slate-100 bg-white sticky bottom-0 z-10 shrink-0 mt-3">
                 <button
                   type="button"
                   onClick={() => setEditingService(null)}
-                  className="flex-1 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors"
+                  className="flex-1 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors text-xs"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm"
+                  className="flex-1 py-2.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm text-xs"
                 >
                   บันทึกบริการ
                 </button>
@@ -796,9 +796,9 @@ export const MerchantServiceManager: React.FC = () => {
 
       {/* Edit / Add ServiceAddon Modal */}
       {editingAddon && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-white max-w-lg w-full rounded-3xl shadow-2xl p-6 border border-slate-200 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150 overflow-y-auto">
+          <div className="bg-white max-w-lg w-full max-h-[90vh] rounded-3xl shadow-2xl p-6 border border-slate-200 flex flex-col justify-between my-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
               <h3 className="font-bold text-sm text-slate-900">
                 {editingAddon.id ? 'แก้ไขบริการเสริมพิเศษ' : 'เพิ่มบริการเสริมพิเศษใหม่'}
               </h3>
@@ -811,7 +811,7 @@ export const MerchantServiceManager: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSaveAddon} className="space-y-3">
+            <form onSubmit={handleSaveAddon} className="flex-1 overflow-y-auto space-y-3.5 my-2 pr-1">
               <div>
                 <label className="block text-slate-700 font-bold mb-1">ชื่อบริการเสริม *</label>
                 <input
@@ -886,17 +886,17 @@ export const MerchantServiceManager: React.FC = () => {
                 />
               </div>
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2 pt-3 border-t border-slate-100 bg-white sticky bottom-0 z-10 shrink-0 mt-3">
                 <button
                   type="button"
                   onClick={() => setEditingAddon(null)}
-                  className="flex-1 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors"
+                  className="flex-1 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors text-xs"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-amber-600 text-white font-bold rounded-xl hover:bg-amber-700 transition-colors shadow-sm"
+                  className="flex-1 py-2.5 bg-amber-600 text-white font-bold rounded-xl hover:bg-amber-700 transition-colors shadow-sm text-xs"
                 >
                   บันทึกบริการเสริม
                 </button>

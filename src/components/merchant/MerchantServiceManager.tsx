@@ -12,9 +12,21 @@ import {
   Sparkles,
   Gift,
   Tag,
+  Image as ImageIcon,
+  Upload,
+  Link
 } from 'lucide-react';
 import { getTenantQuotaInfo } from '../../lib/quota-manager';
 import { MerchantSubscriptionModal } from './MerchantSubscriptionModal';
+
+const PRESET_SERVICE_IMAGES = [
+  { label: '🧖‍♀️ นวด/สปา', url: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&auto=format&fit=crop&q=80' },
+  { label: '💇‍♂️ ตัดผม/ทำผม', url: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&auto=format&fit=crop&q=80' },
+  { label: '💅 ทำเล็บ', url: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=800&auto=format&fit=crop&q=80' },
+  { label: '⚽ สนามกีฬา', url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&auto=format&fit=crop&q=80' },
+  { label: '🩺 คลินิก/ความงาม', url: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=800&auto=format&fit=crop&q=80' },
+  { label: '🚗 ล้างรถ/คาร์แคร์', url: 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=800&auto=format&fit=crop&q=80' },
+];
 
 export const MerchantServiceManager: React.FC = () => {
   const {
@@ -156,10 +168,20 @@ export const MerchantServiceManager: React.FC = () => {
               key={svc.id}
               className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3 relative overflow-hidden"
             >
-              <div
-                className="absolute top-0 left-0 right-0 h-1.5"
-                style={{ backgroundColor: svc.colorCode || '#3B82F6' }}
-              ></div>
+              {svc.imageUrl ? (
+                <div className="h-32 -mx-4 -mt-4 mb-1 overflow-hidden relative bg-slate-100 border-b border-slate-100">
+                  <img src={svc.imageUrl} alt={svc.name} className="w-full h-full object-cover" />
+                  <div
+                    className="absolute top-0 left-0 right-0 h-1.5"
+                    style={{ backgroundColor: svc.colorCode || '#3B82F6' }}
+                  />
+                </div>
+              ) : (
+                <div
+                  className="absolute top-0 left-0 right-0 h-1.5"
+                  style={{ backgroundColor: svc.colorCode || '#3B82F6' }}
+                />
+              )}
 
               <div className="space-y-2 pt-1">
                 <div className="flex items-center justify-between">
@@ -398,6 +420,98 @@ export const MerchantServiceManager: React.FC = () => {
                     onChange={(e) => setEditingService({ ...editingService, price: Number(e.target.value) })}
                     className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
                   />
+                </div>
+              </div>
+
+              {/* รูปภาพบริการ (Service Image) */}
+              <div className="space-y-2 pt-1 border-t border-slate-100">
+                <label className="block text-slate-700 font-bold flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <ImageIcon className="w-4 h-4 text-emerald-600" />
+                    <span>รูปภาพบริการ (แสดงบน LIFF)</span>
+                  </span>
+                  {editingService.imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingService({ ...editingService, imageUrl: '' })}
+                      className="text-[10px] text-red-500 hover:underline font-bold"
+                    >
+                      ลบรูปภาพ
+                    </button>
+                  )}
+                </label>
+
+                {/* Image Preview & Upload Row */}
+                <div className="flex items-center gap-3">
+                  <div className="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 overflow-hidden shrink-0 relative flex items-center justify-center">
+                    {editingService.imageUrl ? (
+                      <img
+                        src={editingService.imageUrl}
+                        alt="Service Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="text-center p-1 text-slate-400">
+                        <ImageIcon className="w-5 h-5 mx-auto" />
+                        <span className="text-[8px] font-bold block">ไม่มีรูป</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-1.5">
+                    {/* File Upload Button */}
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 transition-colors">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>อัปโหลดรูปภาพ</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setEditingService({ ...editingService, imageUrl: reader.result as string });
+                          };
+                          reader.readAsDataURL(file);
+                        }}
+                      />
+                    </label>
+
+                    {/* URL Input */}
+                    <div className="relative">
+                      <Link className="w-3 h-3 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="url"
+                        value={editingService.imageUrl || ''}
+                        onChange={(e) => setEditingService({ ...editingService, imageUrl: e.target.value })}
+                        placeholder="หรือวาง URL รูปภาพ (https://...)"
+                        className="w-full text-xs pl-7 pr-3 py-1.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Preset Selector */}
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 block mb-1">เลือกรูปตัวอย่างด่วน:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {PRESET_SERVICE_IMAGES.map((preset) => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => setEditingService({ ...editingService, imageUrl: preset.url })}
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border transition-all ${
+                          editingService.imageUrl === preset.url
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 

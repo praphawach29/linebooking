@@ -562,14 +562,29 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     );
   };
 
-  const saveService = (serviceData: Partial<Service>) => {
+  const saveService = async (serviceData: Partial<Service>) => {
+    if (!activeTenant) return;
+
     if (serviceData.id) {
       setServices((prev) =>
         prev.map((s) => (s.id === serviceData.id ? ({ ...s, ...serviceData } as Service) : s))
       );
+      const row: any = {
+        name: serviceData.name,
+        description: serviceData.description,
+        duration_minutes: serviceData.durationMinutes,
+        price: serviceData.price,
+        buffer_minutes: serviceData.bufferMinutes,
+        color_code: serviceData.colorCode,
+        category: serviceData.category,
+        image_url: serviceData.imageUrl || null,
+      };
+      const { error } = await supabase.from('services').update(row).eq('id', serviceData.id);
+      if (error) console.error('Error updating service in Supabase:', error.message);
     } else {
+      const id = `svc-${Date.now()}`;
       const newService: Service = {
-        id: `svc-${Date.now()}`,
+        id,
         tenantId: activeTenant.id,
         name: serviceData.name || 'บริการใหม่',
         description: serviceData.description || '',
@@ -579,16 +594,37 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         maxCapacity: 1,
         bufferMinutes: serviceData.bufferMinutes || 15,
         colorCode: serviceData.colorCode || '#3B82F6',
+        imageUrl: serviceData.imageUrl || '',
         category: serviceData.category || 'ทั่วไป',
         isActive: true,
         sortOrder: services.length + 1,
       };
       setServices((prev) => [...prev, newService]);
+      const row: any = {
+        id,
+        tenant_id: activeTenant.id,
+        name: newService.name,
+        description: newService.description,
+        duration_minutes: newService.durationMinutes,
+        price: newService.price,
+        currency: 'THB',
+        max_capacity: 1,
+        buffer_minutes: newService.bufferMinutes,
+        color_code: newService.colorCode,
+        image_url: newService.imageUrl || null,
+        category: newService.category,
+        is_active: true,
+        sort_order: newService.sortOrder,
+      };
+      const { error } = await supabase.from('services').insert(row);
+      if (error) console.error('Error inserting service in Supabase:', error.message);
     }
   };
 
-  const deleteService = (serviceId: string) => {
+  const deleteService = async (serviceId: string) => {
     setServices((prev) => prev.filter((s) => s.id !== serviceId));
+    const { error } = await supabase.from('services').delete().eq('id', serviceId);
+    if (error) console.error('Error deleting service in Supabase:', error.message);
   };
 
   const saveServiceAddon = (addonData: Partial<ServiceAddon>) => {

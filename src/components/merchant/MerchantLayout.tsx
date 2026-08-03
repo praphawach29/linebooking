@@ -101,7 +101,7 @@ export const MerchantLayout: React.FC = () => {
       items: [
         { tab: 'shop_settings', icon: Store, label: 'ตั้งค่าข้อมูลร้านค้า & โลโก้' },
         { tab: 'services', icon: Scissors, label: 'บริการ (Services)' },
-        { tab: 'staffs', icon: Users, label: 'ทีมช่าง (Staffs)' },
+        { tab: 'staffs', icon: Users, label: activeTenant?.businessType === 'sports' ? 'สนาม/คอร์ท (Courts)' : 'ทีมช่าง (Staffs)' },
         { tab: 'booking_flow', icon: Sparkles, label: 'ตั้งค่าขั้นตอนการจอง (Flow)' },
         { tab: 'payments', icon: CreditCard, label: 'การชำระเงิน (QR Code)' },
         { tab: 'booking_settings', icon: Settings, label: 'ตั้งค่าการจองและยกเลิก' },

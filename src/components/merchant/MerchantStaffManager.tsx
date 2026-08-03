@@ -51,9 +51,9 @@ export const MerchantStaffManager: React.FC = () => {
     }
     setEditingStaff({
       name: '',
-      phone: '081-000-0000',
+      phone: '',
       email: '',
-      bio: 'ช่างผู้เชี่ยวชาญให้บริการด้วยความประณีต',
+      bio: 'ผู้ให้บริการ / ประจำจุดบริการ',
       avatarUrl:
         'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
       serviceIds: services.map((s) => s.id),
@@ -419,13 +419,13 @@ export const MerchantStaffManager: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">เบอร์โทรศัพท์ *</label>
+                  <label className="block text-slate-700 font-bold mb-1">เบอร์โทรศัพท์ (ถ้ามี)</label>
                   <input
                     type="tel"
-                    required
                     value={editingStaff.phone || ''}
                     onChange={(e) => setEditingStaff({ ...editingStaff, phone: e.target.value })}
                     className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
+                    placeholder="เช่น 081-234-5678"
                   />
                 </div>
 

@@ -94,8 +94,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (data.user) {
       let user = await fetchDbUser(data.user);
 
-      // Auto-recovery: If account exists in Auth but shop profile wasn't created yet in DB
-      if (!user) {
+      // Auto-recovery: If account exists in Auth but shop profile wasn't created OR tenant_id is NULL
+      const needsShop = !user || !user.tenantId;
+      if (needsShop) {
         const tenantId = crypto.randomUUID();
         const defaultShopName = `ร้านค้าของ ${data.user.email?.split('@')[0] || 'ฉัน'}`;
         const slug = 'shop-' + Date.now().toString(36);
@@ -111,28 +112,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
 
         if (!tenantError) {
-          // 2. Create user record
-          const userPayload: Record<string, any> = {
-            id: data.user.id,
-            tenant_id: tenantId,
-            display_name: data.user.email?.split('@')[0] || 'เจ้าของร้าน',
-            email: data.user.email || email,
-          };
-
-          const { error: userError } = await supabase.from('users').insert(userPayload);
-
-          if (!userError) {
+          if (!user) {
+            // 2a. No user row at all — create one
+            const { error: userError } = await supabase.from('users').insert({
+              id: data.user.id,
+              tenant_id: tenantId,
+              display_name: data.user.email?.split('@')[0] || 'เจ้าของร้าน',
+              email: data.user.email || email,
+            });
+            if (!userError) {
+              await supabase.from('tenants').update({ owner_user_id: data.user.id }).eq('id', tenantId);
+            }
+          } else {
+            // 2b. User row exists but has no tenant — just link it
             await supabase
-              .from('tenants')
-              .update({ owner_user_id: data.user.id })
-              .eq('id', tenantId);
-
-            user = await fetchDbUser(data.user);
+              .from('users')
+              .update({ tenant_id: tenantId })
+              .eq('id', user.dbUserId);
+            await supabase.from('tenants').update({ owner_user_id: user.dbUserId }).eq('id', tenantId);
           }
+          user = await fetchDbUser(data.user);
         }
       }
 
-      if (!user) {
+      if (!user || !user.tenantId) {
         return {
           error: 'บัญชีนี้ยังไม่ได้ลงทะเบียนเปิดร้านค้า กรุณาไปที่หน้าสมัครสมาชิกเพื่อกรอกข้อมูลเปิดร้าน',
         };

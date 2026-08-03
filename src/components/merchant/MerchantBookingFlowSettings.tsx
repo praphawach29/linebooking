@@ -409,8 +409,19 @@ export const MerchantBookingFlowSettings: React.FC = () => {
                       min="1"
                       max="100"
                       className="w-20 bg-white border border-purple-200 rounded-lg px-3 py-1.5 text-center font-bold text-purple-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
-                      value={flowConfig.depositAmount || 20}
-                      onChange={(e) => setFlowConfig(prev => ({ ...prev, depositAmount: Number(e.target.value) }))}
+                      value={flowConfig.depositAmount === 0 || flowConfig.depositAmount === undefined ? '' : flowConfig.depositAmount}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFlowConfig(prev => ({
+                          ...prev,
+                          depositAmount: val === '' ? 0 : Math.min(100, Math.max(0, Number(val)))
+                        }));
+                      }}
+                      onBlur={() => {
+                        if (!flowConfig.depositAmount || flowConfig.depositAmount < 1) {
+                          setFlowConfig(prev => ({ ...prev, depositAmount: 20 }));
+                        }
+                      }}
                     />
                     <span className="font-bold text-purple-900">%</span>
                   </div>

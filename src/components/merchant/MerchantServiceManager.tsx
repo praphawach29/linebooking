@@ -28,6 +28,15 @@ const PRESET_SERVICE_IMAGES = [
   { label: '🚗 ล้างรถ/คาร์แคร์', url: 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=800&auto=format&fit=crop&q=80' },
 ];
 
+const DEFAULT_CATEGORY_SUGGESTIONS: Record<string, string[]> = {
+  sports: ['สนามฟุตบอล', 'สนามหญ้าเทียม', 'สนามแบดมินตัน', 'สนามเทนนิส', 'อุปกรณ์กีฬา', 'โค้ช/ผู้ฝึกสอน'],
+  spa: ['นวดไทย', 'นวดอโรมา', 'นวดเท้า', 'สปาผิว', 'ขัดผิว', 'ทรีตเมนต์'],
+  salon: ['สระ-ไดร์', 'ตัดผมชาย', 'ตัดผมหญิง', 'ทำสีผม', 'ดัดผม', 'ทรีตเมนต์ผม'],
+  barbershop: ['ตัดผมชาย', 'โกนหนวด', 'เซ็ตทรงผม', 'ทำสีผม', 'สปาหนังศีรษะ'],
+  clinic: ['ตรวจสุขภาพ', 'ทรีตเมนต์หน้า', 'โบท็อกซ์/ฟิลเลอร์', 'เลเซอร์', 'กระชับสัดส่วน'],
+  other: ['บริการทั่วไป', 'โปรโมชั่น', 'แพ็กเกจพิเศษ', 'VIP'],
+};
+
 export const MerchantServiceManager: React.FC = () => {
   const {
     activeTenant,
@@ -46,6 +55,22 @@ export const MerchantServiceManager: React.FC = () => {
   const [editingService, setEditingService] = useState<Partial<Service> | null>(null);
   const [editingAddon, setEditingAddon] = useState<Partial<ServiceAddon> | null>(null);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+
+  const existingCategories = Array.from(
+    new Set(services.map((s) => s.category).filter(Boolean))
+  ) as string[];
+
+  const handleDeleteCategoryGlobally = async (categoryToDelete: string) => {
+    if (confirm(`คุณต้องการลบหมวดหมู่ "${categoryToDelete}" และเปลี่ยนบริการในหมวดหมู่นี้เป็น "ทั่วไป" ใช่หรือไม่?`)) {
+      const servicesToUpdate = services.filter((s) => s.category === categoryToDelete);
+      for (const s of servicesToUpdate) {
+        await saveService({ ...s, category: 'ทั่วไป' });
+      }
+      if (editingService && editingService.category === categoryToDelete) {
+        setEditingService({ ...editingService, category: 'ทั่วไป' });
+      }
+    }
+  };
 
   const quotaInfo = activeTenant ? getTenantQuotaInfo(activeTenant, bookings, staffs, courts, services) : null;
 
@@ -361,17 +386,92 @@ export const MerchantServiceManager: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">หมวดหมู่ *</label>
+              {/* หมวดหมู่บริการ & สีประจำบริการ */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-slate-700 font-bold">หมวดหมู่บริการ *</label>
+                    <span className="text-[10px] text-slate-400 font-medium">พิมพ์เอง หรือเลือกจากชิป</span>
+                  </div>
+
                   <input
                     type="text"
                     required
-                    value={editingService.category || 'ทั่วไป'}
+                    value={editingService.category || ''}
                     onChange={(e) => setEditingService({ ...editingService, category: e.target.value })}
-                    placeholder="เช่น นวดไทย, สปา"
-                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    placeholder="พิมพ์ชื่อหมวดหมู่ เช่น สนามหญ้าเทียม, นวดไทย"
+                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold text-slate-900 text-xs"
                   />
+
+                  {/* Existing Category Chips */}
+                  {existingCategories.length > 0 && (
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 block">หมวดหมู่ที่มีในร้าน (คลิกเพื่อเลือก / กด ✕ เพื่อลบ):</span>
+                      <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto p-1 bg-slate-50 border border-slate-100 rounded-xl">
+                        {existingCategories.map((cat) => {
+                          const isSelected = editingService.category === cat;
+                          return (
+                            <div
+                              key={cat}
+                              className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-lg border transition-all ${
+                                isSelected
+                                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => setEditingService({ ...editingService, category: cat })}
+                                className="hover:underline"
+                              >
+                                {cat}
+                              </button>
+
+                              {cat !== 'ทั่วไป' && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteCategoryGlobally(cat);
+                                  }}
+                                  className={`p-0.5 rounded hover:bg-red-500 hover:text-white transition-colors ${
+                                    isSelected ? 'text-white/80' : 'text-slate-400'
+                                  }`}
+                                  title={`ลบหมวดหมู่ ${cat}`}
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Preset Suggestions */}
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 block mb-1">แนะนำสำหรับประเภทธุรกิจคุณ:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {(
+                        DEFAULT_CATEGORY_SUGGESTIONS[(activeTenant?.businessType || 'other') as string] ||
+                        DEFAULT_CATEGORY_SUGGESTIONS.other
+                      ).map((sug) => (
+                        <button
+                          key={sug}
+                          type="button"
+                          onClick={() => setEditingService({ ...editingService, category: sug })}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md border transition-all ${
+                            editingService.category === sug
+                              ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                              : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                          }`}
+                        >
+                          + {sug}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
                 <div>
@@ -380,7 +480,7 @@ export const MerchantServiceManager: React.FC = () => {
                     type="color"
                     value={editingService.colorCode || '#3B82F6'}
                     onChange={(e) => setEditingService({ ...editingService, colorCode: e.target.value })}
-                    className="w-full h-9 p-1 border border-slate-200 rounded-xl cursor-pointer"
+                    className="w-full h-10 p-1 border border-slate-200 rounded-xl cursor-pointer"
                   />
                 </div>
               </div>

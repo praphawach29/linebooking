@@ -34,7 +34,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       .from('users')
       .select('id, display_name, role, tenant_id')
       .eq('auth_user_id', supabaseUser.id)
-      .single();
+      .maybeSingle();
 
     if (error || !data) return null;
 
@@ -79,7 +79,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (data.user) {
       const user = await fetchDbUser(data.user);
       if (!user) {
-        return { error: 'ไม่พบข้อมูลโปรไฟล์ร้านค้าในระบบ กรุณาสมัครสมาชิกเปิดร้านก่อนเข้าสู่ระบบ' };
+        return {
+          error: 'บัญชีนี้ยังไม่ได้ลงทะเบียนเปิดร้านค้า กรุณาไปที่หน้าสมัครสมาชิกเพื่อกรอกข้อมูลเปิดร้าน',
+        };
       }
       setAuthUser(user);
     }
@@ -94,17 +96,38 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     businessType: string,
     phone: string,
   ): Promise<{ error: string | null }> => {
-    // 1. Create auth user
+    // 1. Create auth user or recover existing auth account
     const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
-    if (authError || !authData.user) return { error: authError?.message || 'ไม่สามารถสร้างบัญชีได้' };
 
-    // Check if account already exists (identities is empty for duplicate emails in Supabase Auth)
-    if (authData.user.identities && authData.user.identities.length === 0) {
-      return { error: 'อีเมลนี้มีบัญชีในระบบอยู่แล้ว กรุณาเข้าสู่ระบบแทน' };
+    let authUserId: string | null = authData?.user?.id || null;
+    let activeSession = authData?.session || null;
+
+    const isExistingAuthUser =
+      (authData?.user?.identities && authData.user.identities.length === 0) ||
+      (authError && authError.message.toLowerCase().includes('already registered'));
+
+    if (isExistingAuthUser || !authUserId) {
+      // Attempt to sign in with password to obtain active session and user id for orphaned auth account
+      const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInErr || !signInData?.user) {
+        return { error: 'อีเมลนี้มีบัญชีในระบบอยู่แล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่านของคุณ' };
+      }
+      authUserId = signInData.user.id;
+      activeSession = signInData.session;
     }
 
-    // 2. Ensure an active session is established
-    let activeSession = authData.session;
+    // 2. Check if user ALREADY has a shop profile in public.users table
+    const { data: existingDbUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('auth_user_id', authUserId)
+      .maybeSingle();
+
+    if (existingDbUser) {
+      return { error: 'อีเมลนี้มีร้านค้าในระบบอยู่แล้ว กรุณาเข้าสู่ระบบแทน' };
+    }
+
+    // 3. Ensure an active session is established for RLS authorization
     if (!activeSession) {
       const { data: signInData } = await supabase.auth.signInWithPassword({ email, password });
       activeSession = signInData?.session || null;
@@ -116,10 +139,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
     }
 
-    const authUserId = authData.user.id;
     const slug = shopName.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + Date.now().toString(36);
 
-    // 3. Create tenant record
+    // 4. Create tenant record
     const tenantId = crypto.randomUUID();
     const { error: tenantError } = await supabase.from('tenants').insert({
       id: tenantId,
@@ -133,7 +155,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     if (tenantError) return { error: `ไม่สามารถสร้างข้อมูลร้านค้าได้: ${tenantError.message}` };
 
-    // 4. Create user record linked to auth user + tenant
+    // 5. Create user record linked to auth user + tenant
     const userId = crypto.randomUUID();
     const { error: userError } = await supabase.from('users').insert({
       id: userId,
@@ -147,14 +169,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     if (userError) return { error: `ไม่สามารถสร้างโปรไฟล์ผู้ใช้ได้: ${userError.message}` };
 
-    // 5. Update tenant owner & update local auth user context
+    // 6. Update tenant owner & hydrate local auth user context
     await supabase
       .from('tenants')
       .update({ owner_user_id: userId })
       .eq('id', tenantId);
 
-    const userProfile = await fetchDbUser(authData.user);
-    if (userProfile) setAuthUser(userProfile);
+    const { data: currentAuth } = await supabase.auth.getUser();
+    if (currentAuth?.user) {
+      const userProfile = await fetchDbUser(currentAuth.user);
+      if (userProfile) setAuthUser(userProfile);
+    }
 
     return { error: null };
   };

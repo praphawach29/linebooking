@@ -149,6 +149,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       slug,
       business_type: businessType,
       is_active: true,
+      trial_started_at: new Date().toISOString(),
       settings: { currency: 'THB', autoConfirm: false, depositPercentage: 0 },
     });
 

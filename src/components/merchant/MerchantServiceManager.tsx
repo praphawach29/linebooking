@@ -13,22 +13,35 @@ import {
   Gift,
   Tag,
 } from 'lucide-react';
+import { getTenantQuotaInfo } from '../../lib/quota-manager';
+import { MerchantSubscriptionModal } from './MerchantSubscriptionModal';
 
 export const MerchantServiceManager: React.FC = () => {
   const {
+    activeTenant,
     services,
     serviceAddons,
     saveService,
     deleteService,
     saveServiceAddon,
     deleteServiceAddon,
+    staffs,
+    courts,
+    bookings,
   } = useSaaS();
 
   const [activeTab, setActiveTab] = useState<'services' | 'addons'>('services');
   const [editingService, setEditingService] = useState<Partial<Service> | null>(null);
   const [editingAddon, setEditingAddon] = useState<Partial<ServiceAddon> | null>(null);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+
+  const quotaInfo = activeTenant ? getTenantQuotaInfo(activeTenant, bookings, staffs, courts, services) : null;
 
   const handleOpenAddService = () => {
+    if (quotaInfo && quotaInfo.isServiceQuotaReached) {
+      setIsSubscriptionModalOpen(true);
+      return;
+    }
     setEditingService({
       name: '',
       description: '',
@@ -531,6 +544,11 @@ export const MerchantServiceManager: React.FC = () => {
         </div>
       )}
 
+      {/* Subscription Payment Modal */}
+      <MerchantSubscriptionModal
+        isOpen={isSubscriptionModalOpen}
+        onClose={() => setIsSubscriptionModalOpen(false)}
+      />
     </div>
   );
 };

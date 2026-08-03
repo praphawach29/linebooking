@@ -16,6 +16,9 @@ import {
   Sparkles,
 } from 'lucide-react';
 
+import { getTenantQuotaInfo } from '../../lib/quota-manager';
+import { MerchantSubscriptionModal } from './MerchantSubscriptionModal';
+
 const DAYS_OF_WEEK = [
   { id: 1, label: 'จันทร์', short: 'จ.' },
   { id: 2, label: 'อังคาร', short: 'อ.' },
@@ -27,10 +30,17 @@ const DAYS_OF_WEEK = [
 ];
 
 export const MerchantStaffManager: React.FC = () => {
-  const { staffs, services, saveStaff, deleteStaff } = useSaaS();
+  const { activeTenant, staffs, services, saveStaff, deleteStaff, bookings, courts } = useSaaS();
   const [editingStaff, setEditingStaff] = useState<Partial<Staff> | null>(null);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+
+  const quotaInfo = activeTenant ? getTenantQuotaInfo(activeTenant, bookings, staffs, courts) : null;
 
   const handleOpenAdd = () => {
+    if (quotaInfo && quotaInfo.isStaffQuotaReached) {
+      setIsSubscriptionModalOpen(true);
+      return;
+    }
     setEditingStaff({
       name: '',
       phone: '081-000-0000',
@@ -413,6 +423,11 @@ export const MerchantStaffManager: React.FC = () => {
         </div>
       )}
 
+      {/* Subscription Upgrade Modal */}
+      <MerchantSubscriptionModal
+        isOpen={isSubscriptionModalOpen}
+        onClose={() => setIsSubscriptionModalOpen(false)}
+      />
     </div>
   );
 };

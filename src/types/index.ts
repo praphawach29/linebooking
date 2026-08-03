@@ -46,6 +46,8 @@ export interface Tenant {
   businessType: 'spa' | 'barbershop' | 'clinic' | 'salon' | 'sports' | 'other';
   plan: TenantPlan;
   planExpiresAt?: string;
+  /** Set by server when the shop is first created. Used to calculate 14-day trial window. */
+  trialStartedAt?: string;
   commissionRate: number;
   isActive: boolean;
   lineChannelId?: string;

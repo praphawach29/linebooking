@@ -32,16 +32,19 @@ import { MerchantBookingFlowSettings } from './MerchantBookingFlowSettings';
 import { MerchantOnboardingWizard } from './MerchantOnboardingWizard';
 import { MerchantReviews } from './MerchantReviews';
 import { MerchantSubscriptionModal } from './MerchantSubscriptionModal';
+import { getTenantQuotaInfo, FREE_PLAN_MONTHLY_BOOKING_LIMIT } from '../../lib/quota-manager';
 import { HeaderNav } from '../common/HeaderNav';
 
 export const MerchantLayout: React.FC = () => {
-  const { activeTenant, merchantTab, setMerchantTab, bookings } = useSaaS();
+  const { activeTenant, merchantTab, setMerchantTab, bookings, staffs, courts } = useSaaS();
   const { signOut, authUser } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
 
   const todayStr = new Date().toISOString().split('T')[0];
   const todayBookingsCount = bookings.filter((b) => b.bookingDate === todayStr).length;
+
+  const quotaInfo = activeTenant ? getTenantQuotaInfo(activeTenant, bookings, staffs, courts) : null;
 
   const handleTabChange = (tab: string) => {
     setMerchantTab(tab);
@@ -233,6 +236,78 @@ export const MerchantLayout: React.FC = () => {
           <div className="absolute bottom-0 left-0 w-[250px] h-[250px] bg-success/5 rounded-full blur-[80px] pointer-events-none -z-10" />
 
           <div className="max-w-6xl mx-auto">
+            {/* Live Trial & Quota Banner */}
+            {quotaInfo && quotaInfo.isTrial && (
+              <div className="mb-6 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10 border border-emerald-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-slate-800 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-md shadow-emerald-500/25">
+                    ⚡
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-2 flex-wrap">
+                      คุณกำลังอยู่ในช่วงทดลองใช้ Pro ฟรี 14 วัน!
+                      <span className="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-0.5 rounded-full font-bold border border-emerald-300">
+                        เหลืออีก {quotaInfo.trialDaysRemaining} วัน
+                      </span>
+                    </h4>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      ปลดล็อกทุกฟีเจอร์ใช้งานได้แบบไม่จำกัดโควตา (ไม่จำกัดจำนวนจอง ช่าง และสนาม)
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsSubscriptionModalOpen(true)}
+                  className="shrink-0 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md shadow-emerald-600/20 active:scale-95"
+                >
+                  อัปเกรดแพ็กเกจ ⚡
+                </button>
+              </div>
+            )}
+
+            {quotaInfo && !quotaInfo.isUnlimited && quotaInfo.isBookingQuotaReached && (
+              <div className="mb-6 bg-red-500/10 border border-red-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-red-900 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <ShieldAlert className="w-8 h-8 text-red-500 shrink-0" />
+                  <div>
+                    <h4 className="font-extrabold text-sm text-red-950">
+                      🚫 คุณใช้โควตานัดหมายฟรีครบ {FREE_PLAN_MONTHLY_BOOKING_LIMIT}/{FREE_PLAN_MONTHLY_BOOKING_LIMIT} รายการในเดือนนี้แล้ว
+                    </h4>
+                    <p className="text-xs text-red-700 mt-0.5">
+                      ลูกค้าจะไม่สามารถลงทะเบียนนัดหมายเพิ่มได้ชั่วคราว อัปเกรดเป็น Pro เพื่อรับนัดหมายต่อไม่จำกัด
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsSubscriptionModalOpen(true)}
+                  className="shrink-0 bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md active:scale-95"
+                >
+                  อัปเกรดเป็น Pro 🚀
+                </button>
+              </div>
+            )}
+
+            {quotaInfo && !quotaInfo.isUnlimited && !quotaInfo.isBookingQuotaReached && (
+              <div className="mb-6 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-amber-900 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <Sparkles className="w-6 h-6 text-amber-600 shrink-0" />
+                  <div>
+                    <h4 className="font-extrabold text-sm text-amber-950">
+                      โควตาจองฟรีประจำเดือน: {quotaInfo.monthlyBookingsCount}/{FREE_PLAN_MONTHLY_BOOKING_LIMIT} รายการ
+                    </h4>
+                    <p className="text-xs text-amber-800 mt-0.5">
+                      แพ็กเกจฟรีจำกัด 30 นัดหมาย/เดือน และพนักงาน 1 คน ➔ อัปเกรดเพื่อรับงานไม่จำกัด
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsSubscriptionModalOpen(true)}
+                  className="shrink-0 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md active:scale-95"
+                >
+                  อัปเกรดเป็น Pro ✨
+                </button>
+              </div>
+            )}
+
             {merchantTab === 'dashboard' && <MerchantDashboard />}
             {merchantTab === 'calendar' && <MerchantCalendarView />}
             {merchantTab === 'walkin' && <MerchantWalkinBookingModal />}

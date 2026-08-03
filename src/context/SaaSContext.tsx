@@ -131,6 +131,7 @@ interface SaaSContextType {
   deleteCourt: (courtId: string) => void;
   updateTenantSettings: (settings: Partial<Tenant['settings']>, tenantInfo?: Partial<Tenant>) => void;
   updateTenant: (tenantId: string, updates: Partial<Tenant>) => Promise<void>;
+  deleteTenant: (tenantId: string) => Promise<void>;
   markNotificationAsRead: (notificationId: string) => void;
   addOnboardingTenant: (tenantData: Partial<Tenant>, initialService: Partial<Service>) => void;
   updateCancellationPolicies: (policies: CancellationPolicy[]) => void;
@@ -735,6 +736,12 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (error) console.error('Error updating tenant in Supabase:', error.message);
   };
 
+  const deleteTenant = async (tenantId: string) => {
+    setTenants((prev) => prev.filter((t) => t.id !== tenantId));
+    const { error } = await supabase.from('tenants').delete().eq('id', tenantId);
+    if (error) console.error('Error deleting tenant in Supabase:', error.message);
+  };
+
   const markNotificationAsRead = (notificationId: string) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === notificationId ? { ...n, status: 'read' as const } : n))
@@ -852,6 +859,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         deleteCourt,
         updateTenantSettings,
         updateTenant,
+        deleteTenant,
         markNotificationAsRead,
         addOnboardingTenant,
         updateCancellationPolicies,

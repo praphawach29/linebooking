@@ -42,11 +42,12 @@ import {
   Sliders,
   BellRing,
   FileText,
-  X
+  X,
+  Trash2
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
-  const { tenants, bookings, updateTenant } = useSaaS();
+  const { tenants, bookings, updateTenant, deleteTenant } = useSaaS();
   const { authUser } = useAuth();
   const [activeSubTab, setActiveTab] = useState<AdminTab>('overview');
   const [pendingSlipCount, setPendingSlipCount] = useState(0);
@@ -143,6 +144,12 @@ export const AdminDashboard: React.FC = () => {
 
   const handleToggleTenantStatus = (tenantId: string, currentStatus: boolean) => {
     updateTenant(tenantId, { isActive: !currentStatus });
+  };
+
+  const handleDeleteTenant = (tenantId: string, tenantName: string) => {
+    if (confirm(`คุณต้องการลบร้านค้า "${tenantName}" ออกจากระบบถาวรใช่หรือไม่?`)) {
+      deleteTenant(tenantId);
+    }
   };
 
   const pageTitles: Record<AdminTab, { title: string; subtitle: string }> = {
@@ -397,6 +404,15 @@ export const AdminDashboard: React.FC = () => {
                         <span>เข้าดูร้าน</span>
                         <ArrowUpRight className="w-3.5 h-3.5" />
                       </a>
+
+                      {/* Delete Tenant */}
+                      <button
+                        onClick={() => handleDeleteTenant(t.id, t.name)}
+                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl border border-transparent hover:border-red-200 transition-colors"
+                        title="ลบร้านค้านี้"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 ))

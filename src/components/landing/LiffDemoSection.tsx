@@ -26,12 +26,14 @@ interface LiffDemoScenario {
     duration: string;
     price: string;
     category: string;
+    image: string;
   }[];
   staffList: {
     name: string;
     role: string;
     rating: string;
     avatar: string;
+    isImageUrl?: boolean;
   }[];
   timeSlots: string[];
   paymentNotice: string;
@@ -43,15 +45,45 @@ const scenarios: LiffDemoScenario[] = [
     name: '🌸 สปา & นวดไทย',
     badge: 'Service + Staff + Deposit',
     shopName: 'Bliss Aura Spa (สาขาสุขุมวิท)',
-    description: 'ลูกค้าเลือกคอร์สนวด ช่างดาวเด่น และเวลาจอง พร้อมรับ PromptPay QR มัดจำ 30%',
+    description: 'ลูกค้าเห็นรูปบริการการ์ดสวยงาม เลือกช่างดาวเด่น และเวลาจอง พร้อมรับ PromptPay QR มัดจำ 30%',
     services: [
-      { name: 'นวดอโรม่าผ่อนคลาย (Aroma Therapy)', duration: '90 นาที', price: '฿1,200', category: 'นวดน้ำมัน' },
-      { name: 'นวดไทยแบบราชสำนัก (Traditional Thai)', duration: '120 นาที', price: '฿900', category: 'นวดไทย' },
+      {
+        name: 'นวดอโรม่าผ่อนคลาย (Aroma Therapy)',
+        duration: '90 นาที',
+        price: '฿1,200',
+        category: 'นวดน้ำมัน',
+        image: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=600&q=80',
+      },
+      {
+        name: 'นวดไทยแบบราชสำนัก (Traditional Thai)',
+        duration: '120 นาที',
+        price: '฿900',
+        category: 'นวดไทย',
+        image: 'https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?auto=format&fit=crop&w=600&q=80',
+      },
     ],
     staffList: [
-      { name: 'คุณมุก (หมอนวดมืออาชีพ)', role: 'ความเชี่ยวชาญ 8 ปี', rating: '5.0 ★', avatar: '👩‍⚕️' },
-      { name: 'คุณเมย์ (เทอราพิส)', role: 'นวดอโรม่า & สปาหน้า', rating: '4.9 ★', avatar: '👩' },
-      { name: '⚡ สุ่มช่างให้อัตโนมัติ', role: 'ระบบคัดช่างที่ว่างที่สุดให้ด่วน', rating: 'Fast Track', avatar: '✨' },
+      {
+        name: 'คุณมุก (หมอนวดมืออาชีพ)',
+        role: 'ความเชี่ยวชาญ 8 ปี',
+        rating: '5.0 ★',
+        avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
+        isImageUrl: true,
+      },
+      {
+        name: 'คุณเมย์ (เทอราพิส)',
+        role: 'นวดอโรม่า & สปาหน้า',
+        rating: '4.9 ★',
+        avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=150&q=80',
+        isImageUrl: true,
+      },
+      {
+        name: '⚡ สุ่มช่างให้อัตโนมัติ',
+        role: 'ระบบคัดช่างที่ว่างที่สุดให้ด่วน',
+        rating: 'Fast Track',
+        avatar: '✨',
+        isImageUrl: false,
+      },
     ],
     timeSlots: ['10:30 น.', '13:00 น.', '15:30 น. (ว่าง)', '18:00 น.'],
     paymentNotice: '💰 มัดจำ 30% (฿360) เพื่อล็อคคอร์สนวด',
@@ -61,13 +93,31 @@ const scenarios: LiffDemoScenario[] = [
     name: '💈 ร้านตัดผมชาย (Express)',
     badge: 'Express Queue — 2 Clicks',
     shopName: 'Vintage Cut Barber Shop',
-    description: 'ข้ามขั้นตอนการเลือกช่าง (Auto-Assign) จองคิวด่วนเสร็จใน 2 คลิก ไม่ต้องโอนมัดจำ',
+    description: 'การ์ดรูปทรงผมหล่อๆ ข้ามขั้นตอนการเลือกช่าง (Auto-Assign) จองคิวด่วนเสร็จใน 2 คลิก',
     services: [
-      { name: 'ตัดผมชายเซ็ตทรง (Haircut & Style)', duration: '45 นาที', price: '฿350', category: 'ตัดผม' },
-      { name: 'ตัดผม + ดัดวอลลุ่ม (Perm & Cut)', duration: '90 นาที', price: '฿1,500', category: 'ทำสี/ดัด' },
+      {
+        name: 'ตัดผมชายเซ็ตทรง (Haircut & Style)',
+        duration: '45 นาที',
+        price: '฿350',
+        category: 'ตัดผม',
+        image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=600&q=80',
+      },
+      {
+        name: 'ตัดผม + ดัดวอลลุ่ม (Perm & Cut)',
+        duration: '90 นาที',
+        price: '฿1,500',
+        category: 'ทำสี/ดัด',
+        image: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=600&q=80',
+      },
     ],
     staffList: [
-      { name: '⚡ สุ่มช่างให้อัตโนมัติ', role: 'ระบบเลือกช่างประจำกะที่ว่างที่สุดให้อัตโนมัติ', rating: 'Fast Queue', avatar: '✂️' },
+      {
+        name: '⚡ สุ่มช่างให้อัตโนมัติ',
+        role: 'ระบบเลือกช่างประจำกะที่ว่างที่สุดให้อัตโนมัติ',
+        rating: 'Fast Queue',
+        avatar: '✂️',
+        isImageUrl: false,
+      },
     ],
     timeSlots: ['13:00 น. (คิวด่วน)', '14:30 น.', '16:00 น.', '17:30 น.'],
     paymentNotice: '👍 ชำระหน้าร้านได้เลย ไม่ต้องโอนมัดจำ',
@@ -77,14 +127,26 @@ const scenarios: LiffDemoScenario[] = [
     name: '🏸 สนามกีฬา (Courts)',
     badge: 'Resource + Full Payment',
     shopName: 'BMA Sports Arena (สนามแบด)',
-    description: 'ลูกค้าเลือกรหัสสนาม A1 และช่วงเวลาจองคอร์ด พร้อมออก QR Code ชำระเงินเต็มจำนวน',
+    description: 'การ์ดรูปสนามแข่งมาตรฐาน เลือกรหัสสนาม A1 และช่วงเวลา พร้อมออก PromptPay QR อัตโนมัติ',
     services: [
-      { name: 'สนามแบดมินตัน A1 (พื้นยางแข่งขัน)', duration: '60 นาที', price: '฿250/ชม.', category: 'คอร์ดแบด' },
-      { name: 'สนามแบดมินตัน A2 (พื้นยางแข่งขัน)', duration: '60 นาที', price: '฿250/ชม.', category: 'คอร์ดแบด' },
+      {
+        name: 'สนามแบดมินตัน A1 (พื้นยางแข่งขัน)',
+        duration: '60 นาที',
+        price: '฿250/ชม.',
+        category: 'คอร์ดแบด',
+        image: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=600&q=80',
+      },
+      {
+        name: 'สนามแบดมินตัน A2 (พื้นยางแข่งขัน)',
+        duration: '60 นาที',
+        price: '฿250/ชม.',
+        category: 'คอร์ดแบด',
+        image: 'https://images.unsplash.com/photo-1521537634581-0dced2efa2a3?auto=format&fit=crop&w=600&q=80',
+      },
     ],
     staffList: [
-      { name: 'สนาม A1 (โซนติดแอร์)', role: 'พื้นยาง BWF Standard', rating: 'Court A1', avatar: '🏸' },
-      { name: 'สนาม A2 (โซนติดแอร์)', role: 'พื้นยาง BWF Standard', rating: 'Court A2', avatar: '🏸' },
+      { name: 'สนาม A1 (โซนติดแอร์)', role: 'พื้นยาง BWF Standard', rating: 'Court A1', avatar: '🏸', isImageUrl: false },
+      { name: 'สนาม A2 (โซนติดแอร์)', role: 'พื้นยาง BWF Standard', rating: 'Court A2', avatar: '🏸', isImageUrl: false },
     ],
     timeSlots: ['18:00 - 19:00 (1 ชม.)', '19:00 - 21:00 (2 ชม.)', '21:00 - 22:00 (1 ชม.)'],
     paymentNotice: '💳 ชำระเงินเต็มจำนวน ฿500 ออก QR Code อัตโนมัติ',
@@ -119,10 +181,10 @@ export const LiffDemoSection: React.FC = () => {
             ตัวอย่างหน้าจอจองคิวจริง (Real LINE LIFF Experience)
           </div>
           <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight mb-4">
-            ลูกค้าจองคิวผ่าน <span className="text-emerald-400">LINE LIFF Mobile App</span>
+            การ์ดบริการสวยงามใน <span className="text-emerald-400">LINE LIFF Mobile App</span>
           </h2>
           <p className="text-slate-400 text-base sm:text-lg">
-            ไม่ต้องคุยกับแชทบอท! ลูกค้าเห็นการ์ดบริการ เลือกช่าง และกดเลือกเวลาได้เองในแอป LINE
+            ลูกค้าเห็นรูปพรีวิวบริการชัดเจน กดเลือกบริการ เลือกช่าง และนัดเวลาได้เองอย่างสวยงามสะดวกรวดเร็ว
           </p>
         </div>
 
@@ -189,10 +251,10 @@ export const LiffDemoSection: React.FC = () => {
           </div>
 
           {/* Mobile Screen Body Content */}
-          <div className="p-4 min-h-[440px] flex flex-col justify-between bg-slate-950 text-white font-prompt">
-            {/* STEP 1: Service Cards */}
+          <div className="p-4 min-h-[460px] flex flex-col justify-between bg-slate-950 text-white font-prompt">
+            {/* STEP 1: Service Cards With Rich Images */}
             {step === 1 && (
-              <div className="space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="space-y-3.5 animate-in fade-in slide-in-from-right-4 duration-300">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-300">เลือกบริการที่ต้องการ</span>
                   <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/30">
@@ -207,30 +269,46 @@ export const LiffDemoSection: React.FC = () => {
                       setSelectedServiceIdx(i);
                       setStep(2);
                     }}
-                    className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                    className={`rounded-2xl border overflow-hidden transition-all cursor-pointer group ${
                       selectedServiceIdx === i
-                        ? 'bg-emerald-500/10 border-emerald-500 shadow-md shadow-emerald-500/10'
-                        : 'bg-white/5 border-white/10 hover:border-white/20'
+                        ? 'bg-emerald-500/10 border-emerald-500 shadow-lg shadow-emerald-500/10'
+                        : 'bg-white/5 border-white/10 hover:border-emerald-500/40'
                     }`}
                   >
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="text-xs font-extrabold text-white">{svc.name}</span>
-                      <span className="text-xs font-extrabold text-emerald-400">{svc.price}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] text-slate-400 mt-2">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-emerald-400" /> {svc.duration}
-                      </span>
-                      <span className="bg-white/10 text-slate-300 px-2 py-0.5 rounded-md text-[10px]">
+                    {/* Service Image Header */}
+                    <div className="relative h-28 w-full overflow-hidden">
+                      <img
+                        src={svc.image}
+                        alt={svc.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+                      <span className="absolute top-2 left-2 bg-slate-950/80 backdrop-blur-md text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-md border border-white/10">
                         {svc.category}
                       </span>
+                      <span className="absolute bottom-2 right-2 bg-emerald-500 text-slate-950 font-extrabold text-xs px-2.5 py-1 rounded-xl shadow-md">
+                        {svc.price}
+                      </span>
+                    </div>
+
+                    {/* Service Details */}
+                    <div className="p-3">
+                      <h5 className="text-xs font-extrabold text-white mb-1.5">{svc.name}</h5>
+                      <div className="flex items-center justify-between text-[11px] text-slate-400">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-emerald-400" /> {svc.duration}
+                        </span>
+                        <span className="text-emerald-400 font-bold text-[11px] group-hover:translate-x-1 transition-transform flex items-center">
+                          เลือกคอร์สนี้ <ChevronRight className="w-3 h-3" />
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* STEP 2: Staff / Court Cards */}
+            {/* STEP 2: Staff / Court Cards With Photos */}
             {step === 2 && (
               <div className="space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
                 <div className="flex items-center justify-between">
@@ -247,16 +325,20 @@ export const LiffDemoSection: React.FC = () => {
                       setSelectedStaffIdx(i);
                       setStep(3);
                     }}
-                    className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                    className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
                       selectedStaffIdx === i
                         ? 'bg-emerald-500/10 border-emerald-500 shadow-md shadow-emerald-500/10'
                         : 'bg-white/5 border-white/10 hover:border-white/20'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-xl">
-                        {st.avatar}
-                      </div>
+                      {st.isImageUrl ? (
+                        <img src={st.avatar} alt={st.name} className="w-10 h-10 rounded-xl object-cover border border-white/10" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-xl">
+                          {st.avatar}
+                        </div>
+                      )}
                       <div>
                         <div className="text-xs font-bold text-white">{st.name}</div>
                         <div className="text-[10px] text-slate-400">{st.role}</div>

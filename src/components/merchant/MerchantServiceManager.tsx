@@ -381,7 +381,7 @@ export const MerchantServiceManager: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSaveService} className="flex-1 overflow-y-auto space-y-3.5 my-2 pr-1">
+            <form onSubmit={handleSaveService} className="flex-1 overflow-y-auto no-scrollbar space-y-3.5 my-2 pr-1">
               <div>
                 <label className="block text-slate-700 font-bold mb-1">ชื่อบริการ *</label>
                 <input
@@ -680,7 +680,7 @@ export const MerchantServiceManager: React.FC = () => {
 
                 {/* List of active rules */}
                 {editingService.timePricingRules && editingService.timePricingRules.length > 0 ? (
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                  <div className="space-y-2">
                     {editingService.timePricingRules.map((rule, idx) => (
                       <div
                         key={rule.id}
@@ -811,7 +811,7 @@ export const MerchantServiceManager: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSaveAddon} className="flex-1 overflow-y-auto space-y-3.5 my-2 pr-1">
+            <form onSubmit={handleSaveAddon} className="flex-1 overflow-y-auto no-scrollbar space-y-3.5 my-2 pr-1">
               <div>
                 <label className="block text-slate-700 font-bold mb-1">ชื่อบริการเสริม *</label>
                 <input

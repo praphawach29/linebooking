@@ -43,7 +43,9 @@ import {
   BellRing,
   FileText,
   X,
-  Trash2
+  Trash2,
+  Loader2,
+  AlertTriangle
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
@@ -55,6 +57,10 @@ export const AdminDashboard: React.FC = () => {
   const [selectedPlanFilter, setSelectedPlanFilter] = useState<string>('all');
   const [editingTenantId, setEditingTenantId] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<TenantPlan>('pro');
+
+  // Delete Confirmation Modal State
+  const [tenantToDelete, setTenantToDelete] = useState<{ id: string; name: string; slug: string } | null>(null);
+  const [isDeletingTenant, setIsDeletingTenant] = useState(false);
 
   // Gateway Settings State (เก็บใน Supabase ตาราง platform_settings)
   const [gateway, setGateway] = useState<PlatformBillingSettings>(DEFAULT_BILLING_SETTINGS);
@@ -407,7 +413,7 @@ export const AdminDashboard: React.FC = () => {
 
                       {/* Delete Tenant */}
                       <button
-                        onClick={() => handleDeleteTenant(t.id, t.name)}
+                        onClick={() => setTenantToDelete({ id: t.id, name: t.name, slug: t.slug })}
                         className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl border border-transparent hover:border-red-200 transition-colors"
                         title="ลบร้านค้านี้"
                       >
@@ -1065,6 +1071,91 @@ export const AdminDashboard: React.FC = () => {
                 className="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 rounded-xl text-xs shadow-md shadow-amber-500/20"
               >
                 บันทึกประกาศ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Tenant Confirmation Modal */}
+      {tenantToDelete && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200 relative">
+            <button
+              onClick={() => setTenantToDelete(null)}
+              disabled={isDeletingTenant}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Icon & Warning Header */}
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center shrink-0 border border-red-200 shadow-xs">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900 leading-tight">
+                  ยืนยันลบร้านค้าออกจากระบบ
+                </h3>
+                <p className="text-xs text-red-600 font-bold mt-0.5 flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  <span>การดำเนินการนี้ไม่สามารถกู้คืนได้</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Target Tenant Card */}
+            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                ร้านค้าที่จะถูกลบ:
+              </span>
+              <p className="text-sm font-black text-slate-900 truncate">{tenantToDelete.name}</p>
+              <p className="text-xs font-mono text-slate-500 font-semibold">{tenantToDelete.slug}.booking.app</p>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed font-medium">
+              ข้อมูลร้านค้า, รายการจองคิวทั้งหมด, ข้อมูลช่าง, และการตั้งค่าของร้านค้านี้จะถูกลบออกจากฐานข้อมูล Supabase โดยสมบูรณ์
+            </p>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setTenantToDelete(null)}
+                disabled={isDeletingTenant}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-xs font-bold transition-all disabled:opacity-50"
+              >
+                ยกเลิก
+              </button>
+
+              <button
+                type="button"
+                disabled={isDeletingTenant}
+                onClick={async () => {
+                  setIsDeletingTenant(true);
+                  try {
+                    await deleteTenant(tenantToDelete.id);
+                    setTenantToDelete(null);
+                  } catch (err) {
+                    console.error(err);
+                  } finally {
+                    setIsDeletingTenant(false);
+                  }
+                }}
+                className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-extrabold transition-all shadow-md shadow-red-600/25 flex items-center gap-2 disabled:opacity-50 active:scale-95"
+              >
+                {isDeletingTenant ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>กำลังลบข้อมูล...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>ยืนยันลบร้านค้าถาวร</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

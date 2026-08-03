@@ -1,6 +1,21 @@
 import React, { useState } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
-import { MessageSquare, Key, Link as LinkIcon, Check, Copy, Bell, Clock, Sparkles } from 'lucide-react';
+import {
+  MessageSquare,
+  Key,
+  Link as LinkIcon,
+  Check,
+  Copy,
+  Bell,
+  Clock,
+  Sparkles,
+  Send,
+  Megaphone,
+  Users,
+  Smartphone,
+  ExternalLink,
+  Loader2
+} from 'lucide-react';
 
 export const MerchantLineOASettings: React.FC = () => {
   const { activeTenant, updateTenantSettings } = useSaaS();
@@ -19,6 +34,23 @@ export const MerchantLineOASettings: React.FC = () => {
   const [lineBookingConfirmationEnabled, setLineBookingConfirmationEnabled] = useState<boolean>(
     activeTenant.settings.lineBookingConfirmationEnabled ?? true
   );
+
+  // LINE Broadcast State
+  const [broadcastTarget, setBroadcastTarget] = useState<'all' | 'active' | 'vip'>('all');
+  const [broadcastTitle, setBroadcastTitle] = useState('🔥 โปรโมชันพิเศษส่วนลด 20% ทุกบริการเมื่อจองผ่าน LINE!');
+  const [broadcastMessage, setBroadcastMessage] = useState('เรียนคุณลูกค้า รับสิทธิ์ส่วนลดพิเศษทันทีเพียงกดจองคิวบริการผ่าน LINE OA วันนี้!');
+  const [broadcastImage, setBroadcastImage] = useState('https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&auto=format&fit=crop&q=80');
+  const [isSendingBroadcast, setIsSendingBroadcast] = useState(false);
+  const [broadcastSuccessMsg, setBroadcastSuccessMsg] = useState(false);
+  const [broadcastHistory, setBroadcastHistory] = useState<Array<{ id: string; title: string; sentAt: string; audience: string; count: number }>>([
+    {
+      id: 'bc-1',
+      title: '🎉 แจ้งเตือนโปรโมชันส่วนลดประจำสัปดาห์',
+      sentAt: '2026-08-01 10:30',
+      audience: 'ลูกค้าทั้งหมด (All Customers)',
+      count: 48,
+    },
+  ]);
 
   const [saved, setSaved] = useState(false);
 
@@ -204,6 +236,228 @@ export const MerchantLineOASettings: React.FC = () => {
             <span>คัดลอก</span>
           </button>
         </div>
+      </div>
+
+      {/* LINE Broadcast & Promotion Center Card */}
+      <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-5">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100">
+              <Megaphone className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">
+                ส่งบรอดแคสต์โปรโมชัน (LINE Official Broadcast & Push)
+              </h2>
+              <p className="text-[11px] text-slate-500">
+                สร้างการ์ดข้อความ Flex Message โปรโมชันและบรอดแคสต์ตรงเข้า LINE ของลูกค้าใน 1 คลิก
+              </p>
+            </div>
+          </div>
+
+          {broadcastSuccessMsg && (
+            <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 animate-in fade-in">
+              <Check className="w-3.5 h-3.5" /> ส่งบรอดแคสต์ให้ลูกค้าสำเร็จแล้ว!
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Column: Form Controls */}
+          <div className="lg:col-span-7 space-y-4">
+            {/* Target Audience Selector */}
+            <div className="space-y-1.5">
+              <label className="font-bold text-slate-700 block flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-emerald-600" />
+                <span>เลือกกลุ่มเป้าหมาย (Audience Target)</span>
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setBroadcastTarget('all')}
+                  className={`p-2.5 rounded-xl border text-center transition-all ${
+                    broadcastTarget === 'all'
+                      ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold shadow-xs'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className="block font-bold text-xs">ลูกค้าทั้งหมด</span>
+                  <span className="text-[10px] text-slate-400 font-normal">ทุกบัญชีในระบบ</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setBroadcastTarget('active')}
+                  className={`p-2.5 rounded-xl border text-center transition-all ${
+                    broadcastTarget === 'active'
+                      ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold shadow-xs'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className="block font-bold text-xs">จองใน 30 วัน</span>
+                  <span className="text-[10px] text-slate-400 font-normal">Active User</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setBroadcastTarget('vip')}
+                  className={`p-2.5 rounded-xl border text-center transition-all ${
+                    broadcastTarget === 'vip'
+                      ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold shadow-xs'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className="block font-bold text-xs">สมาชิก VIP</span>
+                  <span className="text-[10px] text-slate-400 font-normal">สะสมแต้มสูง</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Broadcast Title */}
+            <div>
+              <label className="font-bold text-slate-700 mb-1 block">หัวข้อข้อความโปรโมชัน *</label>
+              <input
+                type="text"
+                value={broadcastTitle}
+                onChange={(e) => setBroadcastTitle(e.target.value)}
+                placeholder="เช่น ส่วนลดพิเศษ 20% เมื่อจองสัปดาห์นี้"
+                className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold"
+              />
+            </div>
+
+            {/* Broadcast Message Body */}
+            <div>
+              <label className="font-bold text-slate-700 mb-1 block">รายละเอียดข้อความ *</label>
+              <textarea
+                value={broadcastMessage}
+                onChange={(e) => setBroadcastMessage(e.target.value)}
+                rows={3}
+                placeholder="พิมพ์ข้อความที่ต้องการแจ้งลูกค้า..."
+                className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              />
+            </div>
+
+            {/* Image URL */}
+            <div>
+              <label className="font-bold text-slate-700 mb-1 block">URL รูปภาพการ์ดโปรโมชัน</label>
+              <input
+                type="url"
+                value={broadcastImage}
+                onChange={(e) => setBroadcastImage(e.target.value)}
+                placeholder="https://..."
+                className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono text-xs"
+              />
+            </div>
+
+            {/* Send Broadcast Action */}
+            <button
+              type="button"
+              disabled={isSendingBroadcast || !broadcastTitle}
+              onClick={() => {
+                setIsSendingBroadcast(true);
+                setTimeout(() => {
+                  setIsSendingBroadcast(false);
+                  setBroadcastSuccessMsg(true);
+                  setBroadcastHistory((prev) => [
+                    {
+                      id: `bc-${Date.now()}`,
+                      title: broadcastTitle,
+                      sentAt: new Date().toLocaleString('th-TH'),
+                      audience:
+                        broadcastTarget === 'all'
+                          ? 'ลูกค้าทั้งหมด (All Customers)'
+                          : broadcastTarget === 'active'
+                          ? 'ลูกค้าจองใน 30 วัน'
+                          : 'สมาชิก VIP',
+                      count: broadcastTarget === 'all' ? 48 : broadcastTarget === 'active' ? 22 : 8,
+                    },
+                    ...prev,
+                  ]);
+                  setTimeout(() => setBroadcastSuccessMsg(false), 3000);
+                }, 1200);
+              }}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 px-4 rounded-2xl shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+            >
+              {isSendingBroadcast ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>กำลังส่งข้อความบรอดแคสต์หาลูกค้า...</span>
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  <span>ส่งบรอดแคสต์หาลูกค้าทันที (Push Broadcast)</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Right Column: Live Smartphone LINE Flex Message Simulator */}
+          <div className="lg:col-span-5 bg-slate-100 p-4 rounded-3xl border border-slate-200 flex flex-col items-center justify-center space-y-3">
+            <div className="flex items-center gap-1.5 text-slate-500 text-[11px] font-bold">
+              <Smartphone className="w-4 h-4 text-emerald-600" />
+              <span>ตัวอย่างหน้าจอบน LINE บนมือถือลูกค้า</span>
+            </div>
+
+            {/* Simulated Phone Screen Container */}
+            <div className="bg-slate-900 rounded-[28px] p-3 w-full max-w-[260px] shadow-xl border-4 border-slate-800 space-y-2">
+              {/* LINE Chat Header */}
+              <div className="flex items-center gap-2 text-white pb-2 border-b border-slate-800">
+                <img
+                  src={activeTenant.logoUrl || 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=100'}
+                  alt="Logo"
+                  className="w-6 h-6 rounded-full object-cover border border-emerald-500"
+                />
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold truncate leading-tight">{activeTenant.name}</p>
+                  <span className="text-[8px] text-emerald-400 font-mono">Official Account</span>
+                </div>
+              </div>
+
+              {/* LINE Flex Message Card */}
+              <div className="bg-white rounded-2xl overflow-hidden shadow-md text-slate-900 space-y-2 pb-2">
+                {broadcastImage && (
+                  <img src={broadcastImage} alt="Promo Cover" className="w-full h-28 object-cover" />
+                )}
+
+                <div className="p-2.5 space-y-1">
+                  <h4 className="font-black text-xs text-slate-900 leading-tight">
+                    {broadcastTitle || 'หัวข้อโปรโมชัน'}
+                  </h4>
+                  <p className="text-[10px] text-slate-600 leading-relaxed font-medium line-clamp-3">
+                    {broadcastMessage || 'รายละเอียดข้อความที่จะแสดงบน LINE แชท'}
+                  </p>
+                </div>
+
+                <div className="px-2.5 pt-1">
+                  <div className="w-full bg-emerald-600 text-white font-extrabold text-[10px] py-1.5 rounded-xl text-center shadow-xs">
+                    👉 จองคิวรับสิทธิ์ใน LIFF
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Broadcast History Table */}
+        {broadcastHistory.length > 0 && (
+          <div className="pt-3 border-t border-slate-100 space-y-2">
+            <h3 className="font-bold text-xs text-slate-700">ประวัติการส่งบรอดแคสต์ล่าสุด (Broadcast Logs)</h3>
+            <div className="divide-y divide-slate-100 bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden text-[11px]">
+              {broadcastHistory.map((item) => (
+                <div key={item.id} className="p-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-bold text-slate-900">{item.title}</p>
+                    <p className="text-[10px] text-slate-400">กลุ่ม: {item.audience} • ส่งเมื่อ {item.sentAt}</p>
+                  </div>
+                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md">
+                    ส่งแล้ว {item.count} บัญชี
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSave} className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">

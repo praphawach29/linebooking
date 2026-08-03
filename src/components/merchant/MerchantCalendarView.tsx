@@ -16,7 +16,8 @@ import {
   Phone,
   ArrowRight,
   Eye,
-  Check
+  Check,
+  Printer
 } from 'lucide-react';
 import { MerchantBookingDetailModal } from './MerchantBookingDetailModal';
 
@@ -163,6 +164,15 @@ export const MerchantCalendarView: React.FC = () => {
               <span>รายวัน</span>
             </button>
           </div>
+
+          <button
+            onClick={() => window.print()}
+            className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold px-3.5 py-2 rounded-2xl border border-slate-200 flex items-center gap-1.5 transition-colors"
+            title="พิมพ์ตารางคิวงานประจำวัน"
+          >
+            <Printer className="w-4 h-4 text-slate-600" />
+            <span>พิมพ์ตารางคิว</span>
+          </button>
 
           <button
             onClick={() => setMerchantTab('walkin')}
@@ -575,6 +585,70 @@ export const MerchantCalendarView: React.FC = () => {
           onClose={() => setSelectedBooking(null)}
         />
       )}
+
+      {/* PRINT-ONLY AREA (Visible only during window.print()) */}
+      <div className="hidden print:block printable-area p-8 space-y-6 text-slate-900 font-sans">
+        <div className="flex items-center justify-between border-b-2 border-slate-900 pb-4">
+          <div>
+            <h1 className="text-xl font-black">{activeTenant?.name}</h1>
+            <p className="text-sm font-bold text-slate-600">
+              ตารางคิวงานนัดหมายประจำวัน ({formatDateThai(currentDate)})
+            </p>
+          </div>
+          <div className="text-right text-xs">
+            <p className="font-bold">พิมพ์เมื่อ: {new Date().toLocaleTimeString('th-TH')} น.</p>
+            <p className="text-slate-500">เบอร์โทร: {activeTenant?.phone || '08x-xxx-xxxx'}</p>
+          </div>
+        </div>
+
+        <table className="w-full border-collapse text-xs">
+          <thead>
+            <tr className="bg-slate-100 border-y-2 border-slate-900">
+              <th className="p-2.5 text-left font-black">เวลา</th>
+              <th className="p-2.5 text-left font-black">ชื่อลูกค้า</th>
+              <th className="p-2.5 text-left font-black">เบอร์โทร</th>
+              <th className="p-2.5 text-left font-black">บริการ</th>
+              <th className="p-2.5 text-left font-black">ช่าง/ผู้ดูแล</th>
+              <th className="p-2.5 text-right font-black">ราคา</th>
+              <th className="p-2.5 text-center font-black">สถานะ</th>
+              <th className="p-2.5 text-center font-black">ลายเซ็นช่าง</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-300">
+            {selectedDayBookings.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="p-8 text-center text-slate-500 font-bold">
+                  ไม่มีรายการนัดหมายในวันที่เลือก
+                </td>
+              </tr>
+            ) : (
+              selectedDayBookings.map((bk) => (
+                <tr key={bk.id} className="border-b border-slate-200">
+                  <td className="p-2.5 font-mono font-bold">{bk.startTime} - {bk.endTime}</td>
+                  <td className="p-2.5 font-bold">{bk.userName}</td>
+                  <td className="p-2.5 font-mono">{bk.userPhone || '-'}</td>
+                  <td className="p-2.5">{bk.serviceName}</td>
+                  <td className="p-2.5 font-medium">{bk.staffName || 'ไม่ระบุ'}</td>
+                  <td className="p-2.5 text-right font-bold">฿{(bk.totalPrice || 0).toLocaleString()}</td>
+                  <td className="p-2.5 text-center font-bold">
+                    {bk.status === 'confirmed' || bk.status === 'completed'
+                      ? 'ยืนยันแล้ว'
+                      : bk.status === 'checked_in'
+                      ? 'เช็คอินแล้ว'
+                      : 'รอยืนยัน'}
+                  </td>
+                  <td className="p-2.5 border-l border-slate-200"></td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+
+        <div className="pt-8 flex justify-between text-xs text-slate-500 font-medium border-t border-slate-200">
+          <p>รวมคิวงานทั้งหมด: {selectedDayBookings.length} รายการ</p>
+          <p>พิมพ์จากระบบ LINE OA Booking SaaS</p>
+        </div>
+      </div>
 
     </div>
   );

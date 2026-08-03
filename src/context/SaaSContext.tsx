@@ -186,8 +186,10 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         // users อ่านได้เฉพาะแถวของตัวเอง (RLS) — ผู้เยี่ยมชมจะได้ค่าว่าง
         const { data: users } = await supabase.from('users').select('*').limit(1);
+        let userTenantId: string | null = null;
         if (users && users.length > 0) {
           setCurrentUser(users[0] as unknown as User);
+          userTenantId = (users[0] as any).tenant_id || null;
         }
 
         const [
@@ -204,7 +206,10 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           { data: rewardsData },
           { data: membershipsData },
         ] = await Promise.all([
-          supabase.from(isAuthenticated ? 'tenants' : 'public_tenants').select('*'),
+          // Fetch tenant: if logged-in merchant, fetch by their specific tenant_id (bypass RLS owner_user_id issue)
+          isAuthenticated && userTenantId
+            ? supabase.from('tenants').select('*').eq('id', userTenantId)
+            : supabase.from(isAuthenticated ? 'tenants' : 'public_tenants').select('*'),
           supabase.from('services').select('*'),
           supabase.from('service_addons').select('*'),
           supabase.from('staff').select('*'),

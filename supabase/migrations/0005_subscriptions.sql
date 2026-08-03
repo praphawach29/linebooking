@@ -152,6 +152,7 @@ ALTER TABLE platform_settings
     ADD COLUMN IF NOT EXISTS trial_days INTEGER NOT NULL DEFAULT 0;
 
 -- อัปเดต view ให้ร้านค้าเห็นเงื่อนไขเหล่านี้ด้วย (ยังไม่มี secret key เหมือนเดิม)
+DROP VIEW IF EXISTS platform_billing_public CASCADE;
 CREATE OR REPLACE VIEW platform_billing_public
 WITH (security_invoker = false) AS
 SELECT

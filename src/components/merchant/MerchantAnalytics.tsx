@@ -33,6 +33,7 @@ import {
   Line,
   ComposedChart,
 } from 'recharts';
+import { ThaiDatePicker } from '../common/ThaiDatePicker';
 
 export const MerchantAnalytics: React.FC = () => {
   const { activeTenant, bookings, services, staffs } = useSaaS();
@@ -334,25 +335,23 @@ export const MerchantAnalytics: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
-              <span className="text-[11px] font-semibold text-slate-500">เริ่ม:</span>
-              <input
-                type="date"
+            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs w-44">
+              <span className="text-[11px] font-semibold text-slate-500 shrink-0">เริ่ม:</span>
+              <ThaiDatePicker
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="text-xs font-bold text-slate-800 bg-transparent focus:outline-none"
+                onChange={(val) => setStartDate(val)}
+                className="text-xs font-bold text-slate-800 bg-transparent focus:outline-none w-full"
               />
             </div>
 
             <span className="text-slate-400 font-bold">ถึง</span>
 
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
-              <span className="text-[11px] font-semibold text-slate-500">สิ้นสุด:</span>
-              <input
-                type="date"
+            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs w-44">
+              <span className="text-[11px] font-semibold text-slate-500 shrink-0">สิ้นสุด:</span>
+              <ThaiDatePicker
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="text-xs font-bold text-slate-800 bg-transparent focus:outline-none"
+                onChange={(val) => setEndDate(val)}
+                className="text-xs font-bold text-slate-800 bg-transparent focus:outline-none w-full"
               />
             </div>
 

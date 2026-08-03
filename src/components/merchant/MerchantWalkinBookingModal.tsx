@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
 import { PaymentMethod } from '../../types';
 import { PlusCircle, User, Phone, Calendar, Clock, CheckCircle2 } from 'lucide-react';
+import { ThaiDatePicker } from '../common/ThaiDatePicker';
 
 export const MerchantWalkinBookingModal: React.FC = () => {
   const {
@@ -203,11 +204,10 @@ export const MerchantWalkinBookingModal: React.FC = () => {
                 <Calendar className="w-3.5 h-3.5 text-slate-400" />
                 วันที่เข้าใช้บริการ *
               </label>
-              <input
-                type="date"
+              <ThaiDatePicker
                 value={bookingDate}
-                onChange={(e) => setBookingDate(e.target.value)}
-                className="w-full p-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                onChange={(val) => setBookingDate(val)}
+                placeholder="dd/mm/yyyy (วัน/เดือน/ปี)"
               />
             </div>
 

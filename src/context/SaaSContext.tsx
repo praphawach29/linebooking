@@ -729,30 +729,47 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setStaffs((prev) => prev.filter((st) => st.id !== staffId));
   };
 
-  const saveCourt = (courtData: Partial<Court>) => {
-    if (courtData.id) {
-      setCourts((prev) =>
-        prev.map((c) => (c.id === courtData.id ? ({ ...c, ...courtData } as Court) : c))
-      );
-    } else {
-      const newCourt: Court = {
-        id: `court-${Date.now()}`,
-        tenantId: activeTenant.id,
-        serviceId: courtData.serviceId || '',
-        name: courtData.name || 'สนาม A',
-        code: courtData.code || `CRT-${Math.floor(10 + Math.random() * 90)}`,
-        description: courtData.description || 'สนามคุณภาพมาตรฐาน',
-        type: courtData.type || 'indoor',
-        imageUrl: courtData.imageUrl || 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=500&auto=format&fit=crop&q=80',
-        extraPricePerHour: courtData.extraPricePerHour || 0,
-        isActive: true,
-      };
-      setCourts((prev) => [...prev, newCourt]);
-    }
+  const saveCourt = async (courtData: Partial<Court>) => {
+    if (!activeTenantId) return;
+    const courtId = courtData.id || `court-${Date.now()}`;
+    const isNew = !courtData.id;
+
+    const newCourt: Court = {
+      id: courtId,
+      tenantId: activeTenantId,
+      serviceId: courtData.serviceId || '',
+      name: courtData.name || 'สนาม A',
+      code: courtData.code || `CRT-${Math.floor(10 + Math.random() * 90)}`,
+      description: courtData.description || 'สนามคุณภาพมาตรฐาน',
+      type: courtData.type || 'indoor',
+      imageUrl: courtData.imageUrl || 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=500&auto=format&fit=crop&q=80',
+      extraPricePerHour: courtData.extraPricePerHour || 0,
+      isActive: courtData.isActive ?? true,
+    };
+
+    setCourts((prev) => (isNew ? [...prev, newCourt] : prev.map((c) => (c.id === courtId ? newCourt : c))));
+
+    const dbRow = {
+      id: courtId,
+      tenant_id: activeTenantId,
+      service_id: newCourt.serviceId,
+      name: newCourt.name,
+      code: newCourt.code,
+      description: newCourt.description,
+      type: newCourt.type,
+      image_url: newCourt.imageUrl,
+      extra_price_per_hour: newCourt.extraPricePerHour,
+      is_active: newCourt.isActive,
+    };
+
+    const { error } = await supabase.from('courts').upsert(dbRow);
+    if (error) console.error('Error saving court to Supabase:', error.message);
   };
 
-  const deleteCourt = (courtId: string) => {
+  const deleteCourt = async (courtId: string) => {
     setCourts((prev) => prev.filter((c) => c.id !== courtId));
+    const { error } = await supabase.from('courts').delete().eq('id', courtId);
+    if (error) console.error('Error deleting court from Supabase:', error.message);
   };
 
   const updateTenantSettings = async (

@@ -30,21 +30,36 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Fetch our custom user record from 'users' table using auth UUID
   const fetchDbUser = async (supabaseUser: User): Promise<AuthUser | null> => {
-    const { data, error } = await supabase
+    let userRow: any = null;
+
+    // 1. Try by id matching auth UUID
+    const { data: dataById } = await supabase
       .from('users')
-      .select('id, display_name, role, tenant_id')
-      .eq('auth_user_id', supabaseUser.id)
+      .select('*')
+      .eq('id', supabaseUser.id)
       .maybeSingle();
 
-    if (error || !data) return null;
+    if (dataById) {
+      userRow = dataById;
+    } else {
+      // 2. Try by auth_user_id
+      const { data: dataByAuthId } = await supabase
+        .from('users')
+        .select('*')
+        .eq('auth_user_id', supabaseUser.id)
+        .maybeSingle();
+      if (dataByAuthId) userRow = dataByAuthId;
+    }
+
+    if (!userRow) return null;
 
     return {
       id: supabaseUser.id,
-      dbUserId: data.id,
-      email: supabaseUser.email || '',
-      displayName: data.display_name,
-      role: data.role,
-      tenantId: data.tenant_id,
+      dbUserId: userRow.id,
+      email: supabaseUser.email || userRow.email || '',
+      displayName: userRow.display_name || userRow.displayName || '',
+      role: userRow.role || 'merchant_admin',
+      tenantId: userRow.tenant_id || userRow.tenantId || null,
     };
   };
 
@@ -116,14 +131,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       activeSession = signInData.session;
     }
 
-    // 2. Check if user ALREADY has a shop profile in public.users table
-    const { data: existingDbUser } = await supabase
+    // 2. Check if user ALREADY has an active shop profile in public.users table
+    let existingShop = false;
+    const { data: existingById } = await supabase
       .from('users')
-      .select('id')
-      .eq('auth_user_id', authUserId)
+      .select('id, tenant_id')
+      .eq('id', authUserId)
       .maybeSingle();
 
-    if (existingDbUser) {
+    if (existingById?.tenant_id) {
+      existingShop = true;
+    } else {
+      const { data: existingByAuthId } = await supabase
+        .from('users')
+        .select('id, tenant_id')
+        .eq('auth_user_id', authUserId)
+        .maybeSingle();
+      if (existingByAuthId?.tenant_id) existingShop = true;
+    }
+
+    if (existingShop) {
       return { error: 'อีเมลนี้มีร้านค้าในระบบอยู่แล้ว กรุณาเข้าสู่ระบบแทน' };
     }
 
@@ -155,24 +182,39 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     if (tenantError) return { error: `ไม่สามารถสร้างข้อมูลร้านค้าได้: ${tenantError.message}` };
 
-    // 5. Create user record linked to auth user + tenant
-    const userId = crypto.randomUUID();
-    const { error: userError } = await supabase.from('users').insert({
-      id: userId,
-      auth_user_id: authUserId,
+    // 5. Create or update user record linked to auth user + tenant
+    // Use authUserId directly as users.id to guarantee 1:1 mapping with auth.users
+    const userPayload: Record<string, any> = {
+      id: authUserId,
       tenant_id: tenantId,
       display_name: displayName,
       email,
       phone,
-      role: 'merchant_admin',
-    });
+    };
 
-    if (userError) return { error: `ไม่สามารถสร้างโปรไฟล์ผู้ใช้ได้: ${userError.message}` };
+    let { error: userError } = await supabase.from('users').insert(userPayload);
+
+    if (userError) {
+      // If user row already exists for this auth user, update its tenant_id
+      const { error: updateErr } = await supabase
+        .from('users')
+        .update({
+          tenant_id: tenantId,
+          display_name: displayName,
+          email,
+          phone,
+        })
+        .eq('id', authUserId);
+
+      if (updateErr) {
+        return { error: `ไม่สามารถสร้างโปรไฟล์ผู้ใช้ได้: ${userError.message}` };
+      }
+    }
 
     // 6. Update tenant owner & hydrate local auth user context
     await supabase
       .from('tenants')
-      .update({ owner_user_id: userId })
+      .update({ owner_user_id: authUserId })
       .eq('id', tenantId);
 
     const { data: currentAuth } = await supabase.auth.getUser();

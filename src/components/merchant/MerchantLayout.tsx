@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Calendar,
@@ -38,8 +39,16 @@ import { HeaderNav } from '../common/HeaderNav';
 export const MerchantLayout: React.FC = () => {
   const { activeTenant, merchantTab, setMerchantTab, bookings, staffs, courts } = useSaaS();
   const { signOut, authUser } = useAuth();
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+
+  // Redirect platform_admin away from /merchant → /admin
+  useEffect(() => {
+    if (authUser?.role === 'platform_admin') {
+      navigate('/admin', { replace: true });
+    }
+  }, [authUser, navigate]);
 
   const todayStr = new Date().toISOString().split('T')[0];
   const todayBookingsCount = bookings.filter((b) => b.bookingDate === todayStr).length;

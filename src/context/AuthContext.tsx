@@ -148,7 +148,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       name: shopName,
       slug,
       business_type: businessType,
-      plan: 'free',
       is_active: true,
       settings: { currency: 'THB', autoConfirm: false, depositPercentage: 0 },
     });

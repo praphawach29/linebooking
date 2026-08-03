@@ -31,15 +31,22 @@ export const MerchantLoginPage: React.FC = () => {
     setIsLoading(true);
     setError(null);
 
-    const { error: signInError } = await signIn(email, password);
+    try {
+      const { error: signInError } = await signIn(email, password);
 
-    if (signInError) {
-      setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
+      if (signInError) {
+        if (signInError.includes('Invalid login credentials')) {
+          setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบหรือสมัครสมาชิกใหม่');
+        } else {
+          setError(signInError);
+        }
+        setIsLoading(false);
+        return;
+      }
+    } catch (err: any) {
+      setError(err?.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
       setIsLoading(false);
-      return;
     }
-
-    // AuthContext will update authUser → useEffect above will redirect
   };
 
   return (

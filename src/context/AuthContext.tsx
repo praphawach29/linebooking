@@ -74,8 +74,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const signIn = async (email: string, password: string): Promise<{ error: string | null }> => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error: error.message };
+    if (data.user) {
+      const user = await fetchDbUser(data.user);
+      if (!user) {
+        return { error: 'ไม่พบข้อมูลโปรไฟล์ร้านค้าในระบบ กรุณาสมัครสมาชิกเปิดร้านก่อนเข้าสู่ระบบ' };
+      }
+      setAuthUser(user);
+    }
     return { error: null };
   };
 

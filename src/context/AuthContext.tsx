@@ -96,31 +96,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   ): Promise<{ error: string | null }> => {
     // 1. Create auth user
     const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
-    if (authError || !authData.user) return { error: authError?.message || 'Failed to create account' };
+    if (authError || !authData.user) return { error: authError?.message || 'ไม่สามารถสร้างบัญชีได้' };
 
-    // Supabase only issues a session immediately when email confirmation is
-    // disabled. Without a session, the tenant/user inserts below are sent as
-    // anon (not authenticated) and RLS rejects them with a misleading
-    // "Failed to create shop profile" error. Fail clearly here instead.
-    if (!authData.session) {
+    // Check if account already exists (identities is empty for duplicate emails in Supabase Auth)
+    if (authData.user.identities && authData.user.identities.length === 0) {
+      return { error: 'อีเมลนี้มีบัญชีในระบบอยู่แล้ว กรุณาเข้าสู่ระบบแทน' };
+    }
+
+    // 2. Ensure an active session is established
+    let activeSession = authData.session;
+    if (!activeSession) {
+      const { data: signInData } = await supabase.auth.signInWithPassword({ email, password });
+      activeSession = signInData?.session || null;
+    }
+
+    if (!activeSession) {
       return {
-        error:
-          'บัญชีถูกสร้างแล้ว แต่ต้องยืนยันอีเมลก่อนจึงจะเปิดร้านได้ กรุณาตรวจสอบอีเมลของคุณ',
+        error: 'บัญชีถูกสร้างแล้ว แต่ต้องยืนยันอีเมลก่อนเปิดร้าน กรุณาตรวจสอบกล่องข้อความอีเมลของคุณ',
       };
     }
 
     const authUserId = authData.user.id;
-    const slug = shopName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + Date.now().toString(36);
+    const slug = shopName.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + Date.now().toString(36);
 
-    // 2. Create tenant record
-    // The id is generated client-side and the insert does not select the row
-    // back: RLS only lets an authenticated user SELECT a tenant it already
-    // owns (via my_tenant_ids(), which resolves through the `users` table),
-    // but that ownership link is not created until step 3 below. Requesting
-    // the row back here (e.g. via `.select().single()`, which sends
-    // `Prefer: return=representation`) makes PostgREST re-check RLS on the
-    // just-inserted row and fail with a 403 RLS error even though the INSERT
-    // itself would have succeeded.
+    // 3. Create tenant record
     const tenantId = crypto.randomUUID();
     const { error: tenantError } = await supabase.from('tenants').insert({
       id: tenantId,
@@ -132,11 +131,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       settings: { currency: 'THB', autoConfirm: false, depositPercentage: 0 },
     });
 
-    if (tenantError) return { error: 'Failed to create shop profile' };
+    if (tenantError) return { error: `ไม่สามารถสร้างข้อมูลร้านค้าได้: ${tenantError.message}` };
 
-    // 3. Create user record linked to auth user + tenant
-    // Safe to select the row back here: `users_self_read` allows a user to
-    // read its own row (`auth_user_id = auth.uid()`) immediately on insert.
+    // 4. Create user record linked to auth user + tenant
     const userId = crypto.randomUUID();
     const { error: userError } = await supabase.from('users').insert({
       id: userId,
@@ -148,13 +145,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       role: 'merchant_admin',
     });
 
-    if (userError) return { error: 'Failed to create user profile' };
+    if (userError) return { error: `ไม่สามารถสร้างโปรไฟล์ผู้ใช้ได้: ${userError.message}` };
 
-    // 4. Update tenant owner
+    // 5. Update tenant owner & update local auth user context
     await supabase
       .from('tenants')
       .update({ owner_user_id: userId })
       .eq('id', tenantId);
+
+    const userProfile = await fetchDbUser(authData.user);
+    if (userProfile) setAuthUser(userProfile);
 
     return { error: null };
   };

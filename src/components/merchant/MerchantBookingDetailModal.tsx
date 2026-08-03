@@ -162,7 +162,7 @@ export const MerchantBookingDetailModal: React.FC<MerchantBookingDetailModalProp
           <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-2">
             <h4 className="font-bold text-slate-900 flex items-center gap-1.5">
               <DollarSign className="w-4 h-4 text-emerald-600" />
-              รายละเอียดการชำระเงิน ({booking.paymentMethod.toUpperCase()})
+              รายละเอียดการชำระเงิน ({booking.paymentMethod?.toUpperCase() || 'NOT SET'})
             </h4>
 
             <div className="space-y-1 text-slate-600 pt-1">

@@ -5,6 +5,13 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ENUMS
+DROP TYPE IF EXISTS tenant_plan CASCADE;
+DROP TYPE IF EXISTS user_role CASCADE;
+DROP TYPE IF EXISTS booking_status CASCADE;
+DROP TYPE IF EXISTS payment_status CASCADE;
+DROP TYPE IF EXISTS payment_method CASCADE;
+DROP TYPE IF EXISTS booking_source CASCADE;
+
 CREATE TYPE tenant_plan AS ENUM ('free', 'pro', 'enterprise');
 CREATE TYPE user_role AS ENUM ('customer', 'staff', 'merchant_admin', 'platform_admin');
 CREATE TYPE booking_status AS ENUM ('pending', 'confirmed', 'checked_in', 'completed', 'cancelled', 'no_show');
@@ -307,3 +314,16 @@ ALTER TABLE services ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 
 -- Note: Proper RLS policies (who can read/write what) should be added later based on authentication setup.
+
+ - -   C r e a t e   r e v i e w s   t a b l e 
+ C R E A T E   T A B L E   p u b l i c . r e v i e w s   ( 
+     i d   u u i d   D E F A U L T   g e n _ r a n d o m _ u u i d ( )   P R I M A R Y   K E Y , 
+     t e n a n t _ i d   u u i d   R E F E R E N C E S   p u b l i c . t e n a n t s ( i d )   O N   D E L E T E   C A S C A D E , 
+     b o o k i n g _ i d   u u i d   R E F E R E N C E S   p u b l i c . b o o k i n g s ( i d )   O N   D E L E T E   S E T   N U L L , 
+     r a t i n g   i n t e g e r   N O T   N U L L   C H E C K   ( r a t i n g   > =   1   A N D   r a t i n g   < =   5 ) , 
+     c o m m e n t   t e x t , 
+     c u s t o m e r _ n a m e   t e x t , 
+     c r e a t e d _ a t   t i m e s t a m p   w i t h   t i m e   z o n e   D E F A U L T   t i m e z o n e ( ' u t c ' : : t e x t ,   n o w ( ) )   N O T   N U L L 
+ ) ; 
+  
+ 

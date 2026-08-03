@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -7,319 +8,597 @@ datasource db {
 }
 
 model Tenant {
-  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                   String    @db.VarChar(255)
-  slug                   String    @unique @db.VarChar(100)
-  description            String?   @db.Text
-  logoUrl                String?   @map("logo_url") @db.Text
-  coverImageUrl          String?   @map("cover_image_url") @db.Text
-  phone                  String?   @db.VarChar(20)
-  email                  String?   @db.VarChar(255)
-  address                String?   @db.Text
-  businessType           String?   @map("business_type") @db.VarChar(50)
-  plan                   String?   @default("free") @db.VarChar(20)
-  planExpiresAt          DateTime? @map("plan_expires_at") @db.Timestamp(6)
-  commissionRate         Decimal?  @default(0.00) @map("commission_rate") @db.Decimal(5, 2)
-  isActive               Boolean?  @default(true) @map("is_active")
-  lineChannelId          String?   @map("line_channel_id") @db.VarChar(255)
-  lineChannelSecret      String?   @map("line_channel_secret") @db.VarChar(255)
-  lineChannelAccessToken String?   @map("line_channel_access_token") @db.Text
-  liffId                 String?   @map("liff_id") @db.VarChar(255)
-  settings               Json?     @default("{}")
-  createdAt              DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt              DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
-
-  users                UserRole[]
-  services             Service[]
-  staffs               Staff[]
-  businessHours        BusinessHours[]
-  staffSchedules       StaffSchedule[]
-  bookings             Booking[]
-  payments             Payment[]
-  notifications        Notification[]
-  cancellationPolicies CancellationPolicy[]
-  memberships          Membership[]
-  rewards              Reward[]
-  staffServices        StaffService[]
+  id                                 String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name                               String
+  slug                               String                  @unique
+  description                        String?
+  logoUrl                            String?                 @map("logo_url")
+  coverImageUrl                      String?                 @map("cover_image_url")
+  phone                              String?
+  email                              String?
+  address                            String?
+  businessType                       String                  @map("business_type")
+  plan                               tenant_plan?            @default(free)
+  planExpiresAt                      DateTime?               @map("plan_expires_at") @db.Timestamptz(6)
+  commissionRate                     Decimal?                @default(0) @map("commission_rate") @db.Decimal(5, 2)
+  isActive                           Boolean?                @default(true) @map("is_active")
+  lineChannelId                      String?                 @map("line_channel_id")
+  lineChannelSecret                  String?                 @map("line_channel_secret")
+  lineChannelAccessToken             String?                 @map("line_channel_access_token")
+  liffId                             String?                 @map("liff_id")
+  settings                           Json?                   @default("{}")
+  createdAt                          DateTime?               @default(now()) @map("created_at") @db.Timestamptz(6)
+  owner_user_id                      String?                 @db.Uuid
+  bookings                           Booking[]
+  businessHours                      BusinessHours[]
+  cancellationPolicies               CancellationPolicy[]
+  courts                             courts[]
+  memberships                        Membership[]
+  notifications                      Notification[]
+  payment_methods                    payment_methods[]
+  payment_slips                      payment_slips[]
+  payments                           Payment[]
+  reviews                            reviews[]
+  rewards                            Reward[]
+  service_addons                     service_addons[]
+  services                           Service[]
+  staff                              staff[]
+  staffSchedules                     StaffSchedule[]
+  subscription_invoices              subscription_invoices[]
+  subscriptions                      subscriptions?
+  users_tenants_owner_user_idTousers User?                   @relation("tenants_owner_user_idTousers", fields: [owner_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_users_tenant_idTotenants     User[]                  @relation("users_tenant_idTotenants")
 
   @@map("tenants")
 }
 
 model User {
-  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  lineUserId   String?   @unique @map("line_user_id") @db.VarChar(255)
-  email        String?   @unique @db.VarChar(255)
-  phone        String?   @db.VarChar(20)
-  displayName  String?   @map("display_name") @db.VarChar(255)
-  avatarUrl    String?   @map("avatar_url") @db.Text
-  passwordHash String?   @map("password_hash") @db.VarChar(255)
-  isVerified   Boolean?  @default(false) @map("is_verified")
-  lastLoginAt  DateTime? @map("last_login_at") @db.Timestamp(6)
-  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt    DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
+  id                                             String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  tenant_id                                      String?             @db.Uuid
+  lineUserId                                     String?             @unique @map("line_user_id")
+  displayName                                    String              @map("display_name")
+  email                                          String?
+  phone                                          String?
+  avatarUrl                                      String?             @map("avatar_url")
+  role                                           user_role?          @default(customer)
+  createdAt                                      DateTime?           @default(now()) @map("created_at") @db.Timestamptz(6)
+  auth_user_id                                   String?             @unique @db.Uuid
+  email_verified                                 Boolean?            @default(false)
+  bookings                                       Booking[]
+  memberships                                    Membership[]
+  notifications                                  Notification[]
+  payment_slips_payment_slips_reviewed_byTousers payment_slips[]     @relation("payment_slips_reviewed_byTousers")
+  payment_slips_payment_slips_uploaded_byTousers payment_slips[]     @relation("payment_slips_uploaded_byTousers")
+  payments                                       Payment[]
+  platform_settings                              platform_settings[]
+  reviews                                        reviews[]
+  staff                                          staff[]
+  tenants_tenants_owner_user_idTousers           Tenant[]            @relation("tenants_owner_user_idTousers")
+  tenants_users_tenant_idTotenants               Tenant?             @relation("users_tenant_idTotenants", fields: [tenant_id], references: [id], onUpdate: NoAction)
 
-  roles         UserRole[]
-  bookings      Booking[]
-  payments      Payment[]
-  notifications Notification[]
-  staff         Staff?
-  memberships   Membership[]
-
+  @@index([auth_user_id], map: "idx_users_auth_user_id")
   @@map("users")
 }
 
-model UserRole {
-  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId  String    @map("tenant_id") @db.Uuid
-  userId    String    @map("user_id") @db.Uuid
-  role      String    @db.VarChar(20)
-  isPrimary Boolean?  @default(false) @map("is_primary")
-  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, userId, role])
-  @@map("user_roles")
-}
-
 model Service {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId        String    @map("tenant_id") @db.Uuid
-  name            String    @db.VarChar(255)
-  description     String?   @db.Text
-  durationMinutes Int       @map("duration_minutes")
-  price           Decimal   @db.Decimal(10, 2)
-  currency        String?   @default("THB") @db.VarChar(3)
-  maxCapacity     Int?      @default(1) @map("max_capacity")
-  bufferMinutes   Int?      @default(0) @map("buffer_minutes")
-  colorCode       String?   @default("#3B82F6") @map("color_code") @db.VarChar(7)
-  imageUrl        String?   @map("image_url") @db.Text
-  isActive        Boolean?  @default(true) @map("is_active")
-  sortOrder       Int?      @default(0) @map("sort_order")
-  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt       DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
+  id                     String                   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  tenantId               String?                  @map("tenant_id") @db.Uuid
+  name                   String
+  description            String?
+  durationMinutes        Int                      @map("duration_minutes")
+  price                  Decimal                  @db.Decimal(10, 2)
+  currency               String?                  @default("THB")
+  maxCapacity            Int?                     @default(1) @map("max_capacity")
+  bufferMinutes          Int?                     @default(0) @map("buffer_minutes")
+  colorCode              String?                  @map("color_code")
+  imageUrl               String?                  @map("image_url")
+  category               String?
+  isActive               Boolean?                 @default(true) @map("is_active")
+  sortOrder              Int?                     @default(0) @map("sort_order")
+  createdAt              DateTime?                @default(now()) @map("created_at") @db.Timestamptz(6)
+  bookings               Booking[]
+  courts                 courts[]
+  service_addon_mappings service_addon_mappings[]
+  tenant                 Tenant?                  @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  staffServices          StaffService[]
 
-  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  staffServices StaffService[]
-  bookings      Booking[]
-
+  @@index([tenantId], map: "idx_services_tenant")
   @@map("services")
 }
 
-model Staff {
-  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId  String    @map("tenant_id") @db.Uuid
-  userId    String?   @unique @map("user_id") @db.Uuid
-  name      String    @db.VarChar(255)
-  phone     String?   @db.VarChar(20)
-  email     String?   @db.VarChar(255)
-  avatarUrl String?   @map("avatar_url") @db.Text
-  colorCode String?   @default("#10B981") @map("color_code") @db.VarChar(7)
-  bio       String?   @db.Text
-  isActive  Boolean?  @default(true) @map("is_active")
-  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
-
-  tenant    Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user      User?           @relation(fields: [userId], references: [id])
-  services  StaffService[]
-  schedules StaffSchedule[]
-  bookings  Booking[]
-
-  @@map("staffs")
-}
-
 model StaffService {
-  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId  String    @map("tenant_id") @db.Uuid
-  staffId   String    @map("staff_id") @db.Uuid
-  serviceId String    @map("service_id") @db.Uuid
-  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  staffId   String  @map("staff_id") @db.Uuid
+  serviceId String  @map("service_id") @db.Uuid
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  staff     staff   @relation(fields: [staffId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  staff   Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, staffId, serviceId])
+  @@id([staffId, serviceId])
   @@map("staff_services")
 }
 
 model BusinessHours {
-  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId  String    @map("tenant_id") @db.Uuid
+  id        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  tenantId  String?   @map("tenant_id") @db.Uuid
   dayOfWeek Int       @map("day_of_week")
-  openTime  DateTime  @map("open_time") @db.Time
-  closeTime DateTime  @map("close_time") @db.Time
+  openTime  DateTime  @map("open_time") @db.Time(6)
+  closeTime DateTime  @map("close_time") @db.Time(6)
   isOpen    Boolean?  @default(true) @map("is_open")
-  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  tenant    Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([tenantId, dayOfWeek])
   @@map("business_hours")
 }
 
 model StaffSchedule {
-  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId     String    @map("tenant_id") @db.Uuid
-  staffId      String    @map("staff_id") @db.Uuid
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  tenantId     String?   @map("tenant_id") @db.Uuid
+  staffId      String?   @map("staff_id") @db.Uuid
   specificDate DateTime? @map("specific_date") @db.Date
   dayOfWeek    Int?      @map("day_of_week")
-  startTime    DateTime  @map("start_time") @db.Time
-  endTime      DateTime  @map("end_time") @db.Time
+  startTime    DateTime  @map("start_time") @db.Time(6)
+  endTime      DateTime  @map("end_time") @db.Time(6)
   isAvailable  Boolean?  @default(true) @map("is_available")
-  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  staff  Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  staff        staff?    @relation(fields: [staffId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tenant       Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("staff_schedules")
 }
 
 model Booking {
-  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId           String    @map("tenant_id") @db.Uuid
-  userId             String    @map("user_id") @db.Uuid
-  serviceId          String    @map("service_id") @db.Uuid
-  staffId            String?   @map("staff_id") @db.Uuid
-  bookingDate        DateTime  @map("booking_date") @db.Date
-  startTime          DateTime  @map("start_time") @db.Time
-  endTime            DateTime  @map("end_time") @db.Time
-  status             String    @default("pending") @db.VarChar(20)
-  price              Decimal   @db.Decimal(10, 2)
-  discountAmount     Decimal?  @default(0) @map("discount_amount") @db.Decimal(10, 2)
-  finalPrice         Decimal   @map("final_price") @db.Decimal(10, 2)
-  paymentStatus      String?   @default("unpaid") @map("payment_status") @db.VarChar(20)
-  paymentId          String?   @map("payment_id") @db.Uuid
-  source             String?   @default("line_liff") @db.VarChar(20)
-  notes              String?   @db.Text
-  cancellationReason String?   @map("cancellation_reason") @db.Text
-  cancelledAt        DateTime? @map("cancelled_at") @db.Timestamp(6)
-  checkedInAt        DateTime? @map("checked_in_at") @db.Timestamp(6)
-  completedAt        DateTime? @map("completed_at") @db.Timestamp(6)
-  reminderSentAt     DateTime? @map("reminder_sent_at") @db.Timestamp(6)
-  createdAt          DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt          DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
+  id                 String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  ref_no             String             @unique
+  tenantId           String?            @map("tenant_id") @db.Uuid
+  userId             String?            @map("user_id") @db.Uuid
+  user_name          String
+  user_phone         String?
+  user_avatar        String?
+  serviceId          String?            @map("service_id") @db.Uuid
+  service_name       String?
+  service_duration   Int?
+  service_price      Decimal?           @db.Decimal(10, 2)
+  staffId            String?            @map("staff_id") @db.Uuid
+  staff_name         String?
+  staff_avatar       String?
+  court_id           String?            @db.Uuid
+  court_name         String?
+  bookingDate        DateTime           @map("booking_date") @db.Date
+  startTime          DateTime           @map("start_time") @db.Time(6)
+  endTime            DateTime           @map("end_time") @db.Time(6)
+  status             booking_status?    @default(pending)
+  price              Decimal            @db.Decimal(10, 2)
+  discountAmount     Decimal?           @default(0) @map("discount_amount") @db.Decimal(10, 2)
+  finalPrice         Decimal            @map("final_price") @db.Decimal(10, 2)
+  deposit_amount     Decimal?           @default(0) @db.Decimal(10, 2)
+  paymentStatus      payment_status?    @default(unpaid) @map("payment_status")
+  payment_method     payment_method?
+  paymentId          String?            @map("payment_id")
+  source             booking_source?    @default(web)
+  notes              String?
+  addons             Json?
+  addons_total_price Decimal?           @default(0) @db.Decimal(10, 2)
+  cancellationReason String?            @map("cancellation_reason")
+  cancelledAt        DateTime?          @map("cancelled_at") @db.Timestamptz(6)
+  checkedInAt        DateTime?          @map("checked_in_at") @db.Timestamptz(6)
+  completedAt        DateTime?          @map("completed_at") @db.Timestamptz(6)
+  reminderSentAt     DateTime?          @map("reminder_sent_at") @db.Timestamptz(6)
+  createdAt          DateTime?          @default(now()) @map("created_at") @db.Timestamptz(6)
+  courts             courts?            @relation(fields: [court_id], references: [id], onUpdate: NoAction)
+  service            Service?           @relation(fields: [serviceId], references: [id], onUpdate: NoAction)
+  staff              staff?             @relation(fields: [staffId], references: [id], onUpdate: NoAction)
+  tenant             Tenant?            @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user               User?              @relation(fields: [userId], references: [id], onUpdate: NoAction)
+  notifications      Notification[]
+  relatedPayments    Payment[]          @relation("BookingToPayment")
+  point_transactions PointTransaction[]
+  reviews            reviews[]
 
-  tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user    User     @relation(fields: [userId], references: [id])
-  service Service  @relation(fields: [serviceId], references: [id])
-  staff   Staff?   @relation(fields: [staffId], references: [id])
-  payment Payment? @relation("BookingPayment", fields: [paymentId], references: [id])
-
-  notifications   Notification[]
-  relatedPayments Payment[]      @relation("BookingToPayment")
-
+  @@index([tenantId, bookingDate], map: "idx_bookings_tenant_date")
+  @@index([userId], map: "idx_bookings_user")
   @@map("bookings")
 }
 
 model Payment {
-  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId         String    @map("tenant_id") @db.Uuid
-  bookingId        String    @map("booking_id") @db.Uuid
-  userId           String    @map("user_id") @db.Uuid
-  amount           Decimal   @db.Decimal(10, 2)
-  currency         String?   @default("THB") @db.VarChar(3)
-  method           String    @db.VarChar(20)
-  status           String    @default("pending") @db.VarChar(20)
-  provider         String?   @db.VarChar(20)
-  providerRef      String?   @map("provider_ref") @db.VarChar(255)
-  providerMetadata Json?     @map("provider_metadata")
-  paidAt           DateTime? @map("paid_at") @db.Timestamp(6)
-  refundedAt       DateTime? @map("refunded_at") @db.Timestamp(6)
-  refundAmount     Decimal?  @default(0) @map("refund_amount") @db.Decimal(10, 2)
-  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt        DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
-
-  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  booking Booking @relation("BookingToPayment", fields: [bookingId], references: [id])
-  user    User    @relation(fields: [userId], references: [id])
-
-  relatedBookings Booking[] @relation("BookingPayment")
+  id           String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  tenantId     String?        @map("tenant_id") @db.Uuid
+  bookingId    String?        @map("booking_id") @db.Uuid
+  userId       String?        @map("user_id") @db.Uuid
+  amount       Decimal        @db.Decimal(10, 2)
+  currency     String?        @default("THB")
+  method       payment_method
+  status       String?        @default("pending")
+  provider     String?
+  providerRef  String?        @map("provider_ref")
+  qr_code_url  String?
+  expires_at   DateTime?      @db.Timestamptz(6)
+  paidAt       DateTime?      @map("paid_at") @db.Timestamptz(6)
+  refundedAt   DateTime?      @map("refunded_at") @db.Timestamptz(6)
+  refundAmount Decimal?       @default(0) @map("refund_amount") @db.Decimal(10, 2)
+  createdAt    DateTime?      @default(now()) @map("created_at") @db.Timestamptz(6)
+  booking      Booking?       @relation("BookingToPayment", fields: [bookingId], references: [id], onUpdate: NoAction)
+  tenant       Tenant?        @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user         User?          @relation(fields: [userId], references: [id], onUpdate: NoAction)
 
   @@map("payments")
 }
 
 model Notification {
-  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId     String    @map("tenant_id") @db.Uuid
-  userId       String    @map("user_id") @db.Uuid
-  bookingId    String    @map("booking_id") @db.Uuid
-  type         String    @db.VarChar(50)
-  channel      String    @default("line") @db.VarChar(20)
-  content      Json
-  status       String?   @default("pending") @db.VarChar(20)
-  sentAt       DateTime? @map("sent_at") @db.Timestamp(6)
-  readAt       DateTime? @map("read_at") @db.Timestamp(6)
-  errorMessage String?   @map("error_message") @db.Text
-  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-
-  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id])
-  booking Booking @relation(fields: [bookingId], references: [id])
+  id                String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  tenantId          String?   @map("tenant_id") @db.Uuid
+  userId            String?   @map("user_id") @db.Uuid
+  bookingId         String?   @map("booking_id") @db.Uuid
+  title             String
+  message           String
+  type              String
+  channel           String
+  status            String?   @default("unread")
+  flex_message_data Json?
+  createdAt         DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  booking           Booking?  @relation(fields: [bookingId], references: [id], onUpdate: NoAction)
+  tenant            Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user              User?     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("notifications")
 }
 
 model CancellationPolicy {
-  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId         String    @map("tenant_id") @db.Uuid
-  name             String    @db.VarChar(255)
+  id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  tenantId         String?   @map("tenant_id") @db.Uuid
+  name             String
   hoursBefore      Int       @map("hours_before")
-  refundPercentage Decimal   @map("refund_percentage") @db.Decimal(5, 2)
+  refundPercentage Int       @map("refund_percentage")
   isDefault        Boolean?  @default(false) @map("is_default")
-  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  tenant           Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("cancellation_policies")
 }
 
 model Membership {
-  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId          String    @map("tenant_id") @db.Uuid
-  userId            String    @map("user_id") @db.Uuid
-  tier              String    @default("bronze") @db.VarChar(50)
-  currentPoints     Int       @default(0) @map("current_points")
-  totalPointsEarned Int       @default(0) @map("total_points_earned")
-  createdAt         DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt         DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
-
-  tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  pointTransactions PointTransaction[]
+  id                 String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  tenantId           String?              @map("tenant_id") @db.Uuid
+  userId             String?              @map("user_id") @db.Uuid
+  points             Int?                 @default(0)
+  totalPointsEarned  Int?                 @default(0) @map("total_points_earned")
+  tier               String?              @default("Silver")
+  createdAt          DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime?            @default(now()) @map("updated_at") @db.Timestamptz(6)
+  tenant             Tenant?              @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user               User?                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  pointTransactions  PointTransaction[]
+  reward_redemptions reward_redemptions[]
 
   @@unique([tenantId, userId])
   @@map("memberships")
 }
 
 model PointTransaction {
-  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  membershipId String    @map("membership_id") @db.Uuid
-  type         String    @db.VarChar(20) // EARN, REDEEM
-  amount       Int
-  description  String?   @db.Text
-  bookingId    String?   @map("booking_id") @db.Uuid
-  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-
-  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  id           String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  membershipId String?     @map("membership_id") @db.Uuid
+  bookingId    String?     @map("booking_id") @db.Uuid
+  points       Int
+  type         String
+  description  String?
+  createdAt    DateTime?   @default(now()) @map("created_at") @db.Timestamptz(6)
+  bookings     Booking?    @relation(fields: [bookingId], references: [id], onUpdate: NoAction)
+  membership   Membership? @relation(fields: [membershipId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("point_transactions")
 }
 
 model Reward {
-  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId       String    @map("tenant_id") @db.Uuid
-  name           String    @db.VarChar(255)
-  description    String?   @db.Text
-  pointsRequired Int       @map("points_required")
-  imageUrl       String?   @map("image_url") @db.Text
-  isActive       Boolean?  @default(true) @map("is_active")
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt      DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id                 String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  tenantId           String?              @map("tenant_id") @db.Uuid
+  name               String
+  description        String?
+  pointsRequired     Int                  @map("points_required")
+  imageUrl           String?              @map("image_url")
+  isActive           Boolean?             @default(true) @map("is_active")
+  createdAt          DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
+  reward_redemptions reward_redemptions[]
+  tenant             Tenant?              @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("rewards")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model courts {
+  id                   String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  tenant_id            String?   @db.Uuid
+  service_id           String?   @db.Uuid
+  name                 String
+  code                 String
+  description          String?
+  type                 String?
+  image_url            String?
+  extra_price_per_hour Decimal?  @default(0) @db.Decimal(10, 2)
+  is_active            Boolean?  @default(true)
+  created_at           DateTime? @default(now()) @db.Timestamptz(6)
+  bookings             Booking[]
+  services             Service?  @relation(fields: [service_id], references: [id], onUpdate: NoAction)
+  tenants              Tenant?   @relation(fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model payment_methods {
+  id                    String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  tenant_id             String                  @db.Uuid
+  provider              String                  @default("omise")
+  omise_customer_id     String
+  omise_card_id         String
+  brand                 String?
+  last4                 String?
+  exp_month             Int?
+  exp_year              Int?
+  name_on_card          String?
+  is_default            Boolean                 @default(true)
+  mandate_accepted_at   DateTime?               @db.Timestamptz(6)
+  mandate_ip            String?
+  mandate_text          String?
+  created_at            DateTime?               @default(now()) @db.Timestamptz(6)
+  tenants               Tenant                  @relation(fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  subscription_invoices subscription_invoices[]
+  subscriptions         subscriptions[]
+
+  @@unique([tenant_id, omise_card_id])
+  @@index([tenant_id], map: "idx_payment_methods_tenant")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model payment_slips {
+  id                                     String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  tenant_id                              String                @db.Uuid
+  invoice_id                             String                @db.Uuid
+  uploaded_by                            String?               @db.Uuid
+  storage_path                           String
+  amount_claimed                         Decimal               @db.Decimal(10, 2)
+  verification_status                    String                @default("pending")
+  verify_provider                        String                @default("manual")
+  trans_ref                              String?               @unique(map: "idx_slips_trans_ref_unique", where: raw("(trans_ref IS NOT NULL)"))
+  sender_name                            String?
+  sender_bank                            String?
+  receiver_name                          String?
+  receiver_account                       String?
+  amount_verified                        Decimal?              @db.Decimal(10, 2)
+  transferred_at                         DateTime?             @db.Timestamptz(6)
+  checks                                 Json?                 @default("{}")
+  raw_response                           Json?
+  reviewed_by                            String?               @db.Uuid
+  reviewed_at                            DateTime?             @db.Timestamptz(6)
+  reject_reason                          String?
+  note                                   String?
+  created_at                             DateTime?             @default(now()) @db.Timestamptz(6)
+  subscription_invoices                  subscription_invoices @relation(fields: [invoice_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_payment_slips_reviewed_byTousers User?                 @relation("payment_slips_reviewed_byTousers", fields: [reviewed_by], references: [id], onUpdate: NoAction)
+  tenants                                Tenant                @relation(fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_payment_slips_uploaded_byTousers User?                 @relation("payment_slips_uploaded_byTousers", fields: [uploaded_by], references: [id], onUpdate: NoAction)
+
+  @@index([invoice_id], map: "idx_slips_invoice")
+  @@index([verification_status, created_at(sort: Desc)], map: "idx_slips_status")
+  @@index([tenant_id, created_at(sort: Desc)], map: "idx_slips_tenant")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model platform_settings {
+  id                        Int       @id @default(1)
+  active_provider           String    @default("promptpay")
+  promptpay_number          String?
+  promptpay_name            String?
+  omise_enabled             Boolean   @default(false)
+  omise_public_key          String?
+  omise_secret_key          String?
+  omise_test_mode           Boolean   @default(true)
+  price_pro_monthly         Decimal   @default(990) @db.Decimal(10, 2)
+  price_pro_yearly          Decimal   @default(9900) @db.Decimal(10, 2)
+  price_enterprise_monthly  Decimal   @default(2990) @db.Decimal(10, 2)
+  price_enterprise_yearly   Decimal   @default(29900) @db.Decimal(10, 2)
+  currency                  String    @default("THB")
+  auto_renew_on_payment     Boolean   @default(true)
+  updated_at                DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by                String?   @db.Uuid
+  dunning_retry_days        Int[]     @default([3, 5, 7])
+  grace_period_days         Int       @default(10)
+  trial_days                Int       @default(0)
+  slip_verify_provider      String    @default("manual")
+  slip_verify_api_key       String?
+  slip_verify_branch_id     String?
+  slip_auto_approve         Boolean   @default(true)
+  expected_receiver_name    String?
+  expected_receiver_account String?
+  slip_time_window_hours    Int       @default(72)
+  slip_amount_tolerance     Decimal   @default(0) @db.Decimal(10, 2)
+  renewal_reminder_days     Int[]     @default([7, 3, 1])
+  users                     User?     @relation(fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model reviews {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  tenant_id  String?   @db.Uuid
+  user_id    String?   @db.Uuid
+  booking_id String?   @db.Uuid
+  rating     Int
+  comment    String?
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  bookings   Booking?  @relation(fields: [booking_id], references: [id], onUpdate: NoAction)
+  tenants    Tenant?   @relation(fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      User?     @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model reward_redemptions {
+  id            String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  membership_id String?     @db.Uuid
+  reward_id     String?     @db.Uuid
+  status        String?     @default("pending")
+  redeemed_at   DateTime?   @default(now()) @db.Timestamptz(6)
+  used_at       DateTime?   @db.Timestamptz(6)
+  memberships   Membership? @relation(fields: [membership_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  rewards       Reward?     @relation(fields: [reward_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model service_addon_mappings {
+  service_id     String         @db.Uuid
+  addon_id       String         @db.Uuid
+  service_addons service_addons @relation(fields: [addon_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  services       Service        @relation(fields: [service_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([service_id, addon_id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model service_addons {
+  id                     String                   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  tenant_id              String?                  @db.Uuid
+  name                   String
+  description            String?
+  price                  Decimal                  @db.Decimal(10, 2)
+  extra_duration_minutes Int?                     @default(0)
+  category               String?
+  badge                  String?
+  icon                   String?
+  options                Json?
+  is_active              Boolean?                 @default(true)
+  created_at             DateTime?                @default(now()) @db.Timestamptz(6)
+  service_addon_mappings service_addon_mappings[]
+  tenants                Tenant?                  @relation(fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model staff {
+  id              String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  tenant_id       String?         @db.Uuid
+  user_id         String?         @db.Uuid
+  name            String
+  phone           String?
+  email           String?
+  avatar_url      String?
+  color_code      String?
+  bio             String?
+  rating          Decimal?        @default(0) @db.Decimal(3, 2)
+  reviews_count   Int?            @default(0)
+  is_active       Boolean?        @default(true)
+  working_days    Json?
+  work_start_time DateTime?       @db.Time(6)
+  work_end_time   DateTime?       @db.Time(6)
+  created_at      DateTime?       @default(now()) @db.Timestamptz(6)
+  bookings        Booking[]
+  tenants         Tenant?         @relation(fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users           User?           @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  schedules       StaffSchedule[]
+  services        StaffService[]
+
+  @@index([tenant_id], map: "idx_staff_tenant")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model subscription_invoices {
+  id                String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  invoice_no        String           @unique
+  tenant_id         String           @db.Uuid
+  plan              tenant_plan
+  billing_cycle     String
+  amount            Decimal          @db.Decimal(10, 2)
+  currency          String           @default("THB")
+  method            String
+  provider          String           @default("manual")
+  provider_ref      String?
+  status            String           @default("pending")
+  qr_payload        String?
+  period_start      DateTime?        @db.Timestamptz(6)
+  period_end        DateTime?        @db.Timestamptz(6)
+  paid_at           DateTime?        @db.Timestamptz(6)
+  failure_reason    String?
+  created_at        DateTime?        @default(now()) @db.Timestamptz(6)
+  subscription_id   String?          @db.Uuid
+  payment_method_id String?          @db.Uuid
+  billing_reason    String           @default("manual")
+  attempt_count     Int              @default(0)
+  idempotency_key   String?          @unique(map: "idx_sub_invoices_idempotency", where: raw("(idempotency_key IS NOT NULL)"))
+  payment_slips     payment_slips[]
+  payment_methods   payment_methods? @relation(fields: [payment_method_id], references: [id], onUpdate: NoAction)
+  subscriptions     subscriptions?   @relation(fields: [subscription_id], references: [id], onUpdate: NoAction)
+  tenants           Tenant           @relation(fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([status], map: "idx_sub_invoices_status")
+  @@index([tenant_id, created_at(sort: Desc)], map: "idx_sub_invoices_tenant")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model subscriptions {
+  id                        String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  tenant_id                 String                  @unique @db.Uuid
+  plan                      tenant_plan             @default(pro)
+  billing_cycle             String                  @default("monthly")
+  status                    String                  @default("active")
+  current_period_start      DateTime                @default(now()) @db.Timestamptz(6)
+  current_period_end        DateTime                @db.Timestamptz(6)
+  cancel_at_period_end      Boolean                 @default(false)
+  canceled_at               DateTime?               @db.Timestamptz(6)
+  default_payment_method_id String?                 @db.Uuid
+  retry_count               Int                     @default(0)
+  next_retry_at             DateTime?               @db.Timestamptz(6)
+  last_error                String?
+  pending_plan              tenant_plan?
+  pending_billing_cycle     String?
+  trial_end                 DateTime?               @db.Timestamptz(6)
+  created_at                DateTime?               @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime?               @default(now()) @db.Timestamptz(6)
+  subscription_invoices     subscription_invoices[]
+  payment_methods           payment_methods?        @relation(fields: [default_payment_method_id], references: [id], onUpdate: NoAction)
+  tenants                   Tenant                  @relation(fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([status, current_period_end], map: "idx_subscriptions_due")
+  @@index([status, next_retry_at], map: "idx_subscriptions_retry")
+}
+
+enum booking_source {
+  line_liff
+  web
+  admin
+  walk_in
+}
+
+enum booking_status {
+  pending
+  confirmed
+  checked_in
+  completed
+  cancelled
+  no_show
+}
+
+enum payment_method {
+  promptpay
+  credit_card
+  cash
+  transfer
+}
+
+enum payment_status {
+  unpaid
+  paid
+  refunded
+  partial_refund
+}
+
+enum tenant_plan {
+  free
+  pro
+  enterprise
+}
+
+enum user_role {
+  customer
+  staff
+  merchant_admin
+  platform_admin
 }

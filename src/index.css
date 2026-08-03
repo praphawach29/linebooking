@@ -1,13 +1,17 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* Colors - Premium Indigo & Emerald */
-  --color-primary: #4F46E5;
+  /* Fonts */
+  --font-sans: 'Inter', sans-serif;
+  --font-outfit: 'Outfit', sans-serif;
+
+  /* Colors - LINE Green Tone */
+  --color-primary: #06C755;
   --color-primary-foreground: #ffffff;
-  --color-primary-hover: #4338CA;
+  --color-primary-hover: #05A546;
   
-  --color-secondary: #EEF2FF;
-  --color-secondary-foreground: #312E81;
+  --color-secondary: #F8FAFC;
+  --color-secondary-foreground: #0F172A;
   
   --color-success: #10B981;
   --color-success-foreground: #ffffff;

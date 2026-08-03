@@ -1,6 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import {
+  BookingApiError,
+  getAvailableSlots as getAvailableSlotsFromApi,
+  type BookingApiResponse,
+} from '../lib/booking-api';
+import {
+  createCustomerBookingWithLiff,
+  createMerchantBookingWithSession,
+} from '../lib/booking-client';
+import { mapBookingApiResponse } from '../lib/booking-mapper';
+import {
   Tenant,
   Service,
   ServiceAddon,
@@ -10,6 +20,7 @@ import {
   Booking,
   BusinessHour,
   CancellationPolicy,
+  Review,
   NotificationItem,
   User,
   AvailableSlot,
@@ -21,6 +32,25 @@ import {
   RewardRedemption,
 } from '../types';
 
+const toCamelCase = (str: string) => {
+  return str.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+};
+
+const camelizeKeys = (obj: any): any => {
+  if (Array.isArray(obj)) {
+    return obj.map(v => camelizeKeys(v));
+  } else if (obj !== null && obj.constructor === Object) {
+    return Object.keys(obj).reduce(
+      (result, key) => ({
+        ...result,
+        [toCamelCase(key)]: camelizeKeys(obj[key]),
+      }),
+      {}
+    );
+  }
+  return obj;
+};
+
 type MerchantTab =
   | 'dashboard'
   | 'calendar'
@@ -31,7 +61,9 @@ type MerchantTab =
   | 'payments'
   | 'analytics'
   | 'settings'
+  | 'booking_settings'
   | 'line_settings'
+  | 'reviews'
   | 'onboarding';
 
 interface SaaSContextType {
@@ -50,6 +82,7 @@ interface SaaSContextType {
   bookings: Booking[];
   businessHours: BusinessHour[];
   cancellationPolicies: CancellationPolicy[];
+  reviews: Review[];
   notifications: NotificationItem[];
   
   memberships: Membership[];
@@ -61,7 +94,7 @@ interface SaaSContextType {
   switchTenant: (tenantId: string) => void;
   
   // Slot availability engine
-  getAvailableSlots: (date: string, serviceId: string, staffId?: string) => AvailableSlot[];
+  getAvailableSlots: (date: string, serviceId: string, staffId?: string) => Promise<AvailableSlot[]>;
   
   // Booking operations
   createBooking: (data: {
@@ -77,6 +110,7 @@ interface SaaSContextType {
     source?: 'line_liff' | 'walk_in' | 'admin';
     customerName?: string;
     customerPhone?: string;
+    customerId?: string;
   }) => Promise<Booking | null>;
   
   updateBookingStatus: (
@@ -95,9 +129,17 @@ interface SaaSContextType {
   saveCourt: (court: Partial<Court>) => void;
   deleteCourt: (courtId: string) => void;
   updateTenantSettings: (settings: Partial<Tenant['settings']>, tenantInfo?: Partial<Tenant>) => void;
+  updateTenant: (tenantId: string, updates: Partial<Tenant>) => Promise<void>;
   markNotificationAsRead: (notificationId: string) => void;
   addOnboardingTenant: (tenantData: Partial<Tenant>, initialService: Partial<Service>) => void;
   updateCancellationPolicies: (policies: CancellationPolicy[]) => void;
+  addReview: (review: Omit<Review, 'id' | 'createdAt'>) => void;
+
+  /**
+   * ดึงคิวของลูกค้าคนหนึ่ง (หน้า LIFF)
+   * หลัง migration 0007 ตาราง bookings อ่านสาธารณะไม่ได้แล้ว ต้องผ่าน RPC ที่คืนเฉพาะของเจ้าตัว
+   */
+  fetchMyBookings: (lineUserId?: string) => Promise<Booking[]>;
 
   // Loyalty Actions
   fetchMembership: (userId: string) => Membership | undefined;
@@ -124,6 +166,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [businessHours, setBusinessHours] = useState<BusinessHour[]>([]);
   const [cancellationPolicies, setCancellationPolicies] = useState<CancellationPolicy[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [pointTransactions, setPointTransactions] = useState<PointTransaction[]>([]);
@@ -135,8 +178,14 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         setIsLoading(true);
 
-        // For now, we will fetch the first user to simulate a logged-in user
-        const { data: users, error: userError } = await supabase.from('users').select('*').limit(1);
+        // RLS หลัง migration 0007:
+        //   - ผู้ที่ล็อกอินแล้ว (เจ้าของร้าน/แอดมิน) อ่านตารางจริงได้ → ได้ข้อมูลครบรวม LINE credentials
+        //   - ผู้เยี่ยมชม (หน้า LIFF ลูกค้า) อ่านได้เฉพาะ view ที่คัดฟิลด์แล้ว
+        const { data: sessionData } = await supabase.auth.getSession();
+        const isAuthenticated = !!sessionData.session;
+
+        // users อ่านได้เฉพาะแถวของตัวเอง (RLS) — ผู้เยี่ยมชมจะได้ค่าว่าง
+        const { data: users } = await supabase.from('users').select('*').limit(1);
         if (users && users.length > 0) {
           setCurrentUser(users[0] as unknown as User);
         }
@@ -146,35 +195,60 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           { data: servicesData },
           { data: addonsData },
           { data: staffData },
+          { data: staffServicesData },
           { data: courtsData },
           { data: hoursData },
           { data: bookingsData },
           { data: policiesData },
+          { data: reviewsData },
           { data: rewardsData },
+          { data: membershipsData },
         ] = await Promise.all([
-          supabase.from('tenants').select('*'),
+          supabase.from(isAuthenticated ? 'tenants' : 'public_tenants').select('*'),
           supabase.from('services').select('*'),
           supabase.from('service_addons').select('*'),
           supabase.from('staff').select('*'),
+          supabase.from('staff_services').select('*'),
           supabase.from('courts').select('*'),
           supabase.from('business_hours').select('*'),
-          supabase.from('bookings').select('*').order('created_at', { ascending: false }),
+          // ผู้เยี่ยมชมเห็นแค่ "ช่วงเวลาที่ไม่ว่าง" ไม่เห็นชื่อ/เบอร์ของใคร
+          isAuthenticated
+            ? supabase.from('bookings').select('*').order('created_at', { ascending: false })
+            : supabase.from('public_busy_slots').select('*'),
           supabase.from('cancellation_policies').select('*'),
+          supabase.from('reviews').select('*'),
           supabase.from('rewards').select('*'),
+          isAuthenticated
+            ? supabase.from('memberships').select('*')
+            : Promise.resolve({ data: [] }),
         ]);
 
         if (tenantsData) {
-          setTenants(tenantsData as unknown as Tenant[]);
-          if (tenantsData.length > 0) setActiveTenantId(tenantsData[0].id);
+          const formatted = camelizeKeys(tenantsData) as Tenant[];
+          setTenants(formatted);
+          if (formatted.length > 0) setActiveTenantId(formatted[0].id);
         }
-        if (servicesData) setServices(servicesData as unknown as Service[]);
-        if (addonsData) setServiceAddons(addonsData as unknown as ServiceAddon[]);
-        if (staffData) setStaffs(staffData as unknown as Staff[]);
-        if (courtsData) setCourts(courtsData as unknown as Court[]);
-        if (hoursData) setBusinessHours(hoursData as unknown as BusinessHour[]);
-        if (bookingsData) setBookings(bookingsData as unknown as Booking[]);
-        if (policiesData) setCancellationPolicies(policiesData as unknown as CancellationPolicy[]);
-        if (rewardsData) setRewards(rewardsData as unknown as Reward[]);
+        if (servicesData) setServices(camelizeKeys(servicesData) as Service[]);
+        if (addonsData) setServiceAddons(camelizeKeys(addonsData) as ServiceAddon[]);
+        if (staffData) {
+          const formattedStaff = camelizeKeys(staffData) as Staff[];
+          if (staffServicesData) {
+            const camelStaffServices = camelizeKeys(staffServicesData);
+            formattedStaff.forEach(staff => {
+              staff.serviceIds = camelStaffServices
+                .filter((ss: any) => ss.staffId === staff.id)
+                .map((ss: any) => ss.serviceId);
+            });
+          }
+          setStaffs(formattedStaff);
+        }
+        if (courtsData) setCourts(camelizeKeys(courtsData) as Court[]);
+        if (hoursData) setBusinessHours(camelizeKeys(hoursData) as BusinessHour[]);
+        if (bookingsData) setBookings(camelizeKeys(bookingsData) as Booking[]);
+        if (policiesData) setCancellationPolicies(camelizeKeys(policiesData) as CancellationPolicy[]);
+        if (reviewsData) setReviews(camelizeKeys(reviewsData) as Review[]);
+        if (rewardsData) setRewards(camelizeKeys(rewardsData) as Reward[]);
+        if (membershipsData) setMemberships(camelizeKeys(membershipsData) as Membership[]);
 
       } catch (err: any) {
         console.error('Error fetching data from Supabase:', err);
@@ -218,6 +292,29 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const tenantRewards = useMemo(() => {
     return activeTenant ? rewards.filter((r) => r.tenantId === activeTenant.id) : [];
   }, [rewards, activeTenant]);
+
+  /**
+   * คิวของลูกค้าคนเดียว — เรียก RPC get_my_bookings ที่คืนเฉพาะการจองของ LINE user นั้น
+   * (เดิมหน้า LIFF อ่านตาราง bookings ทั้งตาราง ซึ่งเห็นชื่อ/เบอร์ลูกค้าคนอื่นด้วย)
+   */
+  const fetchMyBookings = async (lineUserId?: string): Promise<Booking[]> => {
+    const lineId = lineUserId || currentUser?.lineUserId;
+    if (!lineId) return [];
+
+    const { data, error } = await supabase.rpc('get_my_bookings', { p_line_user_id: lineId });
+    if (error) {
+      console.error('Error fetching my bookings:', error.message);
+      return [];
+    }
+
+    const list = camelizeKeys(data || []) as Booking[];
+    // รวมเข้ากับ state เพื่อให้หน้าอื่น ๆ (เช่นแต้มสะสม) ใช้ข้อมูลชุดเดียวกัน
+    setBookings((prev) => {
+      const ids = new Set(list.map((b) => b.id));
+      return [...list, ...prev.filter((b) => !ids.has(b.id))];
+    });
+    return list;
+  };
 
   const fetchMembership = (userId: string) => {
     if (!activeTenant) return undefined;
@@ -268,75 +365,26 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setActiveTenantId(tenantId);
   };
 
-  // Time Utility Helpers
-  const timeToMinutes = (timeStr: string): number => {
-    const [h, m] = timeStr.split(':').map(Number);
-    return h * 60 + m;
-  };
-
-  const minutesToTime = (minutes: number): string => {
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-  };
-
-  // Real Slot Availability Generator based on PDF Spec Logic:
-  // 1. Check business_hours for tenant
-  // 2. Filter by staff schedule / service duration + buffer_time
-  // 3. Subtract confirmed/pending bookings
-  const getAvailableSlots = (dateStr: string, serviceId: string, staffId?: string): AvailableSlot[] => {
-    const service = services.find((s) => s.id === serviceId);
+  const getAvailableSlots = async (
+    dateStr: string,
+    serviceId: string,
+    staffId?: string,
+  ): Promise<AvailableSlot[]> => {
+    if (!activeTenant) return [];
+    const service = services.find((item) => item.id === serviceId);
     if (!service) return [];
 
-    const dateObj = new Date(dateStr);
-    const dayOfWeek = dateObj.getDay(); // 0=Sun, 1=Mon, ...
-
-    // Check business hours
-    const bh = businessHours.find((b) => b.tenantId === activeTenant.id && b.dayOfWeek === dayOfWeek);
-    if (!bh || !bh.isOpen) {
-      return [];
-    }
-
-    const startMinutes = timeToMinutes(bh.openTime);
-    const endMinutes = timeToMinutes(bh.closeTime);
-    const slotStep = 30; // 30-min intervals
-    const durationWithBuffer = service.durationMinutes + service.bufferMinutes;
-
-    // Get existing bookings for this date and tenant (excluding cancelled)
-    const existingBookings = bookings.filter(
-      (b) =>
-        b.tenantId === activeTenant.id &&
-        b.bookingDate === dateStr &&
-        b.status !== 'cancelled' &&
-        (!staffId || !b.staffId || b.staffId === staffId)
+    const response = await getAvailableSlotsFromApi(
+      activeTenant.id,
+      { serviceId, bookingDate: dateStr, staffId },
     );
-
-    const slots: AvailableSlot[] = [];
-
-    for (let cur = startMinutes; cur + service.durationMinutes <= endMinutes; cur += slotStep) {
-      const slotStart = minutesToTime(cur);
-      const slotEnd = minutesToTime(cur + service.durationMinutes);
-
-      // Check collision with existing bookings
-      const curStartMin = cur;
-      const curEndMin = cur + durationWithBuffer;
-
-      const hasConflict = existingBookings.some((b) => {
-        const bStart = timeToMinutes(b.startTime);
-        const bEnd = timeToMinutes(b.endTime) + service.bufferMinutes;
-        return Math.max(curStartMin, bStart) < Math.min(curEndMin, bEnd);
-      });
-
-      slots.push({
-        startTime: slotStart,
-        endTime: slotEnd,
-        isAvailable: !hasConflict,
-        reason: hasConflict ? 'BOOKED' : undefined,
-        price: service.price,
-      });
-    }
-
-    return slots;
+    return response.slots.map((slot) => ({
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      isAvailable: slot.available,
+      reason: slot.available ? undefined : 'BOOKED',
+      price: service.price,
+    }));
   };
 
   const createBooking = async (data: {
@@ -352,79 +400,65 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     source?: 'line_liff' | 'walk_in' | 'admin';
     customerName?: string;
     customerPhone?: string;
+    customerId?: string;
   }): Promise<Booking | null> => {
-    if (!activeTenant || !currentUser) return null;
+    if (!activeTenant) return null;
 
-    const service = services.find((s) => s.id === data.serviceId);
+    const service = services.find((item) => item.id === data.serviceId);
     if (!service) return null;
-    const staff = staffs.find((st) => st.id === data.staffId);
-    const court = courts.find((c) => c.id === data.courtId);
-
-    const addons = data.selectedAddons || [];
-    const addonsPrice = addons.reduce((sum, a) => sum + a.price, 0);
-    const addonsExtraDuration = addons.reduce((sum, a) => sum + (a.extraDurationMinutes || 0), 0);
-
-    const totalDuration = service.durationMinutes + addonsExtraDuration;
-    const startMin = timeToMinutes(data.startTime);
-    const endMin = startMin + totalDuration;
-    const endTime = minutesToTime(endMin);
-
-    const courtExtraPrice = court?.extraPricePerHour || 0;
-    const totalPrice = service.price + addonsPrice + courtExtraPrice;
-    const depositPct = activeTenant.settings.depositPercentage ?? 50;
-    const depositAmount = (totalPrice * depositPct) / 100;
-    const isPaid = data.depositPaid || data.paymentMethod === 'cash';
-
-    const refNo = `BK${data.bookingDate.replace(/-/g, '').slice(2)}${Math.floor(10 + Math.random() * 90)}`;
-
-    const newBooking = {
-      ref_no: refNo,
-      tenant_id: activeTenant.id,
-      user_id: currentUser.id,
-      user_name: data.customerName || currentUser.displayName,
-      user_phone: data.customerPhone || currentUser.phone || '081-234-5678',
-      service_id: service.id,
-      service_name: service.name,
-      service_duration: totalDuration,
-      service_price: service.price,
-      staff_id: staff?.id || null,
-      staff_name: staff ? staff.name : (activeTenant.businessType === 'sports' ? 'ผู้ดูแลสนาม' : 'ช่างคนใดก็ได้'),
-      court_id: court?.id || null,
-      court_name: court?.name || null,
-      booking_date: data.bookingDate,
-      start_time: data.startTime,
-      end_time: endTime,
-      status: isPaid ? 'confirmed' : 'pending',
-      price: totalPrice,
-      discount_amount: 0,
-      final_price: totalPrice,
-      deposit_amount: depositAmount,
-      payment_status: isPaid ? 'paid' : 'unpaid',
-      payment_method: data.paymentMethod,
-      source: data.source || 'line_liff',
-      notes: data.notes || null,
-      addons: addons.length > 0 ? addons : null,
-      addons_total_price: addonsPrice > 0 ? addonsPrice : 0,
-    };
 
     try {
-      const { data: insertedData, error } = await supabase
-        .from('bookings')
-        .insert([newBooking])
-        .select()
-        .single();
+      const phone = data.customerPhone?.replace(/[\s-]/g, '') || undefined;
+      const input = {
+        serviceId: data.serviceId,
+        staffId: data.staffId,
+        bookingDate: data.bookingDate,
+        startTime: data.startTime,
+        customerName: data.customerName,
+        customerPhone: phone,
+        notes: data.notes,
+      };
+      const isMerchant = data.source === 'walk_in' || data.source === 'admin';
+      let response: BookingApiResponse;
 
-      if (error) {
-        console.error('Error inserting booking:', error);
-        return null;
+      if (isMerchant) {
+        if (!data.customerId) {
+          setError('Select an existing customer before creating a merchant booking.');
+          return null;
+        }
+        response = await createMerchantBookingWithSession(
+          { ...input, customerId: data.customerId },
+          { tenantId: activeTenant.id },
+        );
+      } else {
+        const liffId =
+          activeTenant.liffId ||
+          (import.meta.env.VITE_LIFF_ID as string | undefined) ||
+          '';
+        response = await createCustomerBookingWithLiff(input, {
+          tenantId: activeTenant.id,
+          liffId,
+        });
       }
-      
-      const savedBooking = insertedData as unknown as Booking;
+
+      const localStaff = staffs.find((item) => item.id === response.staffId);
+      const savedBooking = mapBookingApiResponse(response, service, localStaff);
+
       setBookings((prev) => [savedBooking, ...prev]);
-      
+      setError(null);
       return savedBooking;
-    } catch (err) {
-      console.error('Unexpected error:', err);
+    } catch (err: unknown) {
+      if (
+        err instanceof BookingApiError &&
+        err.code === 'BOOKING_SLOT_UNAVAILABLE'
+      ) {
+        await getAvailableSlots(data.bookingDate, data.serviceId, data.staffId).catch(
+          () => undefined,
+        );
+      }
+      const message = err instanceof Error ? err.message : 'Booking failed';
+      setError(message);
+      console.error('Booking API error:', err);
       return null;
     }
   };
@@ -583,6 +617,24 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     );
   };
 
+  // อัปเดตข้อมูลร้านค้า (ใช้ทั้งจาก Super Admin และตอนต่ออายุแพ็กเกจ) + persist ลง Supabase
+  const updateTenant = async (tenantId: string, updates: Partial<Tenant>) => {
+    setTenants((prev) =>
+      prev.map((t) => (t.id === tenantId ? ({ ...t, ...updates } as Tenant) : t))
+    );
+
+    const row: Record<string, any> = {};
+    if (updates.plan !== undefined) row.plan = updates.plan;
+    if (updates.planExpiresAt !== undefined) row.plan_expires_at = updates.planExpiresAt;
+    if (updates.isActive !== undefined) row.is_active = updates.isActive;
+    if (updates.name !== undefined) row.name = updates.name;
+    if (updates.settings !== undefined) row.settings = updates.settings;
+    if (Object.keys(row).length === 0) return;
+
+    const { error } = await supabase.from('tenants').update(row).eq('id', tenantId);
+    if (error) console.error('Error updating tenant:', error.message);
+  };
+
   const markNotificationAsRead = (notificationId: string) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === notificationId ? { ...n, status: 'read' as const } : n))
@@ -654,9 +706,21 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setCancellationPolicies(policies);
   };
 
+  const addReview = (review: Omit<Review, 'id' | 'createdAt'>) => {
+    const newReview: Review = {
+      ...review,
+      id: Math.random().toString(36).substr(2, 9),
+      createdAt: new Date().toISOString()
+    };
+    setReviews(prev => [newReview, ...prev]);
+    // Optionally insert to supabase here
+  };
+
   return (
     <SaaSContext.Provider
       value={{
+        isLoading,
+        error,
         tenants,
         activeTenant,
         merchantTab,
@@ -668,6 +732,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         bookings: tenantBookings,
         businessHours,
         cancellationPolicies,
+        reviews,
         notifications: tenantNotifications,
         memberships,
         pointTransactions,
@@ -686,9 +751,12 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         saveCourt,
         deleteCourt,
         updateTenantSettings,
+        updateTenant,
         markNotificationAsRead,
         addOnboardingTenant,
         updateCancellationPolicies,
+        addReview,
+        fetchMyBookings,
         fetchMembership,
         redeemReward,
         completeBooking,

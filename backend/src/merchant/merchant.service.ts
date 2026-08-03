@@ -48,7 +48,7 @@ export class MerchantService {
 
     const whereClause: any = {
       tenantId,
-      status: { not: 'CANCELLED' } // Don't count cancelled for revenue
+      status: { not: 'cancelled' } // Don't count cancelled for revenue
     };
 
     if (startDate && endDate) {
@@ -72,7 +72,9 @@ export class MerchantService {
     
     // Calculate top services
     const serviceCounts = bookings.reduce((acc: any, b) => {
-      acc[b.serviceId] = (acc[b.serviceId] || 0) + 1;
+      if (b.serviceId) {
+        acc[b.serviceId] = (acc[b.serviceId] || 0) + 1;
+      }
       return acc;
     }, {});
     

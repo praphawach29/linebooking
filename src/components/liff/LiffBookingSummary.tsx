@@ -49,8 +49,8 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
 }) => {
   const { activeTenant, currentUser, serviceAddons } = useSaaS();
 
-  const [customerName, setCustomerName] = useState(currentUser.displayName);
-  const [customerPhone, setCustomerPhone] = useState(currentUser.phone || '081-234-5678');
+  const [customerName, setCustomerName] = useState(currentUser?.displayName || '');
+  const [customerPhone, setCustomerPhone] = useState(currentUser?.phone || '081-234-5678');
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('promptpay');
 
@@ -84,6 +84,7 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
   };
 
   const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [validationError, setValidationError] = useState('');
 
   const handleOptionChange = (addon: ServiceAddon, optionName: string) => {
     setAddonOptionChoice((prev) => ({ ...prev, [addon.id]: optionName }));
@@ -134,6 +135,19 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
   };
 
   const handleSubmit = () => {
+    if (!customerName?.trim() || !customerPhone?.trim()) {
+      const errorMsg = 'กรุณากรอกชื่อ-นามสกุล และเบอร์โทรศัพท์ติดต่อให้ครบถ้วน';
+      setValidationError(errorMsg);
+      setShowSummaryModal(false);
+      // Fallback alert just in case
+      window.alert(errorMsg);
+      // Scroll to top so the user sees the inputs
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    setValidationError('');
+
     onGoToPayment({
       selectedAddons,
       customerName,
@@ -144,7 +158,7 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
   };
 
   return (
-    <div className="p-4 space-y-5 pb-28">
+    <div className="p-4 space-y-5 pb-[240px]">
       <div className="text-center space-y-1 mt-2">
         <h2 className="text-lg font-black text-foreground">สรุปรายละเอียดการจอง</h2>
         <p className="text-[13px] text-slate-500 font-medium">เลือกบริการเสริม ชำระเงินมัดจำ ยืนยันคิวทันที</p>
@@ -369,9 +383,9 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
             })}
           </div>
         </div>
-      )}
+        )}
 
-      {/* Customer Information Inputs */}
+        {/* Customer Information Inputs */}
       <div className="premium-card p-5 space-y-4">
         <h3 className="text-[13px] font-black text-foreground flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-primary" />
@@ -380,23 +394,35 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
 
         <div className="space-y-3.5 text-[13px]">
           <div>
-            <label className="block text-slate-600 font-bold mb-1.5">ชื่อ-นามสกุล</label>
+            <label className="block text-slate-600 font-bold mb-1.5">ชื่อ-นามสกุล <span className="text-red-500">*</span></label>
             <input
               type="text"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all font-medium text-foreground shadow-inner"
+              className={`w-full px-4 py-3 bg-slate-50 border ${validationError && !customerName?.trim() ? 'border-red-500 ring-2 ring-red-500/20' : 'border-slate-200'} rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all font-medium text-foreground shadow-inner`}
             />
+            {validationError && !customerName?.trim() && (
+              <p className="text-red-500 text-[11px] font-bold mt-1.5 flex items-center gap-1">
+                <span className="w-3.5 h-3.5 rounded-full bg-red-100 flex items-center justify-center text-red-600 text-[10px]">!</span>
+                กรุณากรอกชื่อ-นามสกุล
+              </p>
+            )}
           </div>
 
           <div>
-            <label className="block text-slate-600 font-bold mb-1.5">เบอร์โทรศัพท์ติดต่อ</label>
+            <label className="block text-slate-600 font-bold mb-1.5">เบอร์โทรศัพท์ติดต่อ <span className="text-red-500">*</span></label>
             <input
               type="tel"
               value={customerPhone}
               onChange={(e) => setCustomerPhone(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all font-mono font-bold text-foreground shadow-inner"
+              className={`w-full px-4 py-3 bg-slate-50 border ${validationError && !customerPhone?.trim() ? 'border-red-500 ring-2 ring-red-500/20' : 'border-slate-200'} rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all font-mono font-bold text-foreground shadow-inner`}
             />
+            {validationError && !customerPhone?.trim() && (
+              <p className="text-red-500 text-[11px] font-bold mt-1.5 flex items-center gap-1">
+                <span className="w-3.5 h-3.5 rounded-full bg-red-100 flex items-center justify-center text-red-600 text-[10px]">!</span>
+                กรุณากรอกเบอร์โทรศัพท์ติดต่อ
+              </p>
+            )}
           </div>
 
           <div>
@@ -524,6 +550,7 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
             <span className="bg-warning/20 px-2 py-0.5 rounded-md">ยอดชำระมัดจำวันนี้ ({depositPct}%)</span>
             <span className="text-lg">฿{(depositAmount ?? 0).toLocaleString()}</span>
           </div>
+
           <div className="flex justify-between text-slate-500 font-bold text-[11px] pt-2 border-t border-slate-200 mt-2">
             <span>ชำระส่วนที่เหลือ ณ หน้าร้าน</span>
             <span>฿{(remainingAmount ?? 0).toLocaleString()}</span>
@@ -531,24 +558,46 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
         </div>
       </div>
 
-      <div className="fixed bottom-[80px] left-0 right-0 px-4 z-50 max-w-[400px] mx-auto flex flex-col gap-2">
+      {/* Sticky Bottom Action Bar with Summary */}
+      <div className="fixed bottom-[90px] left-4 right-4 p-4 bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 z-50 max-w-[368px] mx-auto flex flex-col gap-3">
+        {/* Debug Modal Button (kept for development) */}
         <button
           type="button"
           onClick={() => setShowSummaryModal(true)}
-          className="w-full bg-white/90 backdrop-blur-md hover:bg-white text-slate-700 font-black py-3 px-4 rounded-2xl flex items-center justify-center gap-2 transition-colors text-[11px] border border-slate-200 shadow-sm"
+          className="w-full bg-slate-50 hover:bg-slate-100 text-slate-500 font-bold py-2 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors text-[10px] border border-slate-200 shadow-sm mb-1"
         >
-          <Sparkles className="w-4 h-4 text-primary" />
-          <span>ดูสรุปยอดค่าใช้จ่าย (Summary Modal)</span>
+          <Sparkles className="w-3 h-3 text-slate-400" />
+          <span>ดูรูปแบบบิลตัวจริง (Summary Modal)</span>
         </button>
+
+        <div className="flex items-center justify-between px-1">
+          <div>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">ยอดชำระมัดจำ (50%)</p>
+            <p className="text-[14px] font-black text-primary">฿{(depositAmount ?? 0).toLocaleString()}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">ยอดรวมทั้งหมด</p>
+            <p className="text-[14px] font-black text-slate-900">฿{(totalPrice ?? 0).toLocaleString()}</p>
+          </div>
+        </div>
+
+        {validationError && (
+          <div className="bg-red-50 text-red-600 px-4 py-3 rounded-2xl border border-red-100 text-[12px] font-bold flex items-center gap-2 animate-fadeIn">
+            <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+              <span className="text-red-600 text-sm leading-none">!</span>
+            </div>
+            {validationError}
+          </div>
+        )}
 
         <button
           type="button"
           onClick={handleSubmit}
-          className="w-full btn-primary py-4 px-6 text-[15px] shadow-premium flex items-center justify-between group"
+          className="w-full btn-primary py-3.5 px-6 text-[14px] shadow-premium flex items-center justify-between group rounded-2xl"
         >
-          <span>ไปที่หน้าชำระเงิน (฿{(depositAmount ?? 0).toLocaleString()})</span>
-          <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center group-hover:translate-x-1 transition-transform">
-              <ChevronRight className="w-5 h-5 text-white" />
+          <span>ยืนยันและชำระเงิน</span>
+          <div className="w-7 h-7 bg-white/20 rounded-full flex items-center justify-center group-hover:translate-x-1 transition-transform">
+              <ChevronRight className="w-4 h-4 text-white" />
           </div>
         </button>
       </div>

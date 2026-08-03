@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Service, Staff, SelectedAddon } from '../../types';
 import { useSaaS } from '../../context/SaaSContext';
 import {
@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   XCircle,
 } from 'lucide-react';
+import { SkeletonCard } from '../common/SkeletonCard';
 
 interface LiffDateTimePickerProps {
   service: Service;
@@ -44,6 +45,9 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
   const [viewType, setViewType] = useState<'month' | 'strip'>('strip');
   const [activeDate, setActiveDate] = useState<string>(initialDate);
   const [activeTime, setActiveTime] = useState<string>(initialTime);
+  const [slots, setSlots] = useState<Awaited<ReturnType<typeof getAvailableSlots>>>([]);
+  const [isSlotsLoading, setIsSlotsLoading] = useState(true);
+  const [slotsError, setSlotsError] = useState<string | null>(null);
 
   // Month navigation state for month grid view
   const today = new Date();
@@ -104,8 +108,31 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
 
   const { firstDay, totalDays } = getDaysInMonth(calendarYear, calendarMonth);
 
-  // Available slots for selected date
-  const slots = getAvailableSlots(activeDate, service.id, staff?.id);
+  useEffect(() => {
+    let cancelled = false;
+    setIsSlotsLoading(true);
+    setSlotsError(null);
+
+    getAvailableSlots(activeDate, service.id, staff?.id)
+      .then((nextSlots) => {
+        if (!cancelled) setSlots(nextSlots);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setSlots([]);
+          setSlotsError(
+            error instanceof Error ? error.message : 'Unable to load available slots',
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsSlotsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeDate, service.id, staff?.id]);
 
   // Time groupings
   const morningSlots = slots.filter((s) => {
@@ -131,8 +158,21 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
 
   const availableCount = slots.filter((s) => s.isAvailable).length;
 
+  if (isSlotsLoading) {
+    return (
+      <div className="p-4 space-y-4 pb-32">
+        <div className="flex items-center justify-between mb-4">
+          <div className="h-6 bg-slate-200 rounded w-1/3 animate-pulse"></div>
+        </div>
+        {[1, 2, 3].map((n) => (
+          <SkeletonCard key={n} />
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div className="p-4 space-y-5 pb-28">
+    <div className="p-4 space-y-5 pb-[240px]">
       {/* Service & Staff Info Header Card */}
       <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-5 rounded-[24px] shadow-premium space-y-3 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-10 -mt-10"></div>
@@ -337,6 +377,11 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
 
       {/* Time Slots Selection Area */}
       <div className="space-y-4 pt-2">
+        {slotsError && (
+          <div className="border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700">
+            {slotsError}
+          </div>
+        )}
         <div className="flex items-center justify-between">
           <h3 className="text-[13px] font-black text-foreground flex items-center gap-2">
             <Clock className="w-4 h-4 text-primary" />
@@ -496,8 +541,20 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
         )}
       </div>
 
-      {/* Confirmation Sticky/Bottom Action Button */}
-      <div className="fixed bottom-[80px] left-0 right-0 px-4 z-50 max-w-[400px] mx-auto">
+      {/* Sticky Bottom Action Bar with Summary */}
+      <div className="fixed bottom-[90px] left-4 right-4 p-4 bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 z-50 max-w-[368px] mx-auto flex flex-col gap-3">
+        <div className="flex items-center justify-between px-1">
+          <div>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">เวลาที่เลือก</p>
+            <p className="text-[14px] font-black text-slate-900">
+              {activeTime ? `${activeDateThai}, ${activeTime} น.` : 'กรุณาเลือกเวลา'}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">รวมทั้งหมด</p>
+            <p className="text-[14px] font-black text-primary">฿{totalPrice.toLocaleString()}</p>
+          </div>
+        </div>
         <button
           disabled={!activeTime}
           onClick={() => onSelectSlot(activeDate, activeTime)}

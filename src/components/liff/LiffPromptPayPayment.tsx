@@ -32,6 +32,7 @@ export const LiffPromptPayPayment: React.FC<LiffPromptPayPaymentProps> = ({
   const [copied, setCopied] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(15 * 60); // 15 mins
   const [isProcessing, setIsProcessing] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const addonsTotalPrice = selectedAddons.reduce((sum, a) => sum + a.price, 0);
   const totalPrice = service.price + addonsTotalPrice;
@@ -60,27 +61,27 @@ export const LiffPromptPayPayment: React.FC<LiffPromptPayPaymentProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleSimulatePayment = () => {
+  const handleSimulatePayment = async () => {
     setIsProcessing(true);
-    setTimeout(async () => {
-      const newBooking = await createBooking({
-        serviceId: service.id,
-        staffId: staff?.id,
-        bookingDate: date,
-        startTime: time,
-        selectedAddons,
-        customerName,
-        customerPhone,
-        notes,
-        paymentMethod,
-        depositPaid: true,
-        source: 'line_liff',
-      });
-      setIsProcessing(false);
-      if (newBooking) {
-        onBookingComplete(newBooking);
-      }
-    }, 1200);
+    setSubmitError(null);
+    const newBooking = await createBooking({
+      serviceId: service.id,
+      staffId: staff?.id,
+      bookingDate: date,
+      startTime: time,
+      selectedAddons,
+      customerName,
+      customerPhone,
+      notes,
+      paymentMethod,
+      source: 'line_liff',
+    });
+    setIsProcessing(false);
+    if (newBooking) {
+      onBookingComplete(newBooking);
+    } else {
+      setSubmitError('ไม่สามารถยืนยันการจองได้ รอบเวลานี้อาจถูกจองแล้ว กรุณาเลือกเวลาใหม่');
+    }
   };
 
   return (
@@ -163,6 +164,11 @@ export const LiffPromptPayPayment: React.FC<LiffPromptPayPaymentProps> = ({
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-xl border-t border-slate-200/60 z-40 max-w-[400px] mx-auto space-y-3">
+        {submitError && (
+          <p className="border border-red-200 bg-red-50 px-3 py-2 text-center text-xs font-bold text-red-700">
+            {submitError}
+          </p>
+        )}
         <button
           type="button"
           onClick={handleSimulatePayment}
@@ -172,19 +178,19 @@ export const LiffPromptPayPayment: React.FC<LiffPromptPayPaymentProps> = ({
           {isProcessing ? (
             <span className="flex items-center gap-2">
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-              กำลังตรวจสอบรายการชำระเงิน...
+              กำลังส่งคำขอจอง...
             </span>
           ) : (
             <>
               <ShieldCheck className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              <span>จำลองการสแกนชำระเงินสำเร็จ</span>
+              <span>ยืนยันการส่งคำขอจอง</span>
             </>
           )}
         </button>
 
         <p className="text-[11px] text-center text-slate-400 font-bold flex items-center justify-center gap-1.5">
           <AlertCircle className="w-3.5 h-3.5" />
-          ระบบจะสแกน Webhook ยืนยันสลิปอัตโนมัติภายใน 1-2 วินาที
+          การจองจะเริ่มด้วยสถานะยังไม่ชำระเงินจนกว่าระบบชำระเงินจะยืนยัน
         </p>
       </div>
     </div>

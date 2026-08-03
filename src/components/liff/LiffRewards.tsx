@@ -9,7 +9,7 @@ interface LiffRewardsProps {
 
 const LiffRewards: React.FC<LiffRewardsProps> = ({ onBack }) => {
   const { activeTenant, currentUser, fetchMembership, rewards, redeemReward } = useSaaS();
-  const membership = fetchMembership(currentUser.id);
+  const membership = currentUser ? fetchMembership(currentUser.id) : undefined;
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -21,7 +21,7 @@ const LiffRewards: React.FC<LiffRewardsProps> = ({ onBack }) => {
   );
 
   const handleRedeem = () => {
-    if (!selectedReward) return;
+    if (!selectedReward || !currentUser) return;
     const success = redeemReward(selectedReward.id, currentUser.id);
     if (success) {
       setRedeemStatus('success');

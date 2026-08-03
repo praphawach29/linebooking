@@ -15,14 +15,18 @@ import {
   Tag,
   X,
   Trophy,
+  Flame,
+  ThumbsUp,
+  Eye,
 } from 'lucide-react';
+import { SkeletonCard } from '../common/SkeletonCard';
 
 interface LiffHomeProps {
   onSelectService: (service: Service) => void;
 }
 
 export const LiffHome: React.FC<LiffHomeProps> = ({ onSelectService }) => {
-  const { activeTenant, services, staffs, currentUser } = useSaaS();
+  const { activeTenant, services, staffs, currentUser, isLoading, reviews, bookings } = useSaaS();
   const [selectedCategory, setSelectedCategory] = useState<string>('ทั้งหมด');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -64,36 +68,31 @@ export const LiffHome: React.FC<LiffHomeProps> = ({ onSelectService }) => {
 
   return (
     <div className="flex flex-col w-full bg-slate-50 min-h-full pb-6">
-      {/* Header Bar */}
-      <div className="bg-white px-5 py-4 border-b border-border/60 flex items-center justify-between sticky top-0 z-20 shadow-sm">
-        <div className="flex items-center gap-3">
+      {/* User Welcome Section */}
+      <div className="px-5 py-6 bg-gradient-to-b from-slate-50 to-white flex items-center justify-between">
+        <div className="flex flex-col">
+          <span className="text-sm font-bold text-slate-500">ยินดีต้อนรับ,</span>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+            {currentUser?.name || 'ลูกค้า'}
+          </h1>
+        </div>
+        <div className="relative">
           <img
-            src={activeTenant.logoUrl}
-            alt={activeTenant.name}
-            className="w-10 h-10 rounded-full object-cover border-2 border-primary/20 shadow-sm"
+            src={
+              currentUser?.avatarUrl ||
+              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'
+            }
+            alt="Profile"
+            className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-lg ring-2 ring-primary/20"
           />
-          <div>
-            <h1 className="text-[15px] font-extrabold text-foreground tracking-tight leading-tight">
-              {activeTenant.name}
-            </h1>
-            <span className="text-[10px] text-success font-bold flex items-center gap-1 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>
-              จองคิวออนไลน์ผ่าน LINE
-            </span>
+          <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
+            <span className="flex w-3.5 h-3.5 bg-success rounded-full border-2 border-white"></span>
           </div>
         </div>
-        <img
-          src={
-            currentUser.avatarUrl ||
-            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'
-          }
-          alt="Profile"
-          className="w-10 h-10 rounded-full object-cover border-2 border-slate-200 shadow-sm"
-        />
       </div>
 
       {/* Search & Category Filter Section */}
-      <div className="px-4 pt-4 pb-3 bg-white/95 backdrop-blur-xl sticky top-[73px] z-10 border-b border-border/50 space-y-3 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)]">
+      <div className="px-5 pb-4 bg-white sticky top-0 z-10 border-b border-slate-100/50 space-y-4 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.02)]">
         {/* Search Input */}
         <div className="relative w-full group">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 group-focus-within:text-primary transition-colors" />
@@ -106,7 +105,7 @@ export const LiffHome: React.FC<LiffHomeProps> = ({ onSelectService }) => {
                 ? 'ค้นหาสนามกีฬา, ฟุตซอล...'
                 : 'ค้นหาบริการ, หมวดหมู่...'
             }
-            className="w-full bg-slate-100/80 border border-transparent hover:border-slate-300 rounded-2xl py-3 pl-10 pr-10 text-[13px] text-foreground placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white transition-all shadow-inner"
+            className="w-full bg-slate-50 border border-slate-200/60 hover:border-primary/40 rounded-2xl py-3.5 pl-11 pr-10 text-[14px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white transition-all shadow-sm"
           />
           {searchQuery && (
             <button
@@ -133,10 +132,10 @@ export const LiffHome: React.FC<LiffHomeProps> = ({ onSelectService }) => {
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`snap-start px-4 py-2 rounded-2xl text-[13px] font-bold whitespace-nowrap transition-all flex items-center gap-2 ${
-                    isActive
-                      ? 'bg-primary text-white shadow-[0_8px_16px_-6px_var(--color-primary)] ring-2 ring-primary/20 scale-[1.02]'
-                      : 'bg-white border border-border text-slate-600 hover:bg-slate-50 hover:text-primary hover:border-primary/30 shadow-sm'
+                  className={`snap-start px-5 py-2.5 rounded-full text-[13px] font-bold whitespace-nowrap transition-all flex items-center gap-2 ${
+                      isActive
+                        ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02] ring-1 ring-primary/80'
+                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300 shadow-sm'
                   }`}
                 >
                   {getCategoryIcon(cat)}
@@ -228,7 +227,13 @@ export const LiffHome: React.FC<LiffHomeProps> = ({ onSelectService }) => {
         </div>
 
         {/* Services List */}
-        {filteredServices.length === 0 ? (
+        {isLoading ? (
+          <div className="flex flex-col gap-5">
+            {[1, 2, 3].map((n) => (
+              <SkeletonCard key={n} />
+            ))}
+          </div>
+        ) : filteredServices.length === 0 ? (
           <div className="premium-card text-center py-12 px-6 flex flex-col items-center justify-center">
             <div className="w-14 h-14 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mb-4">
               <Filter className="w-7 h-7" />
@@ -256,7 +261,7 @@ export const LiffHome: React.FC<LiffHomeProps> = ({ onSelectService }) => {
                 <div
                   key={service.id}
                   onClick={() => onSelectService(service)}
-                  className="flex flex-col bg-white border border-border/60 rounded-3xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-premium hover:-translate-y-1 hover:border-primary/30 cursor-pointer group"
+                  className="flex flex-col bg-white border border-slate-100 rounded-[28px] shadow-sm overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-slate-200 cursor-pointer group"
                 >
                   {/* Service Image Cover with Category Badge & Rating Overlay */}
                   <div className="relative h-48 w-full bg-slate-100 overflow-hidden">
@@ -266,7 +271,7 @@ export const LiffHome: React.FC<LiffHomeProps> = ({ onSelectService }) => {
                         'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&auto=format&fit=crop&q=80'
                       }
                       alt={service.name}
-                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                      className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
                     />
                     
                     {/* Dark Gradient Overlay for text readability */}
@@ -278,10 +283,54 @@ export const LiffHome: React.FC<LiffHomeProps> = ({ onSelectService }) => {
                       <span>{service.category}</span>
                     </div>
 
-                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-xl px-2.5 py-1.5 border border-white/50 flex items-center gap-1 shadow-sm">
-                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
-                      <span className="text-[11px] font-black text-foreground">4.9</span>
-                    </div>
+                    {/* Dynamic Urgency / Popularity Badge */}
+                    {(() => {
+                      // Deterministic pseudorandom based on service id length and characters
+                      const hash = service.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                      const badgeType = hash % 4; // 0, 1, 2, 3
+                      
+                      if (badgeType === 0) {
+                        return (
+                          <div className="absolute top-12 left-3 bg-red-500/90 backdrop-blur-sm text-white text-[9px] font-black px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm animate-pulse">
+                            <Flame className="w-3 h-3 fill-white" />
+                            ยอดนิยม
+                          </div>
+                        );
+                      }
+                      if (badgeType === 1) {
+                        return (
+                          <div className="absolute top-12 left-3 bg-amber-500/90 backdrop-blur-sm text-white text-[9px] font-black px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm">
+                            <ThumbsUp className="w-3 h-3 fill-white" />
+                            แนะนำ
+                          </div>
+                        );
+                      }
+                      if (badgeType === 2) {
+                        return (
+                          <div className="absolute top-12 left-3 bg-blue-500/90 backdrop-blur-sm text-white text-[9px] font-black px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm">
+                            <Eye className="w-3 h-3" />
+                            กำลังดูอยู่ {(hash % 5) + 2} คน
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+
+                    {/* Dynamic Rating */}
+                    {(() => {
+                      const serviceBookings = bookings.filter(b => b.serviceId === service.id);
+                      const serviceReviews = reviews.filter(r => serviceBookings.some(b => b.id === r.bookingId));
+                      const avgRating = serviceReviews.length > 0 
+                        ? (serviceReviews.reduce((acc, curr) => acc + curr.rating, 0) / serviceReviews.length).toFixed(1)
+                        : '5.0'; // Default to 5.0 if no reviews
+                      
+                      return (
+                        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-xl px-2.5 py-1.5 border border-white/50 flex items-center gap-1 shadow-sm">
+                          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
+                          <span className="text-[11px] font-black text-foreground">{avgRating}</span>
+                        </div>
+                      );
+                    })()}
                     
                     {/* Title overlay on image */}
                     <div className="absolute bottom-3 left-4 right-4">
@@ -299,8 +348,8 @@ export const LiffHome: React.FC<LiffHomeProps> = ({ onSelectService }) => {
                     </p>
 
                     {/* Bottom Duration & Action Bar */}
-                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
-                      <div className="flex items-center gap-1.5 text-slate-600 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold">
+                    <div className="flex items-center justify-between mt-auto pt-4">
+                      <div className="flex items-center gap-1.5 text-slate-500 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl text-xs font-bold">
                         <Clock className="w-4 h-4 text-primary" />
                         <span>{service.durationMinutes} นาที</span>
                       </div>
@@ -310,10 +359,10 @@ export const LiffHome: React.FC<LiffHomeProps> = ({ onSelectService }) => {
                           e.stopPropagation();
                           onSelectService(service);
                         }}
-                        className="btn-primary py-2 px-4 text-[13px] flex items-center gap-2 group-hover:scale-105 transition-transform"
+                        className="bg-primary text-primary-foreground font-bold py-2 px-5 rounded-xl text-[13px] flex items-center gap-2 hover:bg-primary-hover transition-colors shadow-md"
                       >
                         <span>จอง</span>
-                        <span className="border-l border-white/30 pl-2 font-black">
+                        <span className="border-l border-white/20 pl-2 opacity-90">
                           ฿{(service.price ?? 0).toLocaleString()}
                         </span>
                       </button>

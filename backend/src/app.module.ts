@@ -10,16 +10,18 @@ import { MerchantModule } from './merchant/merchant.module';
 import { MembershipsModule } from './memberships/memberships.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { BillingModule } from './billing/billing.module';
+import { SupabaseModule } from './common/supabase/supabase.module';
 
 @Module({
   imports: [
     BullModule.forRoot({
       connection: {
         host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT) || 6379,
+        port: parseInt(process.env.REDIS_PORT || '') || 6379,
       },
     }),
-    AuthModule, PrismaModule, ServicesModule, BookingsModule, MerchantModule, MembershipsModule, WebhooksModule, NotificationsModule
+    AuthModule, PrismaModule, ServicesModule, BookingsModule, MerchantModule, MembershipsModule, WebhooksModule, NotificationsModule, SupabaseModule, BillingModule
   ],
   controllers: [AppController],
   providers: [AppService],

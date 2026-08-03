@@ -9,9 +9,9 @@ interface LiffProfileProps {
 export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
   const { currentUser, activeTenant, bookings, fetchMembership } = useSaaS();
 
-  const userBookings = bookings.filter((b) => b.userId === currentUser.id);
+  const userBookings = bookings.filter((b) => b.userId === currentUser?.id);
   const completedCount = userBookings.filter((b) => b.status === 'completed').length;
-  const membership = fetchMembership(currentUser.id);
+  const membership = currentUser ? fetchMembership(currentUser.id) : undefined;
   const points = membership?.points || 0;
   const tierDisplay = membership?.tier 
     ? membership.tier.charAt(0).toUpperCase() + membership.tier.slice(1) 
@@ -27,8 +27,8 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
         <div className="relative inline-block z-10">
           <div className="p-1 bg-white/20 rounded-full backdrop-blur-sm">
              <img
-                src={currentUser.avatarUrl}
-                alt={currentUser.displayName}
+                src={currentUser?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                alt={currentUser?.displayName || 'ลูกค้า'}
                 className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-xl"
               />
           </div>
@@ -39,7 +39,7 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
 
         <div className="relative z-10">
           <h2 className="text-xl font-black text-white tracking-wide">
-            {currentUser.displayName}
+            {currentUser?.displayName || 'ลูกค้า'}
           </h2>
           <p className="text-[13px] text-primary-light font-bold mt-1 tracking-wider uppercase">
             LINE Login User
@@ -47,7 +47,7 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
         </div>
 
         <div className="bg-black/20 p-2 rounded-xl inline-block text-[11px] font-mono text-white/80 font-bold backdrop-blur-md relative z-10">
-          ID: {currentUser.lineUserId?.slice(0, 12)}...
+          ID: {currentUser?.lineUserId?.slice(0, 12) || '-'}...
         </div>
       </div>
 
@@ -88,7 +88,7 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
             </div>
             <div className="flex-1">
               <span className="text-[11px] text-slate-400 block font-bold mb-0.5">เบอร์โทรศัพท์</span>
-              <span className="font-black font-mono text-foreground text-sm">{currentUser.phone}</span>
+              <span className="font-black font-mono text-foreground text-sm">{currentUser?.phone || '-'}</span>
             </div>
           </div>
 
@@ -98,7 +98,7 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
             </div>
             <div className="flex-1">
               <span className="text-[11px] text-slate-400 block font-bold mb-0.5">อีเมล</span>
-              <span className="font-black text-foreground text-sm">{currentUser.email}</span>
+              <span className="font-black text-foreground text-sm">{currentUser?.email || '-'}</span>
             </div>
           </div>
 

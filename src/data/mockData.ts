@@ -994,6 +994,7 @@ export const INITIAL_MEMBERSHIPS: Membership[] = [
     points: 1250,
     totalPointsEarned: 2500,
     createdAt: '2026-05-10T10:00:00Z',
+    updatedAt: '2026-05-10T10:00:00Z',
   }
 ];
 
@@ -1001,7 +1002,7 @@ export const INITIAL_POINT_TRANSACTIONS: PointTransaction[] = [
   {
     id: 'pt-001',
     membershipId: 'mem-001',
-    amount: 100,
+    points: 100,
     type: 'earn',
     description: 'Earned from booking BK26080101',
     createdAt: new Date().toISOString(),
@@ -1017,6 +1018,7 @@ export const INITIAL_REWARDS: Reward[] = [
     pointsRequired: 500,
     imageUrl: 'https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?w=500&auto=format&fit=crop&q=80',
     isActive: true,
+    createdAt: '2026-06-01T10:00:00Z',
   },
   {
     id: 'rew-002',
@@ -1026,5 +1028,6 @@ export const INITIAL_REWARDS: Reward[] = [
     pointsRequired: 1200,
     imageUrl: 'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=500&auto=format&fit=crop&q=80',
     isActive: true,
+    createdAt: '2026-06-01T10:00:00Z',
   }
 ];

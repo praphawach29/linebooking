@@ -6,6 +6,8 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { PrismaModule } from '../prisma/prisma.module';
+import { LineIdentityService } from './line-identity.service';
+import { LineIdTokenGuard } from '../common/guards/line-id-token.guard';
 
 @Module({
   imports: [
@@ -18,7 +20,7 @@ import { PrismaModule } from '../prisma/prisma.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService, JwtStrategy, PassportModule],
+  providers: [AuthService, JwtStrategy, LineIdentityService, LineIdTokenGuard],
+  exports: [AuthService, JwtStrategy, LineIdentityService, LineIdTokenGuard, PassportModule],
 })
 export class AuthModule {}

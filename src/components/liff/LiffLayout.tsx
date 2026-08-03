@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   Share2,
   X,
+  Star,
 } from 'lucide-react';
 import { LiffHome } from './LiffHome';
 import { LiffServiceDetail } from './LiffServiceDetail';
@@ -21,6 +22,7 @@ import { LiffNotifications } from './LiffNotifications';
 import { LiffProfile } from './LiffProfile';
 import LiffRewards from './LiffRewards';
 import LiffPointHistory from './LiffPointHistory';
+import { autoAssignStaff, autoAssignResource } from './BookingStepEngine';
 import { Service, Staff, Booking, SelectedAddon, PaymentMethod } from '../../types';
 
 export type LiffStep =
@@ -38,7 +40,7 @@ export type LiffStep =
   | 'point_history';
 
 export const LiffLayout: React.FC = () => {
-  const { activeTenant, notifications } = useSaaS();
+  const { activeTenant, services, staffs, courts, notifications, reviews } = useSaaS();
   const [currentStep, setCurrentStep] = useState<LiffStep>('home');
   const [activeTab, setActiveTab] = useState<'home' | 'my_bookings' | 'notifications' | 'profile'>('home');
 
@@ -58,18 +60,54 @@ export const LiffLayout: React.FC = () => {
 
   const unreadCount = notifications.filter((n) => n.status === 'unread').length;
 
+  const averageRating = reviews.length > 0 
+    ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1) 
+    : '0';
+
+  if (!activeTenant) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-900 text-white font-prompt">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p>Loading Shop Data...</p>
+        </div>
+      </div>
+    );
+  }
+
   const handleSelectService = (service: Service) => {
     setSelectedService(service);
     setSelectedAddons([]);
-    setCurrentStep('staff_select');
+
+    // Check merchant step configuration
+    const flowConfig = activeTenant.settings?.bookingFlowConfig;
+    const requireStaff = flowConfig?.steps?.requireStaff ?? activeTenant.settings?.enableStaffSelection ?? true;
+
+    if (requireStaff) {
+      setCurrentStep('staff_select');
+    } else {
+      // Auto assign staff if turned off
+      const assigned = autoAssignStaff(staffs);
+      setSelectedStaff(assigned);
+      setCurrentStep('date_time_select');
+    }
   };
 
   const handleStartBooking = () => {
-    setCurrentStep('staff_select');
+    const flowConfig = activeTenant.settings?.bookingFlowConfig;
+    const requireStaff = flowConfig?.steps?.requireStaff ?? activeTenant.settings?.enableStaffSelection ?? true;
+
+    if (requireStaff) {
+      setCurrentStep('staff_select');
+    } else {
+      const assigned = autoAssignStaff(staffs);
+      setSelectedStaff(assigned);
+      setCurrentStep('date_time_select');
+    }
   };
 
   const handleSelectStaff = (staff: Staff | null) => {
-    setSelectedStaff(staff);
+    setSelectedStaff(staff || autoAssignStaff(staffs));
     setCurrentStep('date_time_select');
   };
 
@@ -111,7 +149,7 @@ export const LiffLayout: React.FC = () => {
     <div className="min-h-[calc(100vh-5rem)] bg-transparent py-4 sm:py-8 px-2 sm:px-4 flex justify-center items-start">
       
       {/* Smartphone Viewport Simulation Frame */}
-      <div className="w-full max-w-[400px] bg-white text-slate-900 rounded-[44px] shadow-2xl overflow-hidden border-[10px] border-slate-900 min-h-[820px] max-h-[850px] flex flex-col relative font-sans ring-4 ring-white/10">
+      <div className="w-full max-w-[400px] bg-slate-50 text-slate-900 rounded-[44px] shadow-2xl overflow-hidden border-[10px] border-slate-900 min-h-[820px] max-h-[850px] flex flex-col relative font-sans ring-4 ring-white/10 transform-gpu">
         
         {/* Phone Speaker Notch */}
         <div className="bg-slate-900 h-7 w-full flex justify-center items-center relative z-40">
@@ -122,7 +160,7 @@ export const LiffLayout: React.FC = () => {
         </div>
 
         {/* LIFF Header */}
-        <div className="bg-primary text-white px-5 py-4 flex items-center justify-between sticky top-0 z-30 shadow-md">
+        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white px-5 py-4 flex items-center justify-between sticky top-0 z-30 shadow-md">
           <div className="flex items-center gap-3">
             {currentStep !== 'home' && currentStep !== 'my_bookings' && currentStep !== 'notifications' && currentStep !== 'profile' && (
               <button
@@ -134,38 +172,52 @@ export const LiffLayout: React.FC = () => {
                   else if (currentStep === 'promptpay_payment') setCurrentStep('booking_summary');
                   else setCurrentStep('home');
                 }}
-                className="p-1.5 -ml-2 rounded-full hover:bg-white/20 text-white transition-colors"
+                className="p-1.5 -ml-2 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
               >
                 <ChevronLeft className="w-6 h-6" />
               </button>
             )}
-            <img
-              src={activeTenant.logoUrl}
-              alt={activeTenant.name}
-              className="w-9 h-9 rounded-full object-cover border-2 border-white/20 shadow-sm"
-            />
+            <div className="relative">
+              <img
+                src={activeTenant.logoUrl}
+                alt={activeTenant.name}
+                className="w-9 h-9 rounded-full object-cover border-2 border-white/10 shadow-sm"
+              />
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-success border-2 border-slate-900 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+            </div>
             <div>
-              <h1 className="font-extrabold text-[15px] truncate max-w-[150px]">
+              <h1 className="font-extrabold text-[15px] truncate max-w-[150px] tracking-tight">
                 {activeTenant.name}
               </h1>
-              <p className="text-[10px] text-blue-200 font-semibold flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
-                ออนไลน์
-              </p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="text-[10px] text-slate-400 font-semibold flex items-center gap-1.5 uppercase tracking-wider">
+                  Official Account
+                </p>
+                {reviews.length > 0 && (
+                  <>
+                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                    <div className="flex items-center gap-1 text-[11px] font-bold text-amber-500 bg-amber-50 px-1.5 py-0.5 rounded">
+                      <Star className="w-3 h-3 fill-amber-500" />
+                      <span>{averageRating}</span>
+                      <span className="text-slate-400 font-normal">({reviews.length})</span>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-0.5 text-white">
+          <div className="flex items-center gap-1 text-slate-300">
             <button
               onClick={() => alert(`แชร์ลิงก์ LIFF App: https://liff.line.me/${activeTenant.liffId || '2001234567-AbCdEfGh'}`)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              className="p-2 hover:bg-white/10 hover:text-white rounded-full transition-colors"
               title="แชร์ลิงก์"
             >
-              <Share2 className="w-5 h-5" />
+              <Share2 className="w-4 h-4" />
             </button>
             <button
               onClick={() => setCurrentStep('home')}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              className="p-2 hover:bg-white/10 hover:text-white rounded-full transition-colors"
               title="ปิด LIFF"
             >
               <X className="w-5 h-5" />
@@ -235,6 +287,7 @@ export const LiffLayout: React.FC = () => {
             <LiffBookingConfirmation
               booking={confirmedBooking}
               onViewMyBookings={() => handleTabChange('my_bookings')}
+              onGoHome={() => handleTabChange('home')}
             />
           )}
 
@@ -252,7 +305,8 @@ export const LiffLayout: React.FC = () => {
         </div>
 
         {/* Floating Bottom Navigation Bar */}
-        <div className="absolute bottom-5 left-4 right-4 bg-white/90 backdrop-blur-xl border border-border/50 rounded-3xl px-2 py-2 flex justify-around items-center z-40 shadow-premium">
+        {!['promptpay_payment', 'booking_confirmation'].includes(currentStep) && (
+          <div className="absolute bottom-6 left-5 right-5 glass-panel px-3 py-2.5 flex justify-around items-center z-40 !rounded-[24px]">
           <button
             onClick={() => handleTabChange('home')}
             className={`flex flex-col items-center gap-1 p-2 w-16 transition-all duration-300 ${
@@ -299,7 +353,8 @@ export const LiffLayout: React.FC = () => {
             <UserIcon className={`w-5 h-5 ${activeTab === 'profile' ? 'fill-primary/20' : ''}`} />
             <span className={`text-[10px] ${activeTab === 'profile' ? 'font-bold' : 'font-medium'}`}>ฉัน</span>
           </button>
-        </div>
+          </div>
+        )}
 
         {/* Bottom Home Indicator Bar */}
         <div className="bg-transparent absolute bottom-0 h-4 w-full flex justify-center items-center pb-1 z-50 pointer-events-none">

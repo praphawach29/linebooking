@@ -19,7 +19,7 @@ export const LiffServiceDetail: React.FC<LiffServiceDetailProps> = ({
   const depositAmount = (service.price * depositPct) / 100;
 
   return (
-    <div className="p-4 space-y-5 pb-28">
+    <div className="p-4 space-y-5 pb-[240px]">
       {/* Service Cover Image */}
       {service.imageUrl && (
         <div className="rounded-[24px] overflow-hidden shadow-premium border border-border/50 relative">
@@ -136,17 +136,27 @@ export const LiffServiceDetail: React.FC<LiffServiceDetailProps> = ({
         </div>
       </div>
 
-      {/* Action Button */}
-      <div className="fixed bottom-[80px] left-0 right-0 px-4 z-50 max-w-[400px] mx-auto">
-          <button
-            onClick={onStartBooking}
-            className="w-full btn-primary py-4 px-6 text-[15px] shadow-premium flex items-center justify-between group"
-          >
-            <span>ถัดไป: เลือกช่างและเวลา</span>
-            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center group-hover:translate-x-1 transition-transform">
-                <ChevronRight className="w-5 h-5 text-white" />
-            </div>
-          </button>
+      {/* Sticky Bottom Action Bar with Summary */}
+      <div className="fixed bottom-[90px] left-4 right-4 p-4 bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 z-50 max-w-[368px] mx-auto flex flex-col gap-3">
+        <div className="flex items-center justify-between px-1">
+          <div>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">ราคาค่าบริการ</p>
+            <p className="text-[14px] font-black text-slate-900">เริ่มต้น ฿{service.price.toLocaleString()}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">มัดจำออนไลน์</p>
+            <p className="text-[14px] font-black text-primary">฿{(service.price / 2).toLocaleString()}</p>
+          </div>
+        </div>
+        <button
+          onClick={onStartBooking}
+          className="w-full btn-primary py-3.5 px-6 text-[14px] shadow-premium flex items-center justify-between group rounded-2xl"
+        >
+          <span>ถัดไป: เลือกช่างและเวลา</span>
+          <div className="w-7 h-7 bg-white/20 rounded-full flex items-center justify-center group-hover:translate-x-1 transition-transform">
+              <ChevronRight className="w-4 h-4 text-white" />
+          </div>
+        </button>
       </div>
     </div>
   );

@@ -23,3 +23,7 @@ VALUES
 -- Add a mock user
 INSERT INTO users (id, line_user_id, display_name, phone, role)
 VALUES ('33333333-3333-3333-3333-333333333333', 'U1234567890abcdef', 'ลูกค้าทดสอบ', '0812345678', 'customer');
+
+-- Map staff to service
+INSERT INTO staff_services (staff_id, service_id)
+VALUES ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111');

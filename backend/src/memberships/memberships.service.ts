@@ -28,7 +28,7 @@ export class MembershipsService {
           tenantId,
           userId,
           tier: 'bronze',
-          currentPoints: 0,
+          points: 0,
           totalPointsEarned: 0,
         },
         include: {
@@ -76,7 +76,7 @@ export class MembershipsService {
       }
 
       // 3. Check points
-      if (membership.currentPoints < reward.pointsRequired) {
+      if ((membership.points ?? 0) < reward.pointsRequired) {
         throw new BadRequestException('Insufficient points');
       }
 
@@ -84,7 +84,7 @@ export class MembershipsService {
       const updatedMembership = await tx.membership.update({
         where: { id: membership.id },
         data: {
-          currentPoints: {
+          points: {
             decrement: reward.pointsRequired,
           },
         },
@@ -95,7 +95,7 @@ export class MembershipsService {
         data: {
           membershipId: membership.id,
           type: 'REDEEM',
-          amount: -reward.pointsRequired,
+          points: -reward.pointsRequired,
           description: `Redeemed: ${reward.name}`,
         },
       });

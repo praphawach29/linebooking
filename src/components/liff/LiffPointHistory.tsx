@@ -10,10 +10,10 @@ const LiffPointHistory: React.FC<LiffPointHistoryProps> = ({ onBack }) => {
   const { activeTenant, currentUser, pointTransactions, fetchMembership } = useSaaS();
   
   const userTransactions = pointTransactions.filter(
-    tx => tx.tenantId === activeTenant.id && tx.userId === currentUser.id
+    tx => tx.tenantId === activeTenant.id && tx.userId === currentUser?.id
   ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  const membership = fetchMembership(currentUser.id);
+  const membership = currentUser ? fetchMembership(currentUser.id) : undefined;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

@@ -31,7 +31,7 @@ export const LiffStaffSelect: React.FC<LiffStaffSelectProps> = ({
   };
 
   return (
-    <div className="p-4 space-y-5 pb-28">
+    <div className="p-4 space-y-5 pb-[240px]">
       <div className="bg-primary/5 border border-primary/20 p-4 rounded-3xl flex items-center justify-between shadow-sm">
         <div>
           <span className="text-[10px] text-primary/80 font-black uppercase tracking-wider block mb-1">
@@ -132,16 +132,29 @@ export const LiffStaffSelect: React.FC<LiffStaffSelectProps> = ({
         })}
       </div>
 
-      <div className="fixed bottom-[80px] left-0 right-0 px-4 z-50 max-w-[400px] mx-auto">
-          <button
-            onClick={handleConfirm}
-            className="w-full btn-primary py-4 px-6 text-[15px] shadow-premium flex items-center justify-between group"
-          >
-            <span>ถัดไป: เลือกวันและเวลา</span>
-            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center group-hover:translate-x-1 transition-transform">
-                <ChevronRight className="w-5 h-5 text-white" />
-            </div>
-          </button>
+      {/* Sticky Bottom Action Bar with Summary */}
+      <div className="fixed bottom-[90px] left-4 right-4 p-4 bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 z-50 max-w-[368px] mx-auto flex flex-col gap-3">
+        <div className="flex items-center justify-between px-1">
+          <div>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">ช่างที่เลือก</p>
+            <p className="text-[14px] font-black text-slate-900 line-clamp-1">
+              {selectedStaffId === 'any' ? 'ช่างคนใดก็ได้' : qualifiedStaffs.find(s => s.id === selectedStaffId)?.name || '-'}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">รวมทั้งหมด</p>
+            <p className="text-[14px] font-black text-primary">฿{totalPrice.toLocaleString()}</p>
+          </div>
+        </div>
+        <button
+          onClick={handleConfirm}
+          className="w-full btn-primary py-3.5 px-6 text-[14px] shadow-premium flex items-center justify-between group rounded-2xl"
+        >
+          <span>ถัดไป: เลือกวันและเวลา</span>
+          <div className="w-7 h-7 bg-white/20 rounded-full flex items-center justify-center group-hover:translate-x-1 transition-transform">
+              <ChevronRight className="w-4 h-4 text-white" />
+          </div>
+        </button>
       </div>
     </div>
   );

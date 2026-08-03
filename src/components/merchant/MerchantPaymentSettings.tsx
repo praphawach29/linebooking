@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
-import { CreditCard, QrCode, ShieldAlert, Check, Save } from 'lucide-react';
+import { CreditCard, QrCode, ShieldAlert, Check, Save, Sparkles, Zap } from 'lucide-react';
+import { MerchantSubscriptionModal } from './MerchantSubscriptionModal';
+import { MerchantBillingPortal } from './MerchantBillingPortal';
 
 export const MerchantPaymentSettings: React.FC = () => {
   const { activeTenant, updateTenantSettings, cancellationPolicies, updateCancellationPolicies } =
     useSaaS();
 
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [promptpayNumber, setPromptpayNumber] = useState(
     activeTenant.settings.promptpayNumber || '0812345678'
   );
@@ -40,6 +43,37 @@ export const MerchantPaymentSettings: React.FC = () => {
   return (
     <div className="space-y-6 max-w-4xl mx-auto text-xs">
       
+      {/* SaaS Subscription Billing Banner */}
+      <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 p-5 rounded-3xl border border-emerald-500/30 text-white shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
+            <Zap className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold text-sm text-white">แพ็กเกจ SaaS ของร้านค้าคุณ:</span>
+              <span className="bg-emerald-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-md uppercase font-mono">
+                {activeTenant?.plan?.toUpperCase()} PLAN
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-300 mt-0.5">
+              ชำระค่าบริการให้ระบบผ่าน PromptPay QR หรือ บัตรเครดิต ต่ออายุอัตโนมัติ
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setIsSubscriptionModalOpen(true)}
+          className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-4 py-2.5 rounded-xl transition-all shadow-md flex items-center gap-1.5 shrink-0 text-xs"
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>ต่ออายุ / อัปเกรดแพ็กเกจ</span>
+        </button>
+      </div>
+
+      {/* ต่ออายุอัตโนมัติ / บัตรที่ผูกไว้ / ประวัติการเรียกเก็บ */}
+      <MerchantBillingPortal />
+
       {/* Header */}
       <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between">
         <div>
@@ -48,7 +82,7 @@ export const MerchantPaymentSettings: React.FC = () => {
             ตั้งค่าการชำระเงิน & นโยบายยกเลิกคิว (Payments & Policies)
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            กำหนดบัญชีรับเงินมัดจำ PromptPay QR Code และอัตราการคืนเงินกรณีลูกค้ายกเลิก
+            กำหนดบัญชีรับเงินมัดจำ PromptPay QR Code สำหรับลูกค้าของคุณ
           </p>
         </div>
 
@@ -65,7 +99,7 @@ export const MerchantPaymentSettings: React.FC = () => {
         <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
           <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
             <QrCode className="w-4 h-4 text-emerald-600" />
-            ตั้งค่าบัญชี PromptPay QR (Omise Gateway Integration)
+            ตั้งค่าบัญชี PromptPay QR รับเงินมัดจำจากลูกค้าของร้าน
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -166,6 +200,11 @@ export const MerchantPaymentSettings: React.FC = () => {
 
       </form>
 
+      {/* Subscription Payment Modal */}
+      <MerchantSubscriptionModal
+        isOpen={isSubscriptionModalOpen}
+        onClose={() => setIsSubscriptionModalOpen(false)}
+      />
     </div>
   );
 };

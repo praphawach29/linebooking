@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
 import { Booking, BookingStatus } from '../../types';
+import { generateICSFile } from '../../utils/calendar';
 import {
   Calendar,
   Clock,
@@ -17,22 +18,87 @@ import {
   X,
   Copy,
   Check,
+  Star,
 } from 'lucide-react';
+import { SkeletonCard } from '../common/SkeletonCard';
 
 interface LiffMyBookingsProps {
   onNewBooking: () => void;
 }
 
 export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) => {
-  const { bookings, cancellationPolicies, updateBookingStatus, activeTenant } = useSaaS();
+  const {
+    bookings,
+    cancellationPolicies,
+    updateBookingStatus,
+    activeTenant,
+    isLoading,
+    addReview,
+    reviews,
+    fetchMyBookings,
+    currentUser,
+  } = useSaaS();
+
+  const [myBookings, setMyBookings] = useState<Booking[]>([]);
+  const [isLoadingMine, setIsLoadingMine] = useState(true);
+
+  // ตาราง bookings อ่านสาธารณะไม่ได้แล้ว (RLS) — ต้องดึงคิวของตัวเองผ่าน RPC
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoadingMine(true);
+    fetchMyBookings()
+      .then((list) => {
+        if (!cancelled) setMyBookings(list);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingMine(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.lineUserId]);
+
+  // ผู้ที่ล็อกอินแล้ว (เจ้าของร้านเปิดดูหน้าลูกค้า) จะมี bookings ใน context อยู่แล้ว
+  const visibleBookings = myBookings.length > 0 ? myBookings : bookings;
   const [activeTab, setActiveTab] = useState<'upcoming' | 'completed' | 'cancelled'>('upcoming');
   const [selectedBookingForCancel, setSelectedBookingForCancel] = useState<Booking | null>(null);
   const [selectedBookingForQr, setSelectedBookingForQr] = useState<Booking | null>(null);
+  
+  const [selectedBookingForReview, setSelectedBookingForReview] = useState<Booking | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
   const [cancelReason, setCancelReason] = useState('');
   const [copiedRef, setCopiedRef] = useState(false);
   const [isSimulatingCheckin, setIsSimulatingCheckin] = useState(false);
+  const [downloadedIcsFor, setDownloadedIcsFor] = useState<string | null>(null);
 
-  const filteredBookings = bookings.filter((b) => {
+  const handleDownloadCalendar = (booking: Booking) => {
+    if (!activeTenant) return;
+    
+    // Parse times for date objects (assuming bookingDate is YYYY-MM-DD and time is HH:mm)
+    const startDate = new Date(`${booking.bookingDate}T${booking.startTime}:00`);
+    const endDate = new Date(`${booking.bookingDate}T${booking.endTime}:00`);
+    
+    const icsUrl = generateICSFile({
+      title: `${booking.serviceName} - ${activeTenant.name}`,
+      description: `อ้างอิง: ${booking.refNo}\nช่างผู้ให้บริการ: ${booking.staffName}\nโทร: ${activeTenant.phone}`,
+      location: activeTenant.address || activeTenant.name,
+      startDate,
+      endDate
+    });
+
+    const link = document.createElement('a');
+    link.href = icsUrl;
+    link.download = `booking-${booking.refNo}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setDownloadedIcsFor(booking.id);
+    setTimeout(() => setDownloadedIcsFor(null), 3000);
+  };
+
+  const filteredBookings = visibleBookings.filter((b) => {
     if (activeTab === 'upcoming') {
       return b.status === 'pending' || b.status === 'confirmed' || b.status === 'checked_in';
     }
@@ -116,9 +182,24 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
     setTimeout(() => setCopiedRef(false), 2000);
   };
 
+  const handleSubmitReview = () => {
+    if (selectedBookingForReview && activeTenant) {
+      addReview({
+        tenantId: activeTenant.id,
+        bookingId: selectedBookingForReview.id,
+        rating: reviewRating,
+        comment: reviewComment,
+        customerName: selectedBookingForReview.customerName
+      });
+      setSelectedBookingForReview(null);
+      setReviewRating(5);
+      setReviewComment('');
+    }
+  };
+
   return (
-    <div className="p-4 space-y-5 pb-24">
-      <div className="flex items-center justify-between mt-2">
+    <div className="bg-slate-50 min-h-screen pb-32">
+      <div className="flex items-center justify-between mt-2 px-4">
         <h2 className="text-lg font-black text-foreground">การจองคิวของฉัน</h2>
         <button
           onClick={onNewBooking}
@@ -130,7 +211,7 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
       </div>
 
       {/* Tabs */}
-      <div className="flex bg-slate-100/80 p-1.5 rounded-2xl text-[13px] font-black shadow-inner border border-slate-200/50">
+      <div className="flex bg-slate-100/80 p-1.5 m-4 rounded-2xl text-[13px] font-black shadow-inner border border-slate-200/50">
         <button
           onClick={() => setActiveTab('upcoming')}
           className={`flex-1 py-2 rounded-xl transition-all duration-300 ${
@@ -139,7 +220,7 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
               : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
           }`}
         >
-          กำลังจะถึง ({bookings.filter((b) => b.status === 'confirmed' || b.status === 'pending' || b.status === 'checked_in').length})
+          กำลังจะถึง ({visibleBookings.filter((b) => b.status === 'confirmed' || b.status === 'pending' || b.status === 'checked_in').length})
         </button>
 
         <button
@@ -150,7 +231,7 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
               : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
           }`}
         >
-          เสร็จสิ้น ({bookings.filter((b) => b.status === 'completed').length})
+          เสร็จสิ้น ({visibleBookings.filter((b) => b.status === 'completed').length})
         </button>
 
         <button
@@ -166,8 +247,14 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
       </div>
 
       {/* Booking List */}
-      <div className="space-y-4">
-        {filteredBookings.length === 0 ? (
+      <div className="space-y-4 px-4">
+        {(isLoading || isLoadingMine) ? (
+          <div className="flex flex-col gap-4">
+            {[1, 2, 3].map((n) => (
+              <SkeletonCard key={n} />
+            ))}
+          </div>
+        ) : filteredBookings.length === 0 ? (
           <div className="premium-card p-10 text-center flex flex-col items-center justify-center min-h-[300px]">
             <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
                <Calendar className="w-10 h-10 text-slate-300" />
@@ -186,7 +273,6 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
               key={b.id}
               className="premium-card p-5 space-y-4 relative overflow-hidden transition-all duration-300 hover:shadow-lg group"
             >
-              {/* Optional: Add a subtle side border indicator based on status */}
               <div className={`absolute left-0 top-0 bottom-0 w-1 ${
                 b.status === 'confirmed' ? 'bg-success' :
                 b.status === 'pending' ? 'bg-warning' :
@@ -216,7 +302,7 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
 
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-primary" />
-                  <span className="font-bold">{b.startTime} - {b.endTime} น.</span>
+                  <span className="font-bold">{b.startTime?.slice(0, 5)} - {b.endTime?.slice(0, 5)} น.</span>
                 </div>
 
                 <div className="flex items-center gap-2 col-span-2">
@@ -246,7 +332,6 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
                 </p>
               )}
 
-              {/* Action Buttons for Active Bookings including QR Check-in */}
               {(b.status === 'confirmed' || b.status === 'pending' || b.status === 'checked_in') && (
                 <div className="pt-4 border-t border-slate-100 space-y-2 mt-2">
                   <button
@@ -257,16 +342,27 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
                     <QrCode className="w-5 h-5 text-[#60a5fa]" />
                     <span>แสดง QR Code เช็คอินหน้าร้าน</span>
                   </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadCalendar(b)}
+                    className="w-full bg-white hover:bg-slate-50 text-slate-700 font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm border border-slate-200 text-[13px]"
+                  >
+                    <Calendar className="w-4 h-4 text-primary" />
+                    <span>{downloadedIcsFor === b.id ? 'บันทึกแล้ว' : 'เพิ่มลงปฏิทิน (Calendar)'}</span>
+                  </button>
 
                   <div className="flex items-center justify-between gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedBookingForCancel(b)}
-                      className="text-danger-dark bg-danger/5 hover:bg-danger/10 px-3 py-2.5 rounded-xl text-[11px] font-black transition-colors flex items-center justify-center gap-1 border border-danger/20 flex-1"
-                    >
-                      <XCircle className="w-4 h-4" />
-                      <span>ยกเลิกคิว</span>
-                    </button>
+                    {cancellationPolicies.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedBookingForCancel(b)}
+                        className="text-danger-dark bg-danger/5 hover:bg-danger/10 px-3 py-2.5 rounded-xl text-[11px] font-black transition-colors flex items-center justify-center gap-1 border border-danger/20 flex-1"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        <span>ยกเลิกคิว</span>
+                      </button>
+                    )}
 
                     <button
                       type="button"
@@ -279,12 +375,30 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
                   </div>
                 </div>
               )}
+
+              {b.status === 'completed' && !reviews.some(r => r.bookingId === b.id) && (
+                <div className="pt-4 border-t border-slate-100 space-y-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedBookingForReview(b)}
+                    className="w-full bg-amber-50 hover:bg-amber-100 text-amber-600 font-black py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm border border-amber-200 text-[13px]"
+                  >
+                    <Star className="w-4 h-4" />
+                    <span>ให้คะแนนและรีวิว</span>
+                  </button>
+                </div>
+              )}
+              {b.status === 'completed' && reviews.some(r => r.bookingId === b.id) && (
+                 <div className="pt-4 border-t border-slate-100 mt-2 flex items-center gap-2 text-amber-500 font-black text-[12px] bg-amber-50/50 p-2.5 rounded-xl border border-amber-100">
+                    <Star className="w-4 h-4 fill-amber-500" />
+                    <span>ให้คะแนนแล้ว ({reviews.find(r => r.bookingId === b.id)?.rating} ดาว)</span>
+                 </div>
+              )}
             </div>
           ))
         )}
       </div>
 
-      {/* QR Code Quick Check-In Modal */}
       {selectedBookingForQr && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
           <div className="bg-white max-w-[360px] w-full p-6 rounded-[32px] shadow-2xl space-y-5 text-[13px] relative border border-slate-200 transform animate-slideUp">
@@ -301,12 +415,10 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
                 Storefront Check-In QR
               </span>
               <h3 className="font-black text-foreground text-lg">QR Code สำหรับเช็คอิน</h3>
-              <p className="text-[11px] text-slate-500 font-medium">แสดง QR Code นี้ให้พนักงานสแกนเพื่อรับบริการ</p>
             </div>
 
-            {/* QR Code Canvas */}
             <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 text-center space-y-4 shadow-inner">
-              <div className="inline-block bg-white p-4 border-2 border-[#113566]/20 rounded-3xl shadow-lg relative">
+              <div className="inline-block bg-white p-4 border-2 border-[#113566]/20 rounded-3xl shadow-lg">
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=CHECKIN-${selectedBookingForQr.refNo}`}
                   alt="Check-in QR Code"
@@ -326,46 +438,6 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
               </div>
             </div>
 
-            {/* Booking Quick Info */}
-            <div className="bg-primary/5 p-4 rounded-2xl border border-primary/20 space-y-1.5">
-              <div className="flex justify-between font-black text-foreground">
-                <span className="truncate mr-2">{selectedBookingForQr.serviceName}</span>
-                <span className="text-primary shrink-0">฿{(selectedBookingForQr.finalPrice ?? selectedBookingForQr.price ?? 0).toLocaleString()}</span>
-              </div>
-              <div className="text-[11px] text-slate-600 font-bold flex flex-col gap-1 pt-1 border-t border-primary/10">
-                <span className="flex items-center gap-1.5"><Calendar className="w-3 h-3 text-primary/70" /> {formatDateThai(selectedBookingForQr.bookingDate)} ({selectedBookingForQr.startTime} น.)</span>
-                <span className="flex items-center gap-1.5"><User className="w-3 h-3 text-primary/70" /> ช่าง: {selectedBookingForQr.staffName}</span>
-              </div>
-            </div>
-
-            {/* Status & Simulate Check-In Button */}
-            {selectedBookingForQr.status === 'checked_in' ? (
-              <div className="bg-success/10 border border-success/30 p-4 rounded-2xl text-center space-y-1.5 text-success-dark">
-                <CheckCircle2 className="w-8 h-8 text-success mx-auto mb-2" />
-                <p className="font-black text-sm">เช็คอินหน้าร้านเรียบร้อยแล้ว!</p>
-                <p className="text-[11px] font-medium text-success-dark/80">พนักงานกำลังเตรียมห้อง/อุปกรณ์ให้บริการ</p>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => handleSimulateCheckIn(selectedBookingForQr.id)}
-                disabled={isSimulatingCheckin}
-                className="w-full btn-primary py-3.5 rounded-xl shadow-md flex items-center justify-center gap-2 transition-all disabled:opacity-70 text-[13px]"
-              >
-                {isSimulatingCheckin ? (
-                  <span className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    กำลังตรวจสอบ...
-                  </span>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>จำลองพนักงานสแกน (Simulate Check-In)</span>
-                  </>
-                )}
-              </button>
-            )}
-
             <button
               type="button"
               onClick={() => setSelectedBookingForQr(null)}
@@ -377,7 +449,6 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
         </div>
       )}
 
-      {/* Cancellation Modal Dialog */}
       {selectedBookingForCancel && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
           <div className="bg-white max-w-[360px] w-full p-6 rounded-[32px] shadow-2xl space-y-5 text-[13px] border border-slate-200 transform animate-slideUp">
@@ -388,33 +459,14 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
               <h3 className="font-black text-lg text-foreground text-center leading-tight">คุณต้องการยกเลิก<br/>การจองคิวใช่หรือไม่?</h3>
             </div>
 
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-1.5 shadow-inner text-center">
-              <p className="font-black text-foreground text-[15px]">{selectedBookingForCancel.serviceName}</p>
-              <p className="text-slate-500 font-bold text-[11px]">
-                {formatDateThai(selectedBookingForCancel.bookingDate)} | เวลา {selectedBookingForCancel.startTime} น.
-              </p>
-            </div>
-
-            {/* Refund Rule Calculation */}
-            <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl space-y-1.5">
-              <p className="font-black text-amber-900 flex items-center gap-1.5 text-[11px]">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  เงื่อนไขการคืนเงินมัดจำ:
-              </p>
-              <p className="text-[13px] text-amber-800 font-medium leading-relaxed">
-                ตามนโยบาย คุณจะได้รับเงินมัดจำคืน <strong className="font-black bg-amber-200/50 px-1 rounded">{calculateRefundPct(selectedBookingForCancel)}%</strong><br/>
-                <span className="text-[11px] text-amber-700/80 font-bold">(คิดเป็นยอดเงิน ฿{(((selectedBookingForCancel.depositAmount ?? 0) * calculateRefundPct(selectedBookingForCancel)) / 100).toLocaleString()})</span>
-              </p>
-            </div>
-
             <div className="space-y-1.5">
               <label className="block text-slate-600 font-bold text-[11px]">เหตุผลในการยกเลิก (ไม่บังคับ)</label>
               <textarea
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
-                placeholder="โปรดระบุเหตุผล เช่น ติดภารกิจด่วน..."
+                placeholder="โปรดระบุเหตุผล..."
                 rows={2}
-                className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-danger/20 focus:border-danger transition-all bg-slate-50 focus:bg-white resize-none text-[13px] font-medium"
+                className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 text-[13px] font-medium"
               />
             </div>
 
@@ -424,7 +476,7 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
                     onClick={handleConfirmCancel}
                     className="w-full py-3.5 bg-danger text-white font-black rounded-xl hover:bg-danger-dark transition-colors shadow-md"
                 >
-                    ยืนยันยกเลิกคิว (Cancel Booking)
+                    ยืนยันยกเลิกคิว
                 </button>
                 <button
                     type="button"
@@ -437,6 +489,70 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
           </div>
         </div>
       )}
-    </div>
-  );
+
+        {/* Review Modal Dialog */}
+        {selectedBookingForReview && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+            <div className="bg-white max-w-[360px] w-full p-6 rounded-[32px] shadow-2xl space-y-5 text-[13px] border border-slate-200 transform animate-slideUp">
+              <div className="flex flex-col items-center gap-2 text-amber-500 pb-2 border-b border-slate-100">
+                <div className="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mb-2">
+                    <Star className="w-8 h-8 fill-amber-500" />
+                </div>
+                <h3 className="font-black text-lg text-foreground text-center leading-tight">ให้คะแนนการบริการ</h3>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-1.5 shadow-inner text-center">
+                <p className="font-black text-foreground text-[15px]">{selectedBookingForReview.serviceName}</p>
+                <p className="text-slate-500 font-bold text-[11px]">
+                  พนักงาน: {selectedBookingForReview.staffName}
+                </p>
+              </div>
+
+              <div className="flex justify-center gap-2 py-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setReviewRating(star)}
+                    className="p-1 focus:outline-none transform transition-transform hover:scale-110 active:scale-95"
+                  >
+                    <Star 
+                      className={`w-8 h-8 ${star <= reviewRating ? 'fill-amber-400 text-amber-400' : 'fill-slate-100 text-slate-200'}`} 
+                    />
+                  </button>
+                ))}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-slate-600 font-bold text-[11px]">ความคิดเห็น (ไม่บังคับ)</label>
+                <textarea
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  placeholder="ความประทับใจ หรือข้อเสนอแนะ..."
+                  rows={3}
+                  className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400/20 focus:border-amber-400 transition-all bg-slate-50 focus:bg-white resize-none text-[13px] font-medium"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2 pt-2">
+                  <button
+                      type="button"
+                      onClick={handleSubmitReview}
+                      className="w-full py-3.5 bg-amber-500 text-white font-black rounded-xl hover:bg-amber-600 transition-colors shadow-md"
+                  >
+                      ส่งความเห็น
+                  </button>
+                  <button
+                      type="button"
+                      onClick={() => setSelectedBookingForReview(null)}
+                      className="w-full py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors"
+                  >
+                      ไว้คราวหน้า
+                  </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
 };

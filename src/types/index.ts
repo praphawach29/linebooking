@@ -15,6 +15,24 @@ export interface Court {
   isActive: boolean;
 }
 
+export type BookingPresetTemplate = 'EXPRESS_QUEUE' | 'SERVICE_AND_STAFF' | 'RESOURCE_AND_SLOT' | 'CUSTOM';
+export type PaymentMode = 'NO_PAYMENT' | 'DEPOSIT_ONLY' | 'FULL_PAYMENT';
+
+export interface BookingFlowConfig {
+  presetTemplate: BookingPresetTemplate;
+  paymentMode: PaymentMode;
+  depositAmount?: number;
+  steps: {
+    requireService: boolean;
+    requireStaff: boolean;
+    requireResource: boolean;
+    requireNotes?: boolean;
+  };
+  autoAssignStaff: boolean;
+  autoAssignResource: boolean;
+  slotIntervalMinutes?: number;
+}
+
 export interface Tenant {
   id: string;
   name: string;
@@ -50,6 +68,8 @@ export interface Tenant {
     enableStaffSelection?: boolean;
     enableCourtSelection?: boolean;
     resourceTerm?: string;
+    googleMapUrl?: string;
+    bookingFlowConfig?: BookingFlowConfig;
   };
   createdAt: string;
 }
@@ -193,7 +213,7 @@ export interface Booking {
   finalPrice: number;
   depositAmount: number;
   paymentStatus: PaymentStatus;
-  paymentMethod: PaymentMethod;
+  paymentMethod?: PaymentMethod;
   paymentId?: string;
   source: BookingSource;
   notes?: string;
@@ -306,4 +326,76 @@ export interface RewardRedemption {
   status: RewardRedemptionStatus;
   redeemedAt: string;
   usedAt?: string;
+}
+
+// -----------------------------------------
+// Platform Billing (ค่าบริการ SaaS ที่ร้านค้าจ่ายให้แพลตฟอร์ม)
+// -----------------------------------------
+
+export type BillingCycle = 'monthly' | 'yearly';
+export type BillingProvider = 'promptpay' | 'omise';
+
+/** ฟิลด์ที่ร้านค้าอ่านได้ (view: platform_billing_public) — ไม่มี secret key */
+export interface PlatformBillingPublic {
+  activeProvider: BillingProvider;
+  promptpayNumber?: string;
+  promptpayName?: string;
+  omiseEnabled: boolean;
+  omisePublicKey?: string;
+  omiseTestMode: boolean;
+  pricePro: { monthly: number; yearly: number };
+  priceEnterprise: { monthly: number; yearly: number };
+  currency: string;
+  autoRenewOnPayment: boolean;
+
+  // การตรวจสอบสลิปโอนเงิน (ช่องทาง PromptPay)
+  slipVerifyProvider: SlipVerifyProvider;
+  slipAutoApprove: boolean;
+  expectedReceiverName?: string;
+  slipTimeWindowHours: number;
+  slipAmountTolerance: number;
+  renewalReminderDays: number[];
+}
+
+export type SlipVerifyProvider = 'manual' | 'slipok' | 'easyslip';
+
+/** ฟิลด์เต็ม — เฉพาะ platform_admin (table: platform_settings) */
+export interface PlatformBillingSettings extends PlatformBillingPublic {
+  omiseSecretKey?: string;
+  slipVerifyApiKey?: string;
+  slipVerifyBranchId?: string;
+  expectedReceiverAccount?: string;
+  updatedAt?: string;
+}
+
+export type SubscriptionInvoiceStatus = 'pending' | 'paid' | 'failed' | 'expired' | 'refunded';
+
+export interface SubscriptionInvoice {
+  id: string;
+  invoiceNo: string;
+  tenantId: string;
+  plan: TenantPlan;
+  billingCycle: BillingCycle;
+  amount: number;
+  currency: string;
+  method: 'promptpay' | 'credit_card';
+  provider: 'manual' | 'promptpay' | 'omise';
+  providerRef?: string;
+  status: SubscriptionInvoiceStatus;
+  qrPayload?: string;
+  periodStart?: string;
+  periodEnd?: string;
+  paidAt?: string;
+  failureReason?: string;
+  createdAt: string;
+}
+
+export interface Review {
+  id: string;
+  tenantId: string;
+  bookingId: string;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+  customerName?: string;
 }

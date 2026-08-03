@@ -22,17 +22,19 @@ export class WebhooksService {
         // Update payment status
         await this.prisma.payment.update({
           where: { id: payment.id },
-          data: { status: 'PAID', paidAt: new Date() },
+          data: { status: 'paid', paidAt: new Date() },
         });
 
-        // Update booking status
-        await this.prisma.booking.update({
-          where: { id: payment.bookingId },
-          data: { 
-            paymentStatus: 'PAID',
-            status: 'CONFIRMED'
-          },
-        });
+        if (payment.bookingId) {
+          // Update booking status
+          await this.prisma.booking.update({
+            where: { id: payment.bookingId },
+            data: { 
+              paymentStatus: 'paid',
+              status: 'confirmed'
+            },
+          });
+        }
 
         this.logger.log(`Payment and Booking confirmed for payment ID: ${payment.id}`);
       }

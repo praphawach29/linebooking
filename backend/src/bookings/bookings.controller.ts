@@ -1,41 +1,107 @@
-import { Controller, Get, Post, Patch, Body, Query, Param, Headers, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Param,
+  ParseUUIDPipe,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
 import { BookingsService } from './bookings.service';
-import { CreateBookingDto } from './dto/create-booking.dto';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard'; // I'll need to create this
+import {
+  AvailabilityService,
+  AvailabilityResult,
+} from './availability.service';
+import {
+  BookingResponseDto,
+  CreateCustomerBookingDto,
+  CreateMerchantBookingDto,
+  GetAvailableSlotsQueryDto,
+} from './dto';
+import { CustomerTenantGuard } from '../common/guards/customer-tenant.guard';
+import { TenantId } from '../common/decorators/tenant-id.decorator';
+import { CurrentCustomer } from '../common/decorators/current-customer.decorator';
+import { LineIdTokenGuard } from '../common/guards/line-id-token.guard';
+import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard';
+import { TenantAccessGuard } from '../common/guards/tenant-access.guard';
 
 @Controller('bookings')
 export class BookingsController {
-  constructor(private readonly bookingsService: BookingsService) {}
+  constructor(
+    private readonly bookingsService: BookingsService,
+    private readonly availabilityService: AvailabilityService,
+  ) {}
 
+  /**
+   * GET /bookings/available-slots
+   * Public slot availability endpoint for customer LIFF flow.
+   * Uses CustomerTenantGuard to validate x-tenant-id header and @TenantId decorator.
+   * Delegates availability calculation strictly to AvailabilityService with actor: 'customer'.
+   */
   @Get('available-slots')
+  @UseGuards(CustomerTenantGuard)
   async getAvailableSlots(
-    @Headers('x-tenant-id') tenantId: string,
-    @Query('date') date: string,
-    @Query('service_id') serviceId: string,
-    @Query('staff_id') staffId?: string,
-  ) {
-    return this.bookingsService.getAvailableSlots(tenantId, date, serviceId, staffId);
+    @TenantId() tenantId: string,
+    @Query() query: GetAvailableSlotsQueryDto,
+  ): Promise<AvailabilityResult> {
+    return this.availabilityService.calculateAvailability(
+      tenantId,
+      query.bookingDate,
+      query.serviceId,
+      query.staffId,
+      { actor: 'customer' },
+    );
   }
 
-  @UseGuards(JwtAuthGuard)
   @Post()
-  async createBooking(
-    @Headers('x-tenant-id') tenantId: string,
-    @Req() req: any,
-    @Body() createBookingDto: CreateBookingDto,
-  ) {
-    const userId = req.user.id;
-    return this.bookingsService.createBooking(tenantId, userId, createBookingDto);
+  @UseGuards(LineIdTokenGuard)
+  async createCustomerBooking(
+    @TenantId() tenantId: string,
+    @CurrentCustomer() customer: { id: string },
+    @Body() dto: CreateCustomerBookingDto,
+  ): Promise<BookingResponseDto> {
+    return this.bookingsService.createBookingAtomic({
+      actor: 'customer',
+      tenantId,
+      customerUserId: customer.id,
+      serviceId: dto.serviceId,
+      staffId: dto.staffId ?? undefined,
+      bookingDate: dto.bookingDate,
+      startTime: dto.startTime,
+      customerName: dto.customerName,
+      customerPhone: dto.customerPhone,
+      notes: dto.notes,
+    });
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Post('merchant')
+  @UseGuards(SupabaseAuthGuard, TenantAccessGuard)
+  async createMerchantBooking(
+    @TenantId() tenantId: string,
+    @Body() dto: CreateMerchantBookingDto,
+  ): Promise<BookingResponseDto> {
+    return this.bookingsService.createBookingAtomic({
+      actor: 'merchant',
+      tenantId,
+      customerUserId: dto.customerId,
+      serviceId: dto.serviceId,
+      staffId: dto.staffId ?? undefined,
+      bookingDate: dto.bookingDate,
+      startTime: dto.startTime,
+      customerName: dto.customerName,
+      customerPhone: dto.customerPhone,
+      notes: dto.notes,
+    });
+  }
+
   @Patch(':id/cancel')
-  async cancelBooking(
-    @Headers('x-tenant-id') tenantId: string,
-    @Param('id') bookingId: string,
-    @Req() req: any,
+  @UseGuards(SupabaseAuthGuard, TenantAccessGuard)
+  async cancelMerchantBooking(
+    @TenantId() tenantId: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) bookingId: string,
   ) {
-    const userId = req.user.id;
-    return this.bookingsService.cancelBooking(tenantId, userId, bookingId);
+    return this.bookingsService.cancelBookingAsMerchant(tenantId, bookingId);
   }
 }

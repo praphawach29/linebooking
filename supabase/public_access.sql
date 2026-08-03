@@ -1,0 +1,18 @@
+-- ⛔ เลิกใช้แล้ว — ห้ามรันไฟล์นี้อีก (แทนที่ด้วย migrations/0007_rls_hardening.sql)
+--
+-- policy ชุดเดิมด้านล่างเปิดกว้างเกินไป: ใครก็ตามที่มี anon key (ซึ่งฝังอยู่ในไฟล์ JS
+-- ของหน้าเว็บ เปิดดูได้จาก DevTools) สามารถ
+--   - อ่านตาราง tenants ได้ทั้งตาราง → line_channel_secret / access_token ของทุกร้านหลุด
+--   - อ่านตาราง bookings ได้ทั้งตาราง → ชื่อและเบอร์โทรลูกค้าทุกคนหลุด
+--
+-- ของใหม่ให้หน้าลูกค้าอ่านผ่าน view ที่คัดฟิลด์แล้วแทน:
+--   public_tenants     — ข้อมูลร้านเฉพาะที่ลูกค้าต้องเห็น
+--   public_busy_slots  — ช่วงเวลาที่ถูกจองแล้ว (ไม่มีชื่อ/เบอร์)
+--   get_my_bookings()  — คิวของลูกค้าคนนั้นคนเดียว
+--
+-- เก็บไฟล์นี้ไว้เป็นบันทึกประวัติเท่านั้น
+--
+-- CREATE POLICY "public_read_tenants" ON tenants FOR SELECT USING (true);
+-- CREATE POLICY "public_read_services" ON services FOR SELECT USING (true);
+-- CREATE POLICY "public_read_bookings" ON bookings FOR SELECT USING (true);
+-- CREATE POLICY "public_insert_bookings" ON bookings FOR INSERT WITH CHECK (true);

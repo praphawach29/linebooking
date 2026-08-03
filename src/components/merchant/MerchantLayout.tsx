@@ -18,7 +18,8 @@ import {
   X,
   LogOut,
   ShieldAlert,
-  ShieldCheck
+  ShieldCheck,
+  Store
 } from 'lucide-react';
 import { MerchantDashboard } from './MerchantDashboard';
 import { MerchantCalendarView } from './MerchantCalendarView';
@@ -32,6 +33,7 @@ import { MerchantBookingSettings } from './MerchantBookingSettings';
 import { MerchantBookingFlowSettings } from './MerchantBookingFlowSettings';
 import { MerchantOnboardingWizard } from './MerchantOnboardingWizard';
 import { MerchantReviews } from './MerchantReviews';
+import { MerchantShopSettings } from './MerchantShopSettings';
 import { MerchantSubscriptionModal } from './MerchantSubscriptionModal';
 import { getTenantQuotaInfo, FREE_PLAN_MONTHLY_BOOKING_LIMIT } from '../../lib/quota-manager';
 
@@ -95,6 +97,7 @@ export const MerchantLayout: React.FC = () => {
     {
       title: 'จัดการระบบร้านค้า',
       items: [
+        { tab: 'shop_settings', icon: Store, label: 'ตั้งค่าข้อมูลร้านค้า & โลโก้' },
         { tab: 'services', icon: Scissors, label: 'บริการ (Services)' },
         { tab: 'staffs', icon: Users, label: 'ทีมช่าง (Staffs)' },
         { tab: 'booking_flow', icon: Sparkles, label: 'ตั้งค่าขั้นตอนการจอง (Flow)' },
@@ -337,6 +340,7 @@ export const MerchantLayout: React.FC = () => {
         {merchantTab === 'dashboard' && <MerchantDashboard />}
         {merchantTab === 'calendar' && <MerchantCalendarView />}
         {merchantTab === 'walkin' && <MerchantWalkinBookingModal />}
+        {merchantTab === 'shop_settings' && <MerchantShopSettings />}
         {merchantTab === 'services' && <MerchantServiceManager />}
         {merchantTab === 'staffs' && <MerchantStaffManager />}
         {merchantTab === 'booking_flow' && <MerchantBookingFlowSettings />}

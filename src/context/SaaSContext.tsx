@@ -55,6 +55,7 @@ type MerchantTab =
   | 'dashboard'
   | 'calendar'
   | 'walkin'
+  | 'shop_settings'
   | 'services'
   | 'staffs'
   | 'bookings'
@@ -631,7 +632,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setCourts((prev) => prev.filter((c) => c.id !== courtId));
   };
 
-  const updateTenantSettings = (
+  const updateTenantSettings = async (
     newSettings: Partial<Tenant['settings']>,
     tenantInfo?: Partial<Tenant>
   ) => {
@@ -650,9 +651,19 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return t;
       })
     );
+
+    if (activeTenant) {
+      await updateTenant(activeTenant.id, {
+        ...tenantInfo,
+        settings: {
+          ...activeTenant.settings,
+          ...newSettings,
+        },
+      });
+    }
   };
 
-  // อัปเดตข้อมูลร้านค้า (ใช้ทั้งจาก Super Admin และตอนต่ออายุแพ็กเกจ) + persist ลง Supabase
+  // อัปเดตข้อมูลร้านค้า (ใช้ทั้งจาก Super Admin, เมนูตั้งค่าร้านค้า และตอนต่ออายุแพ็กเกจ) + persist ลง Supabase
   const updateTenant = async (tenantId: string, updates: Partial<Tenant>) => {
     setTenants((prev) =>
       prev.map((t) => (t.id === tenantId ? ({ ...t, ...updates } as Tenant) : t))
@@ -663,11 +674,24 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (updates.planExpiresAt !== undefined) row.plan_expires_at = updates.planExpiresAt;
     if (updates.isActive !== undefined) row.is_active = updates.isActive;
     if (updates.name !== undefined) row.name = updates.name;
+    if (updates.slug !== undefined) row.slug = updates.slug;
+    if (updates.description !== undefined) row.description = updates.description;
+    if (updates.logoUrl !== undefined) row.logo_url = updates.logoUrl;
+    if (updates.coverImageUrl !== undefined) row.cover_image_url = updates.coverImageUrl;
+    if (updates.phone !== undefined) row.phone = updates.phone;
+    if (updates.email !== undefined) row.email = updates.email;
+    if (updates.address !== undefined) row.address = updates.address;
+    if (updates.businessType !== undefined) row.business_type = updates.businessType;
+    if (updates.lineChannelId !== undefined) row.line_channel_id = updates.lineChannelId;
+    if (updates.lineChannelSecret !== undefined) row.line_channel_secret = updates.lineChannelSecret;
+    if (updates.lineChannelAccessToken !== undefined) row.line_channel_access_token = updates.lineChannelAccessToken;
+    if (updates.liffId !== undefined) row.liff_id = updates.liffId;
     if (updates.settings !== undefined) row.settings = updates.settings;
+
     if (Object.keys(row).length === 0) return;
 
     const { error } = await supabase.from('tenants').update(row).eq('id', tenantId);
-    if (error) console.error('Error updating tenant:', error.message);
+    if (error) console.error('Error updating tenant in Supabase:', error.message);
   };
 
   const markNotificationAsRead = (notificationId: string) => {

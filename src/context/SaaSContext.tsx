@@ -158,7 +158,48 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [activeTenantId, setActiveTenantId] = useState<string | null>(null);
 
-  const [merchantTab, setMerchantTab] = useState<MerchantTab>('dashboard');
+  // Persistent Merchant Tab (sync with URL query string ?tab=... & localStorage)
+  const [merchantTab, setMerchantTabState] = useState<MerchantTab>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const urlTab = params.get('tab') as MerchantTab;
+      if (urlTab) return urlTab;
+      const saved = localStorage.getItem('merchant_active_tab') as MerchantTab;
+      if (saved) return saved;
+    } catch (e) {
+      // ignore
+    }
+    return 'dashboard';
+  });
+
+  const setMerchantTab = (tab: MerchantTab) => {
+    setMerchantTabState(tab);
+    try {
+      localStorage.setItem('merchant_active_tab', tab);
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tab);
+      window.history.replaceState(null, '', url.toString());
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    const syncTabFromUrl = () => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const urlTab = params.get('tab') as MerchantTab;
+        if (urlTab) {
+          setMerchantTabState(urlTab);
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+    window.addEventListener('popstate', syncTabFromUrl);
+    return () => window.removeEventListener('popstate', syncTabFromUrl);
+  }, []);
+
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   const [services, setServices] = useState<Service[]>([]);

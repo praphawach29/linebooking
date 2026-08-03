@@ -37,9 +37,10 @@ export const Navbar: React.FC = () => {
           </Link>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
+          <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-slate-300">
             <a href="#features" className="hover:text-emerald-400 transition-colors">ฟีเจอร์เด่น</a>
-            <a href="#demo" className="hover:text-emerald-400 transition-colors">ตัวอย่างการทำงาน</a>
+            <a href="#demo" className="hover:text-emerald-400 transition-colors">ฝั่งลูกค้า (LIFF)</a>
+            <a href="#merchant-demo" className="hover:text-emerald-400 transition-colors">ฝั่งร้านค้า (Merchant)</a>
             <a href="#how-it-works" className="hover:text-emerald-400 transition-colors">ขั้นตอนใช้งาน</a>
             <a href="#pricing" className="hover:text-emerald-400 transition-colors">แพ็กเกจราคา</a>
           </nav>
@@ -76,7 +77,8 @@ export const Navbar: React.FC = () => {
           <div className="md:hidden mt-4 p-5 bg-slate-900/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl space-y-4 animate-in fade-in slide-in-from-top-4">
             <nav className="flex flex-col gap-3 text-sm font-medium text-slate-300">
               <a href="#features" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-emerald-400 py-1">ฟีเจอร์เด่น</a>
-              <a href="#demo" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-emerald-400 py-1">ตัวอย่างการทำงาน</a>
+              <a href="#demo" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-emerald-400 py-1">ฝั่งลูกค้า (LIFF)</a>
+              <a href="#merchant-demo" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-emerald-400 py-1">ฝั่งร้านค้า (Merchant)</a>
               <a href="#how-it-works" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-emerald-400 py-1">ขั้นตอนใช้งาน</a>
               <a href="#pricing" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-emerald-400 py-1">แพ็กเกจราคา</a>
             </nav>

@@ -189,7 +189,7 @@ export const LiffDemoSection: React.FC = () => {
         </div>
 
         {/* Scenario Switcher Tabs */}
-        <div className="flex gap-2 justify-center mb-10 flex-wrap">
+        <div className="flex gap-2 justify-[flex-start] sm:justify-center mb-10 overflow-x-auto pb-2 max-w-full no-scrollbar">
           {scenarios.map((s) => (
             <button
               key={s.id}
@@ -198,7 +198,7 @@ export const LiffDemoSection: React.FC = () => {
                 setStep(1);
                 setSelectedSlot(null);
               }}
-              className={`px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold transition-all duration-300 ${
+              className={`px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold transition-all duration-300 whitespace-nowrap shrink-0 ${
                 activeScenarioId === s.id
                   ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25 scale-105'
                   : 'bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10'

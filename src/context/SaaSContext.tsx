@@ -185,13 +185,25 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const { data: sessionData } = await supabase.auth.getSession();
         const isAuthenticated = !!sessionData.session;
 
-        // users อ่านได้เฉพาะแถวของตัวเอง (RLS) — ผู้เยี่ยมชมจะได้ค่าว่าง
-        const { data: users } = await supabase.from('users').select('*').limit(1);
+        let currentUserObj: User | null = null;
         let userTenantId: string | null = null;
-        if (users && users.length > 0) {
-          setCurrentUser(users[0] as unknown as User);
-          userTenantId = (users[0] as any).tenant_id || null;
+        let isPlatformAdmin = false;
+
+        if (sessionData.session?.user) {
+          const authId = sessionData.session.user.id;
+          const { data: userRows } = await supabase
+            .from('users')
+            .select('*')
+            .or(`id.eq.${authId},auth_user_id.eq.${authId}`)
+            .limit(1);
+
+          if (userRows && userRows.length > 0) {
+            currentUserObj = userRows[0] as unknown as User;
+            userTenantId = (userRows[0] as any).tenant_id || null;
+            isPlatformAdmin = currentUserObj.role === 'platform_admin';
+          }
         }
+        setCurrentUser(currentUserObj);
 
         const [
           { data: tenantsData },
@@ -207,8 +219,12 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           { data: rewardsData },
           { data: membershipsData },
         ] = await Promise.all([
-          // Fetch tenant: if logged-in merchant, fetch by their specific tenant_id (bypass RLS owner_user_id issue)
-          isAuthenticated && userTenantId
+          // If platform_admin: fetch ALL real tenants in Supabase!
+          // If logged-in merchant: fetch by their specific tenant_id
+          // If public guest: fetch public_tenants
+          isPlatformAdmin
+            ? supabase.from('tenants').select('*').order('created_at', { ascending: false })
+            : isAuthenticated && userTenantId
             ? supabase.from('tenants').select('*').eq('id', userTenantId)
             : supabase.from(isAuthenticated ? 'tenants' : 'public_tenants').select('*'),
           supabase.from('services').select('*'),
@@ -232,7 +248,10 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (tenantsData) {
           const formatted = camelizeKeys(tenantsData) as Tenant[];
           setTenants(formatted);
-          if (formatted.length > 0) setActiveTenantId(formatted[0].id);
+          if (formatted.length > 0) {
+            const matched = userTenantId ? formatted.find((t) => t.id === userTenantId) : null;
+            setActiveTenantId(matched ? matched.id : formatted[0].id);
+          }
         }
         if (servicesData) setServices(camelizeKeys(servicesData) as Service[]);
         if (addonsData) setServiceAddons(camelizeKeys(addonsData) as ServiceAddon[]);
@@ -284,6 +303,25 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Initial fetch on mount
     fetchData();
 
+    // Subscribe to realtime database changes for tenants & bookings
+    const channel = supabase
+      .channel('saas_global_realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tenants' },
+        () => {
+          fetchData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'bookings' },
+        () => {
+          fetchData();
+        }
+      )
+      .subscribe();
+
     // Re-fetch when user signs in (handles logout → login with different account)
     // Reset state when user signs out
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -294,7 +332,10 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      channel.unsubscribe();
+    };
   }, []);
 
   const activeTenant = useMemo(() => {

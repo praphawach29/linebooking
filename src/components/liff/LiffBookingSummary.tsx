@@ -22,6 +22,8 @@ import {
   Gift,
 } from 'lucide-react';
 
+import { calculateServicePrice } from '../../lib/pricing-calculator';
+
 interface LiffBookingSummaryProps {
   service: Service;
   staff: Staff | null;
@@ -103,7 +105,9 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
   const addonsTotalPrice = selectedAddons.reduce((sum, a) => sum + a.price, 0);
   const addonsExtraDuration = selectedAddons.reduce((sum, a) => sum + (a.extraDurationMinutes || 0), 0);
 
-  const totalPrice = service.price + addonsTotalPrice;
+  const calculated = calculateServicePrice(service, time, date);
+  const baseServicePrice = calculated.finalPrice;
+  const totalPrice = baseServicePrice + addonsTotalPrice;
   const totalDurationMinutes = service.durationMinutes + addonsExtraDuration;
 
   const depositPct = activeTenant.settings.depositPercentage ?? 50;
@@ -519,8 +523,11 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
         {/* Pricing Breakdown */}
         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-2 text-[13px] pt-3 shadow-inner mt-2">
           <div className="flex justify-between text-slate-600 font-bold">
-            <span>บริการหลัก ({service.name})</span>
-            <span>฿{(service?.price ?? 0).toLocaleString()}</span>
+            <span>
+              บริการหลัก ({service.name})
+              {calculated.appliedRule ? ` [${calculated.appliedRule.name}]` : ''}
+            </span>
+            <span>฿{(baseServicePrice ?? 0).toLocaleString()}</span>
           </div>
 
           {selectedAddons.length > 0 && (

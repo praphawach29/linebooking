@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { SkeletonCard } from '../common/SkeletonCard';
 
+import { calculateServicePrice } from '../../lib/pricing-calculator';
+
 interface LiffDateTimePickerProps {
   service: Service;
   staff: Staff | null;
@@ -39,12 +41,16 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
 
   const addonsTotal = selectedAddons.reduce((sum, a) => sum + (a.price || 0), 0);
   const addonsExtraDuration = selectedAddons.reduce((sum, a) => sum + (a.extraDurationMinutes || 0), 0);
-  const totalPrice = (service.price ?? 0) + addonsTotal;
+  
+  const [activeDate, setActiveDate] = useState<string>(initialDate);
+  const [activeTime, setActiveTime] = useState<string>(initialTime);
+
+  const calculated = calculateServicePrice(service, activeTime, activeDate);
+  const currentServicePrice = calculated.finalPrice;
+  const totalPrice = currentServicePrice + addonsTotal;
   const totalDurationMinutes = service.durationMinutes + addonsExtraDuration;
 
   const [viewType, setViewType] = useState<'month' | 'strip'>('strip');
-  const [activeDate, setActiveDate] = useState<string>(initialDate);
-  const [activeTime, setActiveTime] = useState<string>(initialTime);
   const [slots, setSlots] = useState<Awaited<ReturnType<typeof getAvailableSlots>>>([]);
   const [isSlotsLoading, setIsSlotsLoading] = useState(true);
   const [slotsError, setSlotsError] = useState<string | null>(null);

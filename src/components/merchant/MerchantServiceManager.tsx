@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
-import { Service, ServiceAddon } from '../../types';
+import { Service, ServiceAddon, TimePricingRule } from '../../types';
+import { getServicePriceRangeText } from '../../lib/pricing-calculator';
 import {
   Scissors,
   Plus,
@@ -225,9 +226,16 @@ export const MerchantServiceManager: React.FC = () => {
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] text-slate-400">ราคาค่าบริการ</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-slate-400">ราคาค่าบริการ</span>
+                    {svc.timePricingRules && svc.timePricingRules.length > 0 && (
+                      <span className="text-[9px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                        ⏰ ตามช่วงเวลา ({svc.timePricingRules.length} ช่วง)
+                      </span>
+                    )}
+                  </div>
                   <p className="text-base font-black text-slate-900">
-                    ฿{(svc?.price ?? 0).toLocaleString()}
+                    {getServicePriceRangeText(svc)}
                   </p>
                 </div>
 
@@ -613,6 +621,146 @@ export const MerchantServiceManager: React.FC = () => {
                     ))}
                   </div>
                 </div>
+              </div>
+
+              {/* Dynamic Time-Based Pricing Rules Section */}
+              <div className="space-y-3 pt-3 border-t border-slate-100 bg-amber-50/50 p-3 rounded-2xl border border-amber-200/80">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-amber-600" />
+                    <div>
+                      <h4 className="font-extrabold text-xs text-amber-950">กำหนดราคาตามช่วงเวลา (Peak / Off-Peak)</h4>
+                      <p className="text-[10px] text-amber-700">เช่น กลางวัน ฿1,000 / กลางคืน ฿1,500</p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentRules = editingService.timePricingRules || [];
+                      const newRule: TimePricingRule = {
+                        id: `rule-${Date.now()}`,
+                        name: currentRules.length === 0 ? 'ช่วงกลางวัน (Off-Peak)' : 'ช่วงเย็น/กลางคืน (Peak)',
+                        startTime: currentRules.length === 0 ? '08:00' : '17:00',
+                        endTime: currentRules.length === 0 ? '17:00' : '23:00',
+                        price: (editingService.price || 500) + (currentRules.length > 0 ? 200 : 0),
+                      };
+                      setEditingService({
+                        ...editingService,
+                        timePricingRules: [...currentRules, newRule],
+                      });
+                    }}
+                    className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-2.5 py-1 rounded-xl text-[10px] flex items-center gap-1 transition-colors shadow-2xs"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>+ เพิ่มช่วงเวลา</span>
+                  </button>
+                </div>
+
+                {/* Presets Row */}
+                <div className="flex items-center gap-1.5 pt-0.5">
+                  <span className="text-[10px] font-bold text-amber-800">เทมเพลตด่วน:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const baseP = editingService.price || 1000;
+                      setEditingService({
+                        ...editingService,
+                        timePricingRules: [
+                          { id: `r1-${Date.now()}`, name: '☀️ กลางวัน (Off-Peak)', startTime: '08:00', endTime: '17:00', price: baseP },
+                          { id: `r2-${Date.now()}`, name: '🌙 เย็น/กลางคืน (Peak)', startTime: '17:00', endTime: '23:00', price: baseP + 300 },
+                        ],
+                      });
+                    }}
+                    className="text-[10px] font-bold bg-white text-amber-900 border border-amber-300 px-2 py-0.5 rounded-lg hover:bg-amber-100 transition-colors"
+                  >
+                    ☀️ กลางวัน ➔ 🌙 กลางคืน (+฿300)
+                  </button>
+                </div>
+
+                {/* List of active rules */}
+                {editingService.timePricingRules && editingService.timePricingRules.length > 0 ? (
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {editingService.timePricingRules.map((rule, idx) => (
+                      <div
+                        key={rule.id}
+                        className="bg-white p-2.5 rounded-xl border border-amber-200 space-y-2 text-xs"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <input
+                            type="text"
+                            value={rule.name}
+                            onChange={(e) => {
+                              const updated = [...(editingService.timePricingRules || [])];
+                              updated[idx] = { ...updated[idx], name: e.target.value };
+                              setEditingService({ ...editingService, timePricingRules: updated });
+                            }}
+                            placeholder="ชื่อช่วงเวลา เช่น ช่วงเย็น"
+                            className="flex-1 font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = (editingService.timePricingRules || []).filter((_, i) => i !== idx);
+                              setEditingService({ ...editingService, timePricingRules: updated });
+                            }}
+                            className="p-1 text-slate-400 hover:text-red-600 rounded"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2 items-center">
+                          <div>
+                            <span className="text-[10px] text-slate-500 font-bold block">เวลาเริ่ม</span>
+                            <input
+                              type="time"
+                              value={rule.startTime}
+                              onChange={(e) => {
+                                const updated = [...(editingService.timePricingRules || [])];
+                                updated[idx] = { ...updated[idx], startTime: e.target.value };
+                                setEditingService({ ...editingService, timePricingRules: updated });
+                              }}
+                              className="w-full font-mono font-bold text-xs p-1 border border-slate-200 rounded-lg"
+                            />
+                          </div>
+
+                          <div>
+                            <span className="text-[10px] text-slate-500 font-bold block">เวลาสิ้นสุด</span>
+                            <input
+                              type="time"
+                              value={rule.endTime}
+                              onChange={(e) => {
+                                const updated = [...(editingService.timePricingRules || [])];
+                                updated[idx] = { ...updated[idx], endTime: e.target.value };
+                                setEditingService({ ...editingService, timePricingRules: updated });
+                              }}
+                              className="w-full font-mono font-bold text-xs p-1 border border-slate-200 rounded-lg"
+                            />
+                          </div>
+
+                          <div>
+                            <span className="text-[10px] text-slate-500 font-bold block">ราคาช่วงนี้ (฿)</span>
+                            <input
+                              type="number"
+                              value={rule.price}
+                              onChange={(e) => {
+                                const updated = [...(editingService.timePricingRules || [])];
+                                updated[idx] = { ...updated[idx], price: Number(e.target.value) };
+                                setEditingService({ ...editingService, timePricingRules: updated });
+                              }}
+                              className="w-full font-mono font-bold text-xs p-1 border border-amber-300 bg-amber-50 rounded-lg text-amber-900"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-amber-700 italic">
+                    ยังไม่มีการตั้งค่าช่วงเวลา (ระบบจะคิดราคาปกติ ฿{(editingService.price || 0).toLocaleString()} ทุกช่วงเวลา)
+                  </p>
+                )}
               </div>
 
               <div>

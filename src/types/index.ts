@@ -120,6 +120,15 @@ export interface SelectedAddon {
   selectedOption?: string;
 }
 
+export interface TimePricingRule {
+  id: string;
+  name: string; // e.g. "ราคาช่วงกลางวัน", "ราคาช่วงเย็น/กลางคืน"
+  startTime: string; // "08:00"
+  endTime: string; // "17:00"
+  price: number;
+  daysOfWeek?: number[]; // [0,1,2,3,4,5,6] (0=Sun, 1=Mon, ..., 6=Sat). Empty = All days
+}
+
 export interface Service {
   id: string;
   tenantId: string;
@@ -136,6 +145,7 @@ export interface Service {
   isActive: boolean;
   sortOrder: number;
   addons?: ServiceAddon[];
+  timePricingRules?: TimePricingRule[];
 }
 
 export interface Staff {

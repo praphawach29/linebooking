@@ -623,6 +623,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         color_code: serviceData.colorCode,
         category: serviceData.category,
         image_url: serviceData.imageUrl || null,
+        time_pricing_rules: serviceData.timePricingRules || [],
       };
       const { error } = await supabase.from('services').update(row).eq('id', serviceData.id);
       if (error) console.error('Error updating service in Supabase:', error.message);
@@ -643,6 +644,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         category: serviceData.category || 'ทั่วไป',
         isActive: true,
         sortOrder: services.length + 1,
+        timePricingRules: serviceData.timePricingRules || [],
       };
       setServices((prev) => [...prev, newService]);
       const row: any = {
@@ -660,6 +662,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         category: newService.category,
         is_active: true,
         sort_order: newService.sortOrder,
+        time_pricing_rules: newService.timePricingRules || [],
       };
       const { error } = await supabase.from('services').insert(row);
       if (error) console.error('Error inserting service in Supabase:', error.message);

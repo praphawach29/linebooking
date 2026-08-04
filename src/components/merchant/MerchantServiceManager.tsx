@@ -500,12 +500,12 @@ export const MerchantServiceManager: React.FC = () => {
                     type="number"
                     required
                     min={1}
-                    value={editingService.durationMinutes === 0 || editingService.durationMinutes === undefined ? '' : editingService.durationMinutes}
+                    value={editingService.durationMinutes === undefined || editingService.durationMinutes === null ? '' : editingService.durationMinutes}
                     onChange={(e) => {
                       const val = e.target.value;
                       setEditingService({
                         ...editingService,
-                        durationMinutes: val === '' ? 0 : Number(val),
+                        durationMinutes: val === '' ? (undefined as any) : Number(val),
                       });
                     }}
                     onBlur={() => {
@@ -522,12 +522,12 @@ export const MerchantServiceManager: React.FC = () => {
                   <input
                     type="number"
                     min={0}
-                    value={editingService.bufferMinutes === undefined ? '' : editingService.bufferMinutes}
+                    value={editingService.bufferMinutes === undefined || editingService.bufferMinutes === null ? '' : editingService.bufferMinutes}
                     onChange={(e) => {
                       const val = e.target.value;
                       setEditingService({
                         ...editingService,
-                        bufferMinutes: val === '' ? 0 : Number(val),
+                        bufferMinutes: val === '' ? (undefined as any) : Number(val),
                       });
                     }}
                     className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono font-bold text-slate-900"
@@ -540,12 +540,12 @@ export const MerchantServiceManager: React.FC = () => {
                     type="number"
                     required
                     min={0}
-                    value={editingService.price === 0 || editingService.price === undefined ? '' : editingService.price}
+                    value={editingService.price === undefined || editingService.price === null ? '' : editingService.price}
                     onChange={(e) => {
                       const val = e.target.value;
                       setEditingService({
                         ...editingService,
-                        price: val === '' ? 0 : Number(val),
+                        price: val === '' ? (undefined as any) : Number(val),
                       });
                     }}
                     className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono font-bold text-slate-900"
@@ -878,10 +878,10 @@ export const MerchantServiceManager: React.FC = () => {
                     type="number"
                     required
                     min={0}
-                    value={editingAddon.price === 0 || editingAddon.price === undefined ? '' : editingAddon.price}
+                    value={editingAddon.price === undefined || editingAddon.price === null ? '' : editingAddon.price}
                     onChange={(e) => {
                       const val = e.target.value;
-                      setEditingAddon({ ...editingAddon, price: val === '' ? 0 : Number(val) });
+                      setEditingAddon({ ...editingAddon, price: val === '' ? (undefined as any) : Number(val) });
                     }}
                     className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-mono font-bold text-slate-900"
                   />
@@ -892,10 +892,10 @@ export const MerchantServiceManager: React.FC = () => {
                   <input
                     type="number"
                     min={0}
-                    value={editingAddon.extraDurationMinutes === 0 || editingAddon.extraDurationMinutes === undefined ? '' : editingAddon.extraDurationMinutes}
+                    value={editingAddon.extraDurationMinutes === undefined || editingAddon.extraDurationMinutes === null ? '' : editingAddon.extraDurationMinutes}
                     onChange={(e) => {
                       const val = e.target.value;
-                      setEditingAddon({ ...editingAddon, extraDurationMinutes: val === '' ? 0 : Number(val) });
+                      setEditingAddon({ ...editingAddon, extraDurationMinutes: val === '' ? (undefined as any) : Number(val) });
                     }}
                     placeholder="0 ถ้าไม่เพิ่มเวลา"
                     className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-mono font-bold text-slate-900"

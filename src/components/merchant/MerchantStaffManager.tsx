@@ -44,7 +44,7 @@ const DAYS_OF_WEEK = [
 ];
 
 export const MerchantStaffManager: React.FC = () => {
-  const { activeTenant, staffs, services, saveStaff, deleteStaff, bookings, courts, saveCourt, deleteCourt } = useSaaS();
+  const { activeTenant, staffs, services, saveStaff, deleteStaff, bookings, courts, saveCourt, deleteCourt, setMerchantTab } = useSaaS();
   const [activeTab, setActiveTab] = useState<'courts' | 'staffs'>(
     activeTenant?.businessType === 'sports' ? 'courts' : 'staffs'
   );
@@ -642,19 +642,58 @@ export const MerchantStaffManager: React.FC = () => {
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 mb-1 block">ประเภทกีฬา/บริการ *</label>
-                <select
-                  value={editingCourt.serviceId || ''}
-                  onChange={(e) => setEditingCourt({ ...editingCourt, serviceId: e.target.value })}
-                  className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold text-xs"
-                >
-                  <option value="">-- เลือกบริการประเภทกีฬา --</option>
-                  {services.map((svc) => (
-                    <option key={svc.id} value={svc.id}>
-                      {svc.name} (฿{svc.price}/รอบ)
-                    </option>
-                  ))}
-                </select>
+                <label className="font-bold text-slate-700 mb-1 block flex items-center justify-between">
+                  <span>ประเภทกีฬา/บริการ *</span>
+                  {services.length === 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingCourt(null);
+                        setMerchantTab('services');
+                      }}
+                      className="text-[10px] text-emerald-600 hover:underline font-bold"
+                    >
+                      + ไปที่เมนูสร้างบริการ
+                    </button>
+                  )}
+                </label>
+
+                {services.length > 0 ? (
+                  <select
+                    required
+                    value={
+                      services.find((s) => s.id === editingCourt.serviceId || s.name === editingCourt.serviceId)?.id ||
+                      editingCourt.serviceId ||
+                      services[0]?.id ||
+                      ''
+                    }
+                    onChange={(e) => setEditingCourt({ ...editingCourt, serviceId: e.target.value })}
+                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold text-xs bg-white text-slate-900"
+                  >
+                    <option value="" disabled>-- เลือกบริการประเภทกีฬา --</option>
+                    {services.map((svc) => (
+                      <option key={svc.id} value={svc.id}>
+                        ⚽ {svc.name} (฿{svc.price}/รอบ)
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs space-y-2">
+                    <p className="text-amber-800 font-medium">
+                      ⚠️ ยังไม่มีรายการบริการในระบบ กรุณาสร้างบริการหลัก (เช่น เช่าสนามหญ้าเทียม, คอร์ทแบดมินตัน) ก่อนสร้างสนามย่อย
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingCourt(null);
+                        setMerchantTab('services');
+                      }}
+                      className="w-full py-1.5 bg-amber-600 text-white font-bold rounded-lg hover:bg-amber-700 transition-colors text-xs"
+                    >
+                      👉 กดที่นี่เพื่อสร้างบริการประเภทกีฬาแรก
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">

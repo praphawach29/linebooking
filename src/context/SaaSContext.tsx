@@ -153,6 +153,17 @@ interface SaaSContextType {
   adjustCustomerPoints: (userId: string, pointsDelta: number, reason: string) => void;
 }
 
+const generateUUID = (): string => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
+
 const SaaSContext = createContext<SaaSContextType | undefined>(undefined);
 
 export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -609,63 +620,64 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const saveService = async (serviceData: Partial<Service>) => {
     if (!activeTenant) return;
+    const isUUID = serviceData.id && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(serviceData.id);
+    const isNew = !serviceData.id || !isUUID;
+    const id = isUUID ? serviceData.id! : generateUUID();
 
-    if (serviceData.id) {
-      setServices((prev) =>
-        prev.map((s) => (s.id === serviceData.id ? ({ ...s, ...serviceData } as Service) : s))
-      );
-      const row: any = {
-        name: serviceData.name,
-        description: serviceData.description,
-        duration_minutes: serviceData.durationMinutes,
-        price: serviceData.price,
-        buffer_minutes: serviceData.bufferMinutes,
-        color_code: serviceData.colorCode,
-        category: serviceData.category,
-        image_url: serviceData.imageUrl || null,
-        time_pricing_rules: serviceData.timePricingRules || [],
-      };
-      const { error } = await supabase.from('services').update(row).eq('id', serviceData.id);
-      if (error) console.error('Error updating service in Supabase:', error.message);
-    } else {
-      const id = `svc-${Date.now()}`;
-      const newService: Service = {
-        id,
-        tenantId: activeTenant.id,
-        name: serviceData.name || 'บริการใหม่',
-        description: serviceData.description || '',
-        durationMinutes: serviceData.durationMinutes || 60,
-        price: serviceData.price || 500,
-        currency: 'THB',
-        maxCapacity: 1,
-        bufferMinutes: serviceData.bufferMinutes || 15,
-        colorCode: serviceData.colorCode || '#3B82F6',
-        imageUrl: serviceData.imageUrl || '',
-        category: serviceData.category || 'ทั่วไป',
-        isActive: true,
-        sortOrder: services.length + 1,
-        timePricingRules: serviceData.timePricingRules || [],
-      };
-      setServices((prev) => [...prev, newService]);
-      const row: any = {
-        id,
-        tenant_id: activeTenant.id,
-        name: newService.name,
-        description: newService.description,
-        duration_minutes: newService.durationMinutes,
-        price: newService.price,
-        currency: 'THB',
-        max_capacity: 1,
-        buffer_minutes: newService.bufferMinutes,
-        color_code: newService.colorCode,
-        image_url: newService.imageUrl || null,
-        category: newService.category,
-        is_active: true,
-        sort_order: newService.sortOrder,
-        time_pricing_rules: newService.timePricingRules || [],
-      };
-      const { error } = await supabase.from('services').insert(row);
-      if (error) console.error('Error inserting service in Supabase:', error.message);
+    const newService: Service = {
+      id,
+      tenantId: activeTenant.id,
+      name: serviceData.name || 'บริการใหม่',
+      description: serviceData.description || '',
+      durationMinutes: serviceData.durationMinutes || 60,
+      price: serviceData.price || 500,
+      currency: 'THB',
+      maxCapacity: 1,
+      bufferMinutes: serviceData.bufferMinutes || 0,
+      colorCode: serviceData.colorCode || '#3B82F6',
+      imageUrl: serviceData.imageUrl || '',
+      category: serviceData.category || 'ทั่วไป',
+      isActive: true,
+      sortOrder: serviceData.sortOrder || services.length + 1,
+      timePricingRules: serviceData.timePricingRules || [],
+    };
+
+    setServices((prev) => {
+      const exists = prev.some((s) => s.id === id || (serviceData.id && s.id === serviceData.id));
+      if (exists) {
+        return prev.map((s) => (s.id === id || (serviceData.id && s.id === serviceData.id) ? newService : s));
+      }
+      return [newService, ...prev];
+    });
+
+    const row: any = {
+      id,
+      tenant_id: activeTenant.id,
+      name: newService.name,
+      description: newService.description,
+      duration_minutes: newService.durationMinutes,
+      price: newService.price,
+      currency: 'THB',
+      max_capacity: 1,
+      buffer_minutes: newService.bufferMinutes,
+      color_code: newService.colorCode,
+      image_url: newService.imageUrl || null,
+      category: newService.category,
+      is_active: true,
+      sort_order: newService.sortOrder,
+    };
+
+    if (newService.timePricingRules) {
+      row.time_pricing_rules = newService.timePricingRules;
+    }
+
+    const { error } = await supabase.from('services').upsert(row);
+    if (error) {
+      console.error('Error saving service to Supabase:', error.message);
+      if (error.message.includes('time_pricing_rules')) {
+        delete row.time_pricing_rules;
+        await supabase.from('services').upsert(row);
+      }
     }
   };
 
@@ -675,87 +687,163 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (error) console.error('Error deleting service in Supabase:', error.message);
   };
 
-  const saveServiceAddon = (addonData: Partial<ServiceAddon>) => {
-    if (addonData.id) {
-      setServiceAddons((prev) =>
-        prev.map((a) => (a.id === addonData.id ? ({ ...a, ...addonData } as ServiceAddon) : a))
-      );
-    } else {
-      const newAddon: ServiceAddon = {
-        id: `addon-${Date.now()}`,
-        tenantId: activeTenant.id,
-        name: addonData.name || 'บริการเสริมใหม่',
-        description: addonData.description || '',
-        price: addonData.price || 100,
-        extraDurationMinutes: addonData.extraDurationMinutes || 0,
-        category: addonData.category || 'ทั่วไป',
-        badge: addonData.badge,
-        icon: addonData.icon,
-        options: addonData.options,
-        isActive: true,
-      };
-      setServiceAddons((prev) => [...prev, newAddon]);
+  const saveServiceAddon = async (addonData: Partial<ServiceAddon>) => {
+    if (!activeTenant) return;
+    const isUUID = addonData.id && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(addonData.id);
+    const isNew = !addonData.id || !isUUID;
+    const id = isUUID ? addonData.id! : generateUUID();
+
+    const newAddon: ServiceAddon = {
+      id,
+      tenantId: activeTenant.id,
+      name: addonData.name || 'บริการเสริมใหม่',
+      description: addonData.description || '',
+      price: addonData.price || 100,
+      extraDurationMinutes: addonData.extraDurationMinutes || 0,
+      category: addonData.category || 'ทั่วไป',
+      badge: addonData.badge || '',
+      imageUrl: addonData.imageUrl || '',
+      icon: addonData.icon || '',
+      options: addonData.options,
+      isActive: true,
+    };
+
+    setServiceAddons((prev) => {
+      const exists = prev.some((a) => a.id === id || (addonData.id && a.id === addonData.id));
+      if (exists) {
+        return prev.map((a) => (a.id === id || (addonData.id && a.id === addonData.id) ? newAddon : a));
+      }
+      return [newAddon, ...prev];
+    });
+
+    const row: any = {
+      id,
+      tenant_id: activeTenant.id,
+      name: newAddon.name,
+      description: newAddon.description,
+      price: newAddon.price,
+      extra_duration_minutes: newAddon.extraDurationMinutes,
+      category: newAddon.category,
+      badge: newAddon.badge,
+      image_url: newAddon.imageUrl || null,
+      icon: newAddon.icon,
+      is_active: newAddon.isActive,
+    };
+
+    const { error } = await supabase.from('service_addons').upsert(row);
+    if (error) {
+      console.error('Error saving service addon to Supabase:', error.message);
+      if (error.message.includes('image_url')) {
+        delete row.image_url;
+        await supabase.from('service_addons').upsert(row);
+      }
     }
   };
 
-  const deleteServiceAddon = (addonId: string) => {
+  const deleteServiceAddon = async (addonId: string) => {
     setServiceAddons((prev) => prev.filter((a) => a.id !== addonId));
+    const { error } = await supabase.from('service_addons').delete().eq('id', addonId);
+    if (error) console.error('Error deleting service addon in Supabase:', error.message);
   };
 
-  const saveStaff = (staffData: Partial<Staff>) => {
-    if (staffData.id) {
-      setStaffs((prev) =>
-        prev.map((st) => (st.id === staffData.id ? ({ ...st, ...staffData } as Staff) : st))
-      );
-    } else {
-      const newStaff: Staff = {
-        id: `staff-${Date.now()}`,
-        tenantId: activeTenant.id,
-        name: staffData.name || 'ช่างใหม่',
-        phone: staffData.phone || '080-000-0000',
-        email: staffData.email || '',
-        avatarUrl:
-          staffData.avatarUrl ||
-          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-        colorCode: staffData.colorCode || '#10B981',
-        bio: staffData.bio || 'ช่างผู้เชี่ยวชาญประจำร้าน',
-        rating: 5.0,
-        reviewsCount: 1,
-        isActive: true,
-        serviceIds: staffData.serviceIds || [],
-      };
-      setStaffs((prev) => [...prev, newStaff]);
-    }
+  const saveStaff = async (staffData: Partial<Staff>) => {
+    if (!activeTenant) return;
+    const isUUID = staffData.id && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(staffData.id);
+    const isNew = !staffData.id || !isUUID;
+    const id = isUUID ? staffData.id! : generateUUID();
+
+    const newStaff: Staff = {
+      id,
+      tenantId: activeTenant.id,
+      name: staffData.name || 'ช่างใหม่',
+      phone: staffData.phone || '',
+      email: staffData.email || '',
+      avatarUrl:
+        staffData.avatarUrl ||
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      colorCode: staffData.colorCode || '#10B981',
+      bio: staffData.bio || 'ช่างผู้เชี่ยวชาญประจำร้าน',
+      rating: staffData.rating || 5.0,
+      reviewsCount: staffData.reviewsCount || 1,
+      isActive: staffData.isActive ?? true,
+      serviceIds: staffData.serviceIds || [],
+      workingDays: staffData.workingDays || [1, 2, 3, 4, 5, 6],
+      workStartTime: staffData.workStartTime || '09:00',
+      workEndTime: staffData.workEndTime || '18:00',
+    };
+
+    setStaffs((prev) => {
+      const exists = prev.some((st) => st.id === id || (staffData.id && st.id === staffData.id));
+      if (exists) {
+        return prev.map((st) => (st.id === id || (staffData.id && st.id === staffData.id) ? newStaff : st));
+      }
+      return [newStaff, ...prev];
+    });
+
+    const row: any = {
+      id,
+      tenant_id: activeTenant.id,
+      name: newStaff.name,
+      phone: newStaff.phone,
+      email: newStaff.email,
+      avatar_url: newStaff.avatarUrl,
+      color_code: newStaff.colorCode,
+      bio: newStaff.bio,
+      rating: newStaff.rating,
+      reviews_count: newStaff.reviewsCount,
+      is_active: newStaff.isActive,
+    };
+
+    const { error } = await supabase.from('staff').upsert(row);
+    if (error) console.error('Error saving staff to Supabase:', error.message);
   };
 
-  const deleteStaff = (staffId: string) => {
+  const deleteStaff = async (staffId: string) => {
     setStaffs((prev) => prev.filter((st) => st.id !== staffId));
+    const { error } = await supabase.from('staff').delete().eq('id', staffId);
+    if (error) console.error('Error deleting staff in Supabase:', error.message);
   };
 
   const saveCourt = async (courtData: Partial<Court>) => {
     if (!activeTenantId) return;
-    const courtId = courtData.id || `court-${Date.now()}`;
-    const isNew = !courtData.id;
+    const isUUID = courtData.id && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(courtData.id);
+    const isNew = !courtData.id || !isUUID;
+    const courtId = isUUID ? courtData.id! : generateUUID();
+
+    const validServiceId =
+      courtData.serviceId &&
+      courtData.serviceId.trim() !== '' &&
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(courtData.serviceId)
+        ? courtData.serviceId
+        : null;
 
     const newCourt: Court = {
       id: courtId,
       tenantId: activeTenantId,
-      serviceId: courtData.serviceId || '',
+      serviceId: validServiceId || '',
       name: courtData.name || 'สนาม A',
       code: courtData.code || `CRT-${Math.floor(10 + Math.random() * 90)}`,
       description: courtData.description || 'สนามคุณภาพมาตรฐาน',
       type: courtData.type || 'indoor',
-      imageUrl: courtData.imageUrl || 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=500&auto=format&fit=crop&q=80',
+      imageUrl:
+        courtData.imageUrl ||
+        'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=500&auto=format&fit=crop&q=80',
       extraPricePerHour: courtData.extraPricePerHour || 0,
       isActive: courtData.isActive ?? true,
     };
 
-    setCourts((prev) => (isNew ? [...prev, newCourt] : prev.map((c) => (c.id === courtId ? newCourt : c))));
+    setCourts((prev) => {
+      const exists = prev.some((c) => c.id === courtId || (courtData.id && c.id === courtData.id));
+      if (exists) {
+        return prev.map((c) => (c.id === courtId || (courtData.id && c.id === courtData.id) ? newCourt : c));
+      }
+      return [newCourt, ...prev];
+    });
 
     const dbRow = {
       id: courtId,
       tenant_id: activeTenantId,
-      service_id: newCourt.serviceId,
+      service_id: validServiceId,
       name: newCourt.name,
       code: newCourt.code,
       description: newCourt.description,

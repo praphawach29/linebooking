@@ -32,7 +32,13 @@ import {
   Reward,
   RewardRedemption,
 } from '../types';
-import { INITIAL_TENANTS } from '../data/mockData';
+import {
+  INITIAL_TENANTS,
+  INITIAL_SERVICES,
+  INITIAL_SERVICE_ADDONS,
+  INITIAL_STAFFS,
+  INITIAL_COURTS,
+} from '../data/mockData';
 
 const toCamelCase = (str: string) => {
   return str.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
@@ -329,12 +335,37 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             ? effectiveTenants.find((t) => t.id === userTenantId)
             : null;
 
-          const active = matchedByPath || matchedByLiffId || matchedByUser || effectiveTenants[0];
+          const matchedByConfiguredLiff = effectiveTenants.find((t) => t.liffId && t.liffId.trim() !== '');
+
+          const matchedByServices = servicesData && servicesData.length > 0
+            ? effectiveTenants.find((t) => (servicesData as any[]).some((s) => s.tenant_id === t.id))
+            : null;
+
+          const active =
+            matchedByPath ||
+            matchedByLiffId ||
+            matchedByUser ||
+            matchedByConfiguredLiff ||
+            matchedByServices ||
+            effectiveTenants.find((t) => t.businessType === 'sports') ||
+            effectiveTenants[0];
+
           setActiveTenantId(active.id);
         }
-        if (servicesData) setServices(camelizeKeys(servicesData) as Service[]);
-        if (addonsData) setServiceAddons(camelizeKeys(addonsData) as ServiceAddon[]);
-        if (staffData) {
+
+        if (servicesData && servicesData.length > 0) {
+          setServices(camelizeKeys(servicesData) as Service[]);
+        } else {
+          setServices(INITIAL_SERVICES);
+        }
+
+        if (addonsData && addonsData.length > 0) {
+          setServiceAddons(camelizeKeys(addonsData) as ServiceAddon[]);
+        } else {
+          setServiceAddons(INITIAL_SERVICE_ADDONS);
+        }
+
+        if (staffData && staffData.length > 0) {
           const formattedStaff = camelizeKeys(staffData) as Staff[];
           if (staffServicesData) {
             const camelStaffServices = camelizeKeys(staffServicesData);
@@ -345,8 +376,15 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             });
           }
           setStaffs(formattedStaff);
+        } else {
+          setStaffs(INITIAL_STAFFS);
         }
-        if (courtsData) setCourts(camelizeKeys(courtsData) as Court[]);
+
+        if (courtsData && courtsData.length > 0) {
+          setCourts(camelizeKeys(courtsData) as Court[]);
+        } else {
+          setCourts(INITIAL_COURTS);
+        }
         if (hoursData) setBusinessHours(camelizeKeys(hoursData) as BusinessHour[]);
         if (bookingsData) setBookings(camelizeKeys(bookingsData) as Booking[]);
         if (policiesData) setCancellationPolicies(camelizeKeys(policiesData) as CancellationPolicy[]);

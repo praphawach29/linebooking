@@ -30,9 +30,15 @@ export const LiffHome: React.FC<LiffHomeProps> = ({ onSelectService }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('ทั้งหมด');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
+  // 1. Filter services belonging to active tenant (or fallback to available services)
+  const activeTenantServices = services.filter(
+    (s) => s.tenantId === activeTenant?.id || !s.tenantId
+  );
+  const displayServices = activeTenantServices.length > 0 ? activeTenantServices : services;
+
   // Extract unique categories dynamically from active tenant services with explicit type guard
   const rawCategories: string[] = Array.from(
-    new Set(services.map((s) => s.category).filter((c): c is string => Boolean(c)))
+    new Set(displayServices.map((s) => s.category).filter((c): c is string => Boolean(c)))
   );
   const categories: string[] = ['ทั้งหมด', ...rawCategories];
 
@@ -48,7 +54,7 @@ export const LiffHome: React.FC<LiffHomeProps> = ({ onSelectService }) => {
   };
 
   // Filtering Logic: Match both selected Category and Search Query
-  const filteredServices = services.filter((s) => {
+  const filteredServices = displayServices.filter((s) => {
     const categoryName = s.category || '';
     const matchesCategory =
       selectedCategory === 'ทั้งหมด' ||

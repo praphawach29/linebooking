@@ -96,9 +96,11 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
       : `${toTimeStr(selectedStartHour)} - ${toTimeStr(selectedEndHour)}`
     : '';
 
-  // Price calculation
+  // Price calculation (including court extra price/discount per hour)
+  const courtExtraPrice = court?.extraPricePerHour || 0;
   const calculated = calculateServicePrice(service, activeTimeDisplay, activeDate);
-  const pricePerHour = calculated.finalPrice || service.price || 1200;
+  const basePricePerHour = (calculated.finalPrice || service.price || 1200) + courtExtraPrice;
+  const pricePerHour = Math.max(0, basePricePerHour);
   const totalServicePrice = pricePerHour * (selectedHours || 1);
   const totalPrice = (selectedHours > 0 ? totalServicePrice : pricePerHour) + addonsTotal;
   const totalDurationMinutes = (service.durationMinutes * (selectedHours || 1)) + addonsExtraDuration;
@@ -319,7 +321,14 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
           <div className="flex-1 min-w-0 pr-2">
             <h2 className="font-black text-[14px] leading-tight truncate">{service.name}</h2>
             <p className="text-[10px] text-slate-300 font-medium mt-0.5 truncate">
-              {terms.selectedResourceLabel}: <span className="font-bold text-white">{staff ? staff.name : terms.autoAssignedText}</span>
+              {terms.selectedResourceLabel}:{' '}
+              <span className="font-bold text-white">
+                {court
+                  ? `${court.name}${court.extraPricePerHour ? ` (${court.extraPricePerHour > 0 ? '+' : ''}${court.extraPricePerHour}฿)` : ''}`
+                  : staff
+                  ? staff.name
+                  : terms.autoAssignedText}
+              </span>
             </p>
           </div>
           <div className="text-right shrink-0">

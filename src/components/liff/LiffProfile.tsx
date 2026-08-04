@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
 import { useLiffProfile } from '../../hooks/useLiffProfile';
 import { Phone, Mail, Award, ShieldCheck, LogOut, ChevronRight, UserCheck, Edit3, Save, Check } from 'lucide-react';
@@ -8,11 +8,31 @@ interface LiffProfileProps {
 }
 
 export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
-  const { currentUser, activeTenant, bookings, fetchMembership } = useSaaS();
+  const { currentUser, activeTenant, bookings, fetchMembership, updateCurrentUserContact } = useSaaS();
   const liffProfile = useLiffProfile(activeTenant?.liffId);
 
-  const [phoneInput, setPhoneInput] = useState<string>(currentUser?.phone || '');
-  const [emailInput, setEmailInput] = useState<string>(currentUser?.email || '');
+  const [phoneInput, setPhoneInput] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('liff_customer_contact');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.phone) return parsed.phone;
+      }
+    } catch (e) {}
+    return currentUser?.phone || '';
+  });
+
+  const [emailInput, setEmailInput] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('liff_customer_contact');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.email) return parsed.email;
+      }
+    } catch (e) {}
+    return currentUser?.email || '';
+  });
+
   const [isEditingContact, setIsEditingContact] = useState<boolean>(false);
   const [saveToast, setSaveToast] = useState<boolean>(false);
 
@@ -32,6 +52,14 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
     : 'Bronze';
 
   const handleSaveContact = () => {
+    try {
+      localStorage.setItem('liff_customer_contact', JSON.stringify({ phone: phoneInput, email: emailInput }));
+    } catch (e) {}
+
+    if (currentUser && updateCurrentUserContact) {
+      updateCurrentUserContact({ phone: phoneInput, email: emailInput });
+    }
+
     setIsEditingContact(false);
     setSaveToast(true);
     setTimeout(() => setSaveToast(false), 3000);

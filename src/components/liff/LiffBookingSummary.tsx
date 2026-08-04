@@ -68,9 +68,18 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
     return 1;
   })();
 
-  // Auto-fill from LINE profile if available
+  // Auto-fill from LINE profile / saved contact if available
   const [customerName, setCustomerName] = useState(currentUser?.displayName || '');
-  const [customerPhone, setCustomerPhone] = useState(currentUser?.phone || '');
+  const [customerPhone, setCustomerPhone] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('liff_customer_contact');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.phone) return parsed.phone;
+      }
+    } catch (e) {}
+    return currentUser?.phone || '';
+  });
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('promptpay');
 

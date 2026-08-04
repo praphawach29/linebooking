@@ -238,6 +238,14 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
   const eveningSlots = slots.filter(s => toHour(s.startTime) >= 17);
   const availableCount = slots.filter(s => s.isAvailable).length;
 
+  const getPeriodRangeText = (periodSlots: typeof slots) => {
+    if (periodSlots.length === 0) return '';
+    const firstStart = periodSlots[0].startTime;
+    const lastSlotHour = toHour(periodSlots[periodSlots.length - 1].startTime);
+    const lastEnd = toTimeStr(lastSlotHour + 1);
+    return `(${firstStart} - ${lastEnd} น.)`;
+  };
+
   const renderSlotButton = (slot: { startTime: string; isAvailable: boolean }) => {
     const hour = toHour(slot.startTime);
     const state = getSlotState(hour, slot.isAvailable);
@@ -549,7 +557,7 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
               <div className="bg-white border border-slate-200/80 rounded-3xl p-4 space-y-3 shadow-sm">
                 <div className="flex items-center gap-1.5 text-amber-600 text-[11px] font-black bg-amber-50 w-fit px-3 py-1 rounded-xl border border-amber-200/60">
                   <Sun className="w-3.5 h-3.5" />
-                  <span>ช่วงเช้า (08:00 - 12:00 น.)</span>
+                  <span>ช่วงเช้า {getPeriodRangeText(morningSlots)}</span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {morningSlots.map((slot) => renderSlotButton(slot))}
@@ -562,7 +570,7 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
               <div className="bg-white border border-slate-200/80 rounded-3xl p-4 space-y-3 shadow-sm">
                 <div className="flex items-center gap-1.5 text-orange-600 text-[11px] font-black bg-orange-50 w-fit px-3 py-1 rounded-xl border border-orange-200/60">
                   <Sunset className="w-3.5 h-3.5" />
-                  <span>ช่วงบ่าย (12:00 - 17:00 น.)</span>
+                  <span>ช่วงบ่าย {getPeriodRangeText(afternoonSlots)}</span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {afternoonSlots.map((slot) => renderSlotButton(slot))}
@@ -575,7 +583,7 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
               <div className="bg-white border border-slate-200/80 rounded-3xl p-4 space-y-3 shadow-sm">
                 <div className="flex items-center gap-1.5 text-indigo-600 text-[11px] font-black bg-indigo-50 w-fit px-3 py-1 rounded-xl border border-indigo-200/60">
                   <Moon className="w-3.5 h-3.5" />
-                  <span>ช่วงเย็น/ค่ำ (17:00 - 23:00 น.)</span>
+                  <span>ช่วงเย็น/ค่ำ {getPeriodRangeText(eveningSlots)}</span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {eveningSlots.map((slot) => renderSlotButton(slot))}

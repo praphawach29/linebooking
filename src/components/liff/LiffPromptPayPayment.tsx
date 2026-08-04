@@ -8,6 +8,7 @@ interface LiffPromptPayPaymentProps {
   staff: Staff | null;
   date: string;
   time: string;
+  bookingHours?: number;
   selectedAddons?: SelectedAddon[];
   customerName?: string;
   customerPhone?: string;
@@ -21,6 +22,7 @@ export const LiffPromptPayPayment: React.FC<LiffPromptPayPaymentProps> = ({
   staff,
   date,
   time,
+  bookingHours: bookingHoursProp,
   selectedAddons = [],
   customerName,
   customerPhone,
@@ -34,8 +36,21 @@ export const LiffPromptPayPayment: React.FC<LiffPromptPayPaymentProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // Derive booking hours
+  const bookingHours = (() => {
+    if (bookingHoursProp && bookingHoursProp > 0) return bookingHoursProp;
+    if (time && time.includes(' - ')) {
+      const parts = time.split(' - ');
+      const startH = parseInt(parts[0].split(':')[0], 10);
+      const endH = parseInt(parts[1].split(':')[0], 10);
+      const diff = endH - startH;
+      return diff > 0 ? diff : 1;
+    }
+    return 1;
+  })();
+
   const addonsTotalPrice = selectedAddons.reduce((sum, a) => sum + a.price, 0);
-  const totalPrice = service.price + addonsTotalPrice;
+  const totalPrice = (service.price * bookingHours) + addonsTotalPrice;
 
   const depositPct = activeTenant.settings.depositPercentage ?? 50;
   const depositAmount = (totalPrice * depositPct) / 100;

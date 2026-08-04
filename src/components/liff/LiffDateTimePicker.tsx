@@ -28,7 +28,7 @@ interface LiffDateTimePickerProps {
   selectedDate: string;
   selectedTime: string;
   selectedAddons?: SelectedAddon[];
-  onSelectSlot: (date: string, time: string) => void;
+  onSelectSlot: (date: string, time: string, hours: number) => void;
 }
 
 export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
@@ -575,13 +575,13 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
         </div>
         <button
           disabled={!activeTime}
-          onClick={() => onSelectSlot(activeDate, activeTime)}
+          onClick={() => onSelectSlot(activeDate, activeTime, bookingHours)}
           className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-6 rounded-2xl text-[14px] shadow-lg shadow-emerald-600/20 flex items-center justify-between group disabled:bg-slate-300 disabled:shadow-none disabled:text-slate-500 transition-all"
         >
-          <span>
+          <span className="truncate">
             {activeTime
-              ? `ยืนยันรอบเวลา ${activeTime} น.`
-              : 'กรุณาเลือกรอบเวลาที่ต้องการ'}
+              ? `ยืนยัน ${activeTime} น.`
+              : 'กรุณาเลือกรอบเวลา'}
           </span>
           <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform ${activeTime ? 'bg-white/20 group-hover:translate-x-1' : 'bg-transparent'}`}>
             <ChevronRight className="w-5 h-5 text-white" />

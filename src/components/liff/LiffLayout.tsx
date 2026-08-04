@@ -41,7 +41,7 @@ export type LiffStep =
   | 'point_history';
 
 export const LiffLayout: React.FC = () => {
-  const { activeTenant: rawActiveTenant, tenants, services, staffs, courts, notifications, reviews, isLoading } = useSaaS();
+  const { activeTenant: rawActiveTenant, tenants, services, staffs, courts, notifications, reviews, isLoading, currentUser } = useSaaS();
   const activeTenant = rawActiveTenant || (tenants && tenants.length > 0 ? tenants[0] : null);
   const [currentStep, setCurrentStep] = useState<LiffStep>('home');
   const [activeTab, setActiveTab] = useState<'home' | 'my_bookings' | 'notifications' | 'profile'>('home');
@@ -53,9 +53,10 @@ export const LiffLayout: React.FC = () => {
     new Date(Date.now() + 86400000).toISOString().split('T')[0]
   );
   const [selectedTime, setSelectedTime] = useState<string>('10:00');
+  const [selectedBookingHours, setSelectedBookingHours] = useState<number>(1);
   const [selectedAddons, setSelectedAddons] = useState<SelectedAddon[]>([]);
-  const [customerName, setCustomerName] = useState<string>('');
-  const [customerPhone, setCustomerPhone] = useState<string>('');
+  const [customerName, setCustomerName] = useState<string>(currentUser?.displayName || '');
+  const [customerPhone, setCustomerPhone] = useState<string>(currentUser?.phone || '');
   const [notes, setNotes] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('promptpay');
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
@@ -141,9 +142,10 @@ export const LiffLayout: React.FC = () => {
     setCurrentStep('date_time_select');
   };
 
-  const handleSelectSlot = (date: string, time: string) => {
+  const handleSelectSlot = (date: string, time: string, hours: number = 1) => {
     setSelectedDate(date);
     setSelectedTime(time);
+    setSelectedBookingHours(hours);
     setCurrentStep('booking_summary');
   };
 
@@ -285,6 +287,7 @@ export const LiffLayout: React.FC = () => {
               staff={selectedStaff}
               date={selectedDate}
               time={selectedTime}
+              bookingHours={selectedBookingHours}
               selectedAddons={selectedAddons}
               onGoToPayment={handleGoToPayment}
             />
@@ -296,6 +299,7 @@ export const LiffLayout: React.FC = () => {
               staff={selectedStaff}
               date={selectedDate}
               time={selectedTime}
+              bookingHours={selectedBookingHours}
               selectedAddons={selectedAddons}
               customerName={customerName}
               customerPhone={customerPhone}

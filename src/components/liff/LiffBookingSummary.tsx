@@ -31,6 +31,7 @@ interface LiffBookingSummaryProps {
   court?: Court | null;
   date: string;
   time: string;
+  bookingHours?: number;
   selectedAddons?: SelectedAddon[];
   onGoToPayment: (data: {
     selectedAddons: SelectedAddon[];
@@ -47,14 +48,29 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
   court,
   date,
   time,
+  bookingHours: bookingHoursProp,
   selectedAddons: initialSelectedAddons = [],
   onGoToPayment,
 }) => {
   const { activeTenant, currentUser, serviceAddons } = useSaaS();
   const terms = getTenantTerminology(activeTenant);
 
+  // Derive booking hours: prefer explicit prop, fall back to parsing time string ("17:00 - 20:00")
+  const bookingHours = (() => {
+    if (bookingHoursProp && bookingHoursProp > 0) return bookingHoursProp;
+    if (time && time.includes(' - ')) {
+      const parts = time.split(' - ');
+      const startH = parseInt(parts[0].split(':')[0], 10);
+      const endH = parseInt(parts[1].split(':')[0], 10);
+      const diff = endH - startH;
+      return diff > 0 ? diff : 1;
+    }
+    return 1;
+  })();
+
+  // Auto-fill from LINE profile if available
   const [customerName, setCustomerName] = useState(currentUser?.displayName || '');
-  const [customerPhone, setCustomerPhone] = useState(currentUser?.phone || '081-234-5678');
+  const [customerPhone, setCustomerPhone] = useState(currentUser?.phone || '');
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('promptpay');
 
@@ -107,11 +123,17 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
   const addonsTotalPrice = selectedAddons.reduce((sum, a) => sum + a.price, 0);
   const addonsExtraDuration = selectedAddons.reduce((sum, a) => sum + (a.extraDurationMinutes || 0), 0);
 
-  const calculated = calculateServicePrice(service, time, date);
+  // Use startTime only for pricing rule lookup
+  const startTimeForPricing = time.includes(' - ') ? time.split(' - ')[0].trim() : time;
+  const calculated = calculateServicePrice(service, startTimeForPricing, date);
   const courtExtra = court?.extraPricePerHour || 0;
-  const baseServicePrice = calculated.finalPrice;
-  const totalPrice = Math.max(0, baseServicePrice + addonsTotalPrice + courtExtra);
-  const totalDurationMinutes = service.durationMinutes + addonsExtraDuration;
+  // baseServicePrice = pricePerHour * bookingHours
+  const pricePerHour = calculated.finalPrice || service.price || 0;
+  const baseServicePrice = pricePerHour * bookingHours;
+  const totalPrice = Math.max(0, baseServicePrice + addonsTotalPrice + (courtExtra * bookingHours));
+  // Duration = service base duration per hour * hours + addon extra
+  const baseDurationPerHour = service.durationMinutes || 60;
+  const totalDurationMinutes = (baseDurationPerHour * bookingHours) + addonsExtraDuration;
 
   const depositPct = activeTenant.settings.depositPercentage ?? 50;
   const depositAmount = (totalPrice * depositPct) / 100;
@@ -143,18 +165,12 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
 
   const handleSubmit = () => {
     if (!customerName?.trim() || !customerPhone?.trim()) {
-      const errorMsg = 'กรุณากรอกชื่อ-นามสกุล และเบอร์โทรศัพท์ติดต่อให้ครบถ้วน';
-      setValidationError(errorMsg);
+      setValidationError('กรุณากรอกชื่อ-นามสกุล และเบอร์โทรศัพท์ติดต่อให้ครบถ้วน');
       setShowSummaryModal(false);
-      // Fallback alert just in case
-      window.alert(errorMsg);
-      // Scroll to top so the user sees the inputs
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-
     setValidationError('');
-
     onGoToPayment({
       selectedAddons,
       customerName,
@@ -185,9 +201,9 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
           </div>
           <div className="text-right flex-shrink-0">
             <span className="text-xl font-black text-primary block">
-              <span className="text-sm text-primary/70 mr-0.5">฿</span>{(service?.price ?? 0).toLocaleString()}
+              <span className="text-sm text-primary/70 mr-0.5">฿</span>{totalPrice.toLocaleString()}
             </span>
-            <span className="text-[11px] text-slate-400 font-bold">ราคาบริการหลัก</span>
+            <span className="text-[11px] text-slate-400 font-bold">ราคารวมสุทธิ</span>
           </div>
         </div>
 
@@ -208,11 +224,11 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
             </div>
             <div>
               <span className="text-[11px] text-slate-500 font-bold block mb-0.5">เวลารอบ & ระยะเวลา</span>
-              <span className="font-black text-foreground block">
+              <span className="font-black text-foreground block text-[12px]">
                 {time} น.
               </span>
               <span className="text-[10px] font-bold text-primary block mt-0.5">
-                ({totalDurationMinutes} นาที
+                ({bookingHours} ชม. = {totalDurationMinutes} นาที
                 {addonsExtraDuration > 0 && ` +${addonsExtraDuration}น.`})
               </span>
             </div>
@@ -382,10 +398,30 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
 
         {/* Customer Information Inputs */}
       <div className="premium-card p-5 space-y-4">
-        <h3 className="text-[13px] font-black text-foreground flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-primary" />
-          ข้อมูลผู้รับบริการ
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-[13px] font-black text-foreground flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-primary" />
+            ข้อมูลผู้รับบริการ
+          </h3>
+          {currentUser?.displayName && (
+            <span className="text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+              โปรไฟล์ LINE
+            </span>
+          )}
+        </div>
+
+        {validationError && (
+          <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-2xl p-3.5">
+            <div className="w-8 h-8 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+              <span className="text-red-600 font-black text-sm">!</span>
+            </div>
+            <div>
+              <p className="text-red-700 font-black text-[12px]">ข้อมูลไม่ครบถ้วน</p>
+              <p className="text-red-600 text-[11px] font-medium mt-0.5">{validationError}</p>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-3.5 text-[13px]">
           <div>
@@ -394,14 +430,9 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
               type="text"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              className={`w-full px-4 py-3 bg-slate-50 border ${validationError && !customerName?.trim() ? 'border-red-500 ring-2 ring-red-500/20' : 'border-slate-200'} rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all font-medium text-foreground shadow-inner`}
+              placeholder="กรอกชื่อ-นามสกุล ผู้จอง"
+              className={`w-full px-4 py-3 bg-slate-50 border ${validationError && !customerName?.trim() ? 'border-red-400 ring-2 ring-red-400/20' : 'border-slate-200'} rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all font-medium text-foreground shadow-inner`}
             />
-            {validationError && !customerName?.trim() && (
-              <p className="text-red-500 text-[11px] font-bold mt-1.5 flex items-center gap-1">
-                <span className="w-3.5 h-3.5 rounded-full bg-red-100 flex items-center justify-center text-red-600 text-[10px]">!</span>
-                กรุณากรอกชื่อ-นามสกุล
-              </p>
-            )}
           </div>
 
           <div>
@@ -410,14 +441,9 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
               type="tel"
               value={customerPhone}
               onChange={(e) => setCustomerPhone(e.target.value)}
-              className={`w-full px-4 py-3 bg-slate-50 border ${validationError && !customerPhone?.trim() ? 'border-red-500 ring-2 ring-red-500/20' : 'border-slate-200'} rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all font-mono font-bold text-foreground shadow-inner`}
+              placeholder="0xx-xxx-xxxx"
+              className={`w-full px-4 py-3 bg-slate-50 border ${validationError && !customerPhone?.trim() ? 'border-red-400 ring-2 ring-red-400/20' : 'border-slate-200'} rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all font-mono font-bold text-foreground shadow-inner`}
             />
-            {validationError && !customerPhone?.trim() && (
-              <p className="text-red-500 text-[11px] font-bold mt-1.5 flex items-center gap-1">
-                <span className="w-3.5 h-3.5 rounded-full bg-red-100 flex items-center justify-center text-red-600 text-[10px]">!</span>
-                กรุณากรอกเบอร์โทรศัพท์ติดต่อ
-              </p>
-            )}
           </div>
 
           <div>

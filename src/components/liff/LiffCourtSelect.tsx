@@ -157,9 +157,15 @@ export const LiffCourtSelect: React.FC<LiffCourtSelectProps> = ({
                     รหัสสนาม: {court.code}
                   </span>
                   {court.extraPricePerHour ? (
-                    <span className="text-amber-700 font-bold">
-                      +฿{court.extraPricePerHour} /ชม. (VIP)
-                    </span>
+                    court.extraPricePerHour > 0 ? (
+                      <span className="text-amber-700 font-bold">
+                        +฿{court.extraPricePerHour} /ชม. (VIP)
+                      </span>
+                    ) : (
+                      <span className="text-emerald-700 font-bold">
+                        -฿{Math.abs(court.extraPricePerHour)} /ชม. (ส่วนลดสนาม)
+                      </span>
+                    )
                   ) : (
                     <span className="text-slate-400 font-medium">ราคาปกติ</span>
                   )}

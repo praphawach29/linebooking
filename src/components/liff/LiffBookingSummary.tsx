@@ -106,8 +106,9 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
   const addonsExtraDuration = selectedAddons.reduce((sum, a) => sum + (a.extraDurationMinutes || 0), 0);
 
   const calculated = calculateServicePrice(service, time, date);
+  const courtExtra = court?.extraPricePerHour || 0;
   const baseServicePrice = calculated.finalPrice;
-  const totalPrice = baseServicePrice + addonsTotalPrice;
+  const totalPrice = Math.max(0, baseServicePrice + addonsTotalPrice + courtExtra);
   const totalDurationMinutes = service.durationMinutes + addonsExtraDuration;
 
   const depositPct = activeTenant.settings.depositPercentage ?? 50;

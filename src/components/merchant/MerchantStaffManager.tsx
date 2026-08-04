@@ -250,11 +250,21 @@ export const MerchantStaffManager: React.FC = () => {
                         </span>
                       </div>
 
-                      {(court.extraPricePerHour || 0) > 0 && (
-                        <div className="flex items-center justify-between text-[11px] bg-amber-50 p-2 rounded-xl border border-amber-200">
-                          <span className="font-bold text-amber-900">ค่าสนาม VIP บวกเพิ่ม:</span>
-                          <span className="font-extrabold text-amber-800">
-                            +฿{court.extraPricePerHour}/ชม.
+                      {(court.extraPricePerHour || 0) !== 0 && (
+                        <div
+                          className={`flex items-center justify-between text-[11px] p-2 rounded-xl border ${
+                            (court.extraPricePerHour || 0) > 0
+                              ? 'bg-amber-50 text-amber-900 border-amber-200'
+                              : 'bg-emerald-50 text-emerald-900 border-emerald-200'
+                          }`}
+                        >
+                          <span className="font-bold">
+                            {(court.extraPricePerHour || 0) > 0 ? 'ค่าสนาม VIP บวกเพิ่ม:' : 'ส่วนลดสนามนี้:'}
+                          </span>
+                          <span className="font-extrabold">
+                            {(court.extraPricePerHour || 0) > 0
+                              ? `+฿${court.extraPricePerHour}/ชม.`
+                              : `-฿${Math.abs(court.extraPricePerHour || 0)}/ชม.`}
                           </span>
                         </div>
                       )}
@@ -764,17 +774,26 @@ export const MerchantStaffManager: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 mb-1 block">ค่าสนามบวกเพิ่ม (฿/ชม.)</label>
+                  <label className="font-bold text-slate-700 mb-1 block">ส่วนต่างราคาบวก/ลบ (฿/ชม.)</label>
                   <input
                     type="number"
-                    min={0}
-                    value={editingCourt.extraPricePerHour || 0}
-                    onChange={(e) =>
-                      setEditingCourt({ ...editingCourt, extraPricePerHour: Number(e.target.value) })
+                    value={
+                      editingCourt.extraPricePerHour !== undefined && editingCourt.extraPricePerHour !== null
+                        ? editingCourt.extraPricePerHour
+                        : ''
                     }
-                    placeholder="0"
+                    onChange={(e) =>
+                      setEditingCourt({
+                        ...editingCourt,
+                        extraPricePerHour: e.target.value === '' ? ('' as any) : Number(e.target.value),
+                      })
+                    }
+                    placeholder="เช่น 200 หรือ -200"
                     className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono font-bold text-xs"
                   />
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    💡 ใส่ <span className="text-amber-600 font-bold">200</span> เพื่อเพิ่มราคา (VIP) หรือใส่ <span className="text-emerald-600 font-bold">-200</span> เพื่อลดราคา (เช่น จาก 1,200 เหลือ 1,000 บาท)
+                  </p>
                 </div>
               </div>
 

@@ -290,14 +290,13 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             ? supabase.from('tenants').select('*').order('created_at', { ascending: false })
             : isAuthenticated && userTenantId
             ? supabase.from('tenants').select('*').eq('id', userTenantId)
-            : supabase.from(isAuthenticated ? 'tenants' : 'public_tenants').select('*'),
+            : supabase.from('tenants').select('*'),
           supabase.from('services').select('*'),
           supabase.from('service_addons').select('*'),
           supabase.from('staff').select('*'),
           supabase.from('staff_services').select('*'),
           supabase.from('courts').select('*'),
           supabase.from('business_hours').select('*'),
-          // ผู้เยี่ยมชมเห็นแค่ "ช่วงเวลาที่ไม่ว่าง" ไม่เห็นชื่อ/เบอร์ของใคร
           isAuthenticated
             ? supabase.from('bookings').select('*').order('created_at', { ascending: false })
             : supabase.from('public_busy_slots').select('*'),
@@ -337,17 +336,16 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
           const matchedByConfiguredLiff = effectiveTenants.find((t) => t.liffId && t.liffId.trim() !== '');
 
-          const matchedByServices = servicesData && servicesData.length > 0
-            ? effectiveTenants.find((t) => (servicesData as any[]).some((s) => s.tenant_id === t.id))
-            : null;
+          const matchedByJackSports = effectiveTenants.find(
+            (t) => t.name === 'JackSports' || t.slug === 'shop-praphawach2022' || t.businessType === 'sports'
+          );
 
           const active =
             matchedByPath ||
             matchedByLiffId ||
             matchedByUser ||
             matchedByConfiguredLiff ||
-            matchedByServices ||
-            effectiveTenants.find((t) => t.businessType === 'sports') ||
+            matchedByJackSports ||
             effectiveTenants[0];
 
           setActiveTenantId(active.id);

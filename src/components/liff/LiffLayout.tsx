@@ -176,18 +176,10 @@ export const LiffLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] bg-transparent py-4 sm:py-8 px-2 sm:px-4 flex justify-center items-start">
+    <div className="w-full min-h-screen bg-slate-100 flex justify-center items-start font-prompt">
       
-      {/* Smartphone Viewport Simulation Frame */}
-      <div className="w-full max-w-[400px] bg-slate-50 text-slate-900 rounded-[44px] shadow-2xl overflow-hidden border-[10px] border-slate-900 min-h-[820px] max-h-[850px] flex flex-col relative font-sans ring-4 ring-white/10 transform-gpu">
-        
-        {/* Phone Speaker Notch */}
-        <div className="bg-slate-900 h-7 w-full flex justify-center items-center relative z-40">
-          <div className="w-28 h-5 bg-slate-900 rounded-b-2xl flex items-center justify-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-slate-800 border-2 border-slate-700 shadow-inner"></div>
-            <div className="w-12 h-1.5 bg-slate-800 rounded-full"></div>
-          </div>
-        </div>
+      {/* Responsive Mobile Web Container */}
+      <div className="w-full max-w-md bg-slate-50 text-slate-900 min-h-screen flex flex-col relative shadow-xl overflow-hidden">
 
         {/* LIFF Header */}
         <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white px-5 py-4 flex items-center justify-between sticky top-0 z-30 shadow-md">

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Service, Staff, SelectedAddon } from '../../types';
 import { useSaaS } from '../../context/SaaSContext';
+import { getTenantTerminology } from '../../lib/tenant-terminology';
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -37,7 +38,8 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
   selectedAddons = [],
   onSelectSlot,
 }) => {
-  const { getAvailableSlots } = useSaaS();
+  const { getAvailableSlots, activeTenant } = useSaaS();
+  const terms = getTenantTerminology(activeTenant);
 
   const [bookingHours, setBookingHours] = useState<number>(1);
   const addonsTotal = selectedAddons.reduce((sum, a) => sum + (a.price || 0), 0);
@@ -257,7 +259,7 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
               {service.name}
             </h2>
             <p className="text-[11px] text-slate-300 font-medium mt-1">
-              ผู้ให้บริการ: <span className="font-bold text-white">{staff ? staff.name : 'จัดสรรให้อัตโนมัติ'}</span>
+              {terms.selectedResourceLabel}: <span className="font-bold text-white">{staff ? staff.name : terms.autoAssignedText}</span>
             </p>
           </div>
           <div className="text-right">
@@ -271,12 +273,12 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
         </div>
       </div>
 
-      {/* Duration Selector Bar for Sports Courts (1, 2, 3, 4 Hours) */}
+      {/* Duration Selector Bar */}
       <div className="bg-white border border-slate-200/80 p-4 rounded-3xl shadow-sm space-y-2.5">
         <div className="flex items-center justify-between">
           <span className="text-[13px] font-black text-slate-900 flex items-center gap-1.5">
             <Clock className="w-4 h-4 text-emerald-600" />
-            เลือกระยะเวลาการเล่น (ชั่วโมง)
+            {terms.durationLabel}
           </span>
           <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-xl border border-emerald-200">
             {bookingHours} ชั่วโมงต่อเนื่อง

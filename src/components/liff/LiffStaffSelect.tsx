@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Service, Staff, SelectedAddon } from '../../types';
 import { useSaaS } from '../../context/SaaSContext';
-import { UserCheck, Star, ChevronRight, Sparkles } from 'lucide-react';
+import { getTenantTerminology } from '../../lib/tenant-terminology';
+import { UserCheck, Star, ChevronRight, Sparkles, MapPin } from 'lucide-react';
 
 interface LiffStaffSelectProps {
   service: Service;
@@ -14,7 +15,8 @@ export const LiffStaffSelect: React.FC<LiffStaffSelectProps> = ({
   selectedAddons = [],
   onSelectStaff,
 }) => {
-  const { staffs } = useSaaS();
+  const { staffs, activeTenant } = useSaaS();
+  const terms = getTenantTerminology(activeTenant);
   const qualifiedStaffs = staffs.filter((s) => s.serviceIds.includes(service.id));
   const [selectedStaffId, setSelectedStaffId] = useState<string | 'any'>('any');
 
@@ -31,128 +33,138 @@ export const LiffStaffSelect: React.FC<LiffStaffSelectProps> = ({
   };
 
   return (
-    <div className="p-4 space-y-5 pb-[240px]">
-      <div className="bg-primary/5 border border-primary/20 p-4 rounded-3xl flex items-center justify-between shadow-sm">
+    <div className="p-4 space-y-4 pb-28 font-prompt">
+      {/* Selected Service Card */}
+      <div className="bg-white border border-slate-200/80 p-4 rounded-3xl flex items-center justify-between shadow-sm">
         <div>
-          <span className="text-[10px] text-primary/80 font-black uppercase tracking-wider block mb-1">
+          <span className="text-[10px] text-emerald-600 font-extrabold uppercase tracking-wider block mb-1">
             บริการที่เลือก
           </span>
-          <p className="text-[13px] font-black text-foreground line-clamp-1">{service.name}</p>
+          <p className="text-[14px] font-black text-slate-900 line-clamp-1">{service.name}</p>
           {selectedAddons.length > 0 && (
             <span className="text-[11px] text-slate-500 font-medium block mt-1">
               รวมบริการเสริม ({selectedAddons.length} รายการ)
             </span>
           )}
         </div>
-        <span className="text-lg font-black text-primary">
+        <span className="text-lg font-black text-emerald-600">
           <span className="text-xs mr-0.5">฿</span>{totalPrice.toLocaleString()}
         </span>
       </div>
 
-      <div className="space-y-1">
-        <h2 className="text-[15px] font-black text-foreground flex items-center gap-2">
-          <UserCheck className="w-5 h-5 text-primary" />
-          เลือกผู้ให้บริการ (ช่าง)
+      {/* Header Section */}
+      <div className="space-y-1 pt-1">
+        <h2 className="text-[15px] font-black text-slate-900 flex items-center gap-2">
+          {activeTenant?.businessType === 'sports' ? (
+            <MapPin className="w-5 h-5 text-emerald-600" />
+          ) : (
+            <UserCheck className="w-5 h-5 text-emerald-600" />
+          )}
+          <span>{terms.resourceSelectTitle}</span>
         </h2>
-        <p className="text-[11px] text-slate-500 font-medium">
-          คุณสามารถเลือกช่างคนโปรด หรือเลือกช่างคนใดก็ได้ที่มีคิวว่าง
+        <p className="text-[11.5px] text-slate-500 font-medium leading-relaxed">
+          {terms.resourceSelectDesc}
         </p>
       </div>
 
-      {/* Option: Any Available Staff */}
+      {/* Option: Any Available Court / Staff */}
       <div
         onClick={() => setSelectedStaffId('any')}
-        className={`p-4 rounded-3xl border transition-all duration-300 cursor-pointer flex items-center gap-4 ${
+        className={`p-4 rounded-3xl border transition-all duration-200 cursor-pointer flex items-center gap-3.5 ${
           selectedStaffId === 'any'
-            ? 'bg-primary/5 border-primary shadow-[0_4px_12px_rgba(79,70,229,0.1)] ring-2 ring-primary/20 scale-[1.02]'
-            : 'bg-white border-border hover:border-slate-300 shadow-sm'
+            ? 'bg-emerald-50/80 border-emerald-500 shadow-md shadow-emerald-500/10 ring-2 ring-emerald-500/20 scale-[1.01]'
+            : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-sm'
         }`}
       >
-        <div className={`w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
-           selectedStaffId === 'any' ? 'bg-primary/20 border-2 border-primary/30 text-primary' : 'bg-slate-100 border-2 border-slate-200 text-slate-400'
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-colors ${
+          selectedStaffId === 'any' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-slate-100 text-slate-400'
         }`}>
-          <Sparkles className="w-7 h-7" />
+          <Sparkles className="w-6 h-6" />
         </div>
-        <div className="flex-1">
-          <h3 className="text-[13px] font-black text-foreground">ช่างคนใดก็ได้ (แนะนำ)</h3>
-          <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-            ระบบจะจัดคิวช่างที่มีความเชี่ยวชาญและว่างตรงเวลานั้นให้อัตโนมัติ
+        <div className="flex-1 min-w-0">
+          <h3 className="text-[13.5px] font-black text-slate-900">{terms.autoAssignTitle}</h3>
+          <p className="text-[11px] text-slate-500 font-medium mt-0.5 leading-snug">
+            {terms.autoAssignDesc}
           </p>
         </div>
-        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-          selectedStaffId === 'any' ? 'border-primary' : 'border-slate-300'
+        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
+          selectedStaffId === 'any' ? 'border-emerald-600' : 'border-slate-300'
         }`}>
-            {selectedStaffId === 'any' && <div className="w-2.5 h-2.5 bg-primary rounded-full"></div>}
+          {selectedStaffId === 'any' && <div className="w-2.5 h-2.5 bg-emerald-600 rounded-full"></div>}
         </div>
       </div>
 
-      {/* Specific Staff Members List */}
-      <div className="space-y-3">
+      {/* Specific Resources / Staff / Courts List */}
+      <div className="space-y-2.5">
         {qualifiedStaffs.map((staff) => {
           const isSelected = selectedStaffId === staff.id;
           return (
             <div
               key={staff.id}
               onClick={() => setSelectedStaffId(staff.id)}
-              className={`p-4 rounded-3xl border transition-all duration-300 cursor-pointer flex items-center gap-4 ${
+              className={`p-4 rounded-3xl border transition-all duration-200 cursor-pointer flex items-center gap-3.5 ${
                 isSelected
-                  ? 'bg-primary/5 border-primary shadow-[0_4px_12px_rgba(79,70,229,0.1)] ring-2 ring-primary/20 scale-[1.02]'
-                  : 'bg-white border-border hover:border-slate-300 shadow-sm'
+                  ? 'bg-emerald-50/80 border-emerald-500 shadow-md shadow-emerald-500/10 ring-2 ring-emerald-500/20 scale-[1.01]'
+                  : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-sm'
               }`}
             >
               <img
-                src={staff.avatarUrl}
+                src={staff.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
                 alt={staff.name}
-                className={`w-14 h-14 rounded-full object-cover border-2 flex-shrink-0 transition-colors ${
-                  isSelected ? 'border-primary' : 'border-slate-200'
+                className={`w-12 h-12 rounded-2xl object-cover border-2 flex-shrink-0 transition-colors ${
+                  isSelected ? 'border-emerald-500' : 'border-slate-200'
                 }`}
               />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-1">
-                  <h4 className="text-[13px] font-black text-foreground truncate">
+                <div className="flex items-center justify-between mb-0.5">
+                  <h4 className="text-[13.5px] font-black text-slate-900 truncate">
                     {staff.name}
                   </h4>
-                  <span className="text-[10px] font-black text-amber-700 flex items-center gap-1 bg-amber-100/80 px-2 py-0.5 rounded-lg border border-amber-200">
-                    <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                    {staff.rating} ({staff.reviewsCount})
-                  </span>
+                  {staff.rating > 0 && (
+                    <span className="text-[10px] font-black text-amber-700 flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200/60">
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      {staff.rating}
+                    </span>
+                  )}
                 </div>
                 <p className="text-[11px] text-slate-500 line-clamp-1 font-medium">
-                  {staff.bio}
+                  {staff.bio || `รายละเอียดของ ${staff.name}`}
                 </p>
               </div>
               
               <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
-                isSelected ? 'border-primary' : 'border-slate-300'
+                isSelected ? 'border-emerald-600' : 'border-slate-300'
               }`}>
-                  {isSelected && <div className="w-2.5 h-2.5 bg-primary rounded-full"></div>}
+                {isSelected && <div className="w-2.5 h-2.5 bg-emerald-600 rounded-full"></div>}
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Sticky Bottom Action Bar with Summary */}
-      <div className="fixed bottom-[90px] left-4 right-4 p-4 bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 z-50 max-w-[368px] mx-auto flex flex-col gap-3">
+      {/* Sticky Bottom Action Bar */}
+      <div className="sticky bottom-[60px] left-0 right-0 p-4 bg-white/95 backdrop-blur-md rounded-3xl shadow-[0_-8px_30px_rgba(0,0,0,0.12)] border border-slate-200 z-30 max-w-md mx-auto flex flex-col gap-2.5 my-3">
         <div className="flex items-center justify-between px-1">
           <div>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">ช่างที่เลือก</p>
+            <p className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider mb-0.5">
+              {terms.selectedResourceLabel}
+            </p>
             <p className="text-[14px] font-black text-slate-900 line-clamp-1">
-              {selectedStaffId === 'any' ? 'ช่างคนใดก็ได้' : qualifiedStaffs.find(s => s.id === selectedStaffId)?.name || '-'}
+              {selectedStaffId === 'any' ? terms.autoAssignTitle : qualifiedStaffs.find(s => s.id === selectedStaffId)?.name || '-'}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">รวมทั้งหมด</p>
-            <p className="text-[14px] font-black text-primary">฿{totalPrice.toLocaleString()}</p>
+            <p className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider mb-0.5">รวมทั้งหมด</p>
+            <p className="text-[15px] font-black text-emerald-600">฿{totalPrice.toLocaleString()}</p>
           </div>
         </div>
         <button
           onClick={handleConfirm}
-          className="w-full btn-primary py-3.5 px-6 text-[14px] shadow-premium flex items-center justify-between group rounded-2xl"
+          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-6 rounded-2xl text-[14px] shadow-lg shadow-emerald-600/20 flex items-center justify-between group transition-all"
         >
           <span>ถัดไป: เลือกวันและเวลา</span>
           <div className="w-7 h-7 bg-white/20 rounded-full flex items-center justify-center group-hover:translate-x-1 transition-transform">
-              <ChevronRight className="w-4 h-4 text-white" />
+            <ChevronRight className="w-4 h-4 text-white" />
           </div>
         </button>
       </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Service, Staff, Court, PaymentMethod, SelectedAddon, ServiceAddon } from '../../types';
 import { useSaaS } from '../../context/SaaSContext';
+import { getTenantTerminology } from '../../lib/tenant-terminology';
 import {
   Calendar,
   Clock,
@@ -50,6 +51,7 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
   onGoToPayment,
 }) => {
   const { activeTenant, currentUser, serviceAddons } = useSaaS();
+  const terms = getTenantTerminology(activeTenant);
 
   const [customerName, setCustomerName] = useState(currentUser?.displayName || '');
   const [customerPhone, setCustomerPhone] = useState(currentUser?.phone || '081-234-5678');
@@ -218,38 +220,26 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
         </div>
 
         {court ? (
-          <div className="flex items-center gap-3 bg-primary/5 p-3.5 rounded-2xl border border-primary/20 text-[13px] shadow-sm relative z-10">
-            <div className="bg-primary/10 p-2 rounded-xl text-primary flex-shrink-0">
-                <Trophy className="w-5 h-5" />
+          <div className="flex items-center gap-3 bg-emerald-50/80 p-3.5 rounded-2xl border border-emerald-200 text-[13px] shadow-sm relative z-10">
+            <div className="bg-emerald-600 p-2 rounded-xl text-white flex-shrink-0 shadow-sm">
+              <Trophy className="w-5 h-5" />
             </div>
             <div className="flex-1">
-              <span className="text-[11px] text-primary/80 font-black block">สนาม / คอร์ทการแข่งขัน</span>
-              <span className="font-black text-foreground">
-                {court.name} {court.extraPricePerHour ? <span className="text-primary">(+฿${court.extraPricePerHour})</span> : ''}
-              </span>
-            </div>
-          </div>
-        ) : activeTenant.businessType === 'sports' ? (
-          <div className="flex items-center gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-[13px] relative z-10">
-            <div className="bg-white border border-slate-200 p-2 rounded-xl text-slate-500 flex-shrink-0">
-                <Trophy className="w-5 h-5" />
-            </div>
-            <div className="flex-1">
-              <span className="text-[11px] text-slate-500 font-bold block">สนาม / คอร์ทการแข่งขัน</span>
-              <span className="font-black text-slate-800">
-                สนามใดก็ได้ (ระบบสุ่มคอร์ทว่าง)
+              <span className="text-[11px] text-emerald-800 font-extrabold block">{terms.selectedResourceLabel}</span>
+              <span className="font-black text-slate-900">
+                {court.name} {court.extraPricePerHour ? <span className="text-emerald-600">(+฿{court.extraPricePerHour})</span> : ''}
               </span>
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-[13px] relative z-10">
-            <div className="bg-white border border-slate-200 p-2 rounded-xl text-primary flex-shrink-0">
-                <UserCheck className="w-5 h-5" />
+          <div className="flex items-center gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-[13px] relative z-10">
+            <div className="bg-white border border-slate-200 p-2 rounded-xl text-emerald-600 flex-shrink-0">
+              {activeTenant?.businessType === 'sports' ? <Trophy className="w-5 h-5" /> : <UserCheck className="w-5 h-5" />}
             </div>
             <div className="flex-1">
-              <span className="text-[11px] text-slate-500 font-bold block">ผู้ให้บริการ (ช่าง)</span>
-              <span className="font-black text-slate-800">
-                {staff ? staff.name : 'ช่างคนใดก็ได้'}
+              <span className="text-[11px] text-slate-500 font-bold block">{terms.selectedResourceLabel}</span>
+              <span className="font-black text-slate-900">
+                {staff ? staff.name : terms.autoAssignTitle}
               </span>
             </div>
           </div>

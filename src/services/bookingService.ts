@@ -43,14 +43,14 @@ export class BookingService {
     const targetDate = new Date(`${dateStr}T00:00:00`);
     const dayOfWeek = targetDate.getDay();
 
-    // Check merchant business hours for this day
+    // Check merchant business hours for this day (fallback default: 08:00 - 23:00)
     const dayBizHour = businessHours.find((b) => b.dayOfWeek === dayOfWeek);
-    let startHour = 9;
-    let endHour = 19;
+    let startHour = 8;
+    let endHour = 23;
 
     if (dayBizHour) {
       if (!dayBizHour.isOpen) {
-        return [{ time: '09:00', available: false, reason: 'ร้านปิดทำการในวันนี้' }];
+        return [{ time: '08:00', available: false, reason: 'ร้านปิดทำการในวันนี้' }];
       }
       startHour = parseInt(dayBizHour.openTime.split(':')[0], 10);
       endHour = parseInt(dayBizHour.closeTime.split(':')[0], 10);

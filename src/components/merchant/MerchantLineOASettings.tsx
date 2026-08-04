@@ -54,7 +54,8 @@ export const MerchantLineOASettings: React.FC = () => {
 
   const [saved, setSaved] = useState(false);
 
-  const webhookUrl = `https://api.booking-saas.app/v1/webhooks/line?tenant=${activeTenant.slug}`;
+  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://linebooking-amber.vercel.app';
+  const webhookUrl = `${currentOrigin}/api/line/webhook?tenant=${activeTenant.slug}`;
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();

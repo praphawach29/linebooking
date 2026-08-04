@@ -32,6 +32,7 @@ import {
   Reward,
   RewardRedemption,
 } from '../types';
+import { INITIAL_TENANTS } from '../data/mockData';
 
 const toCamelCase = (str: string) => {
   return str.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
@@ -302,13 +303,34 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             : Promise.resolve({ data: [] }),
         ]);
 
-        if (tenantsData) {
-          const formatted = camelizeKeys(tenantsData) as Tenant[];
-          setTenants(formatted);
-          if (formatted.length > 0) {
-            const matched = userTenantId ? formatted.find((t) => t.id === userTenantId) : null;
-            setActiveTenantId(matched ? matched.id : formatted[0].id);
-          }
+        let fetchedTenants: Tenant[] = [];
+        if (tenantsData && tenantsData.length > 0) {
+          fetchedTenants = camelizeKeys(tenantsData) as Tenant[];
+        }
+
+        const effectiveTenants = fetchedTenants.length > 0 ? fetchedTenants : INITIAL_TENANTS;
+        setTenants(effectiveTenants);
+
+        if (effectiveTenants.length > 0) {
+          const urlParams = new URLSearchParams(window.location.search);
+          const urlLiffId = urlParams.get('liffId');
+          const pathParts = window.location.pathname.split('/').filter(Boolean);
+          const pathTenantIdOrSlug = pathParts.length >= 2 && pathParts[0] === 'liff' ? pathParts[1] : null;
+
+          const matchedByPath = pathTenantIdOrSlug
+            ? effectiveTenants.find((t) => t.slug === pathTenantIdOrSlug || t.id === pathTenantIdOrSlug)
+            : null;
+
+          const matchedByLiffId = urlLiffId
+            ? effectiveTenants.find((t) => t.liffId === urlLiffId)
+            : null;
+
+          const matchedByUser = userTenantId
+            ? effectiveTenants.find((t) => t.id === userTenantId)
+            : null;
+
+          const active = matchedByPath || matchedByLiffId || matchedByUser || effectiveTenants[0];
+          setActiveTenantId(active.id);
         }
         if (servicesData) setServices(camelizeKeys(servicesData) as Service[]);
         if (addonsData) setServiceAddons(camelizeKeys(addonsData) as ServiceAddon[]);

@@ -41,7 +41,8 @@ export type LiffStep =
   | 'point_history';
 
 export const LiffLayout: React.FC = () => {
-  const { activeTenant, services, staffs, courts, notifications, reviews, isLoading } = useSaaS();
+  const { activeTenant: rawActiveTenant, tenants, services, staffs, courts, notifications, reviews, isLoading } = useSaaS();
+  const activeTenant = rawActiveTenant || (tenants && tenants.length > 0 ? tenants[0] : null);
   const [currentStep, setCurrentStep] = useState<LiffStep>('home');
   const [activeTab, setActiveTab] = useState<'home' | 'my_bookings' | 'notifications' | 'profile'>('home');
 

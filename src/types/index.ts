@@ -9,7 +9,7 @@ export interface Court {
   name: string; // e.g. "สนาม A (Indoor)"
   code: string; // e.g. "COURT-A"
   description?: string;
-  type?: 'indoor' | 'outdoor' | 'air_conditioned' | 'clay' | 'parquet';
+  type?: string;
   imageUrl?: string;
   extraPricePerHour?: number;
   isActive: boolean;

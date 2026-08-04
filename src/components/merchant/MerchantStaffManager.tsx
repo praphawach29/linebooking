@@ -227,7 +227,9 @@ export const MerchantStaffManager: React.FC = () => {
                             ? 'คอร์ทดิน 🎾'
                             : court.type === 'outdoor'
                             ? 'Outdoor กลางแจ้ง ☀️'
-                            : 'Indoor ในร่ม 🏟️'}
+                            : court.type === 'indoor'
+                            ? 'Indoor ในร่ม 🏟️'
+                            : court.type || 'มาตรฐาน'}
                         </span>
                         <span className="text-[10px] font-mono font-bold text-slate-400">
                           {court.code}
@@ -698,20 +700,67 @@ export const MerchantStaffManager: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 mb-1 block">ประเภทสนาม</label>
-                  <select
-                    value={editingCourt.type || 'indoor'}
-                    onChange={(e) =>
-                      setEditingCourt({ ...editingCourt, type: e.target.value as any })
-                    }
-                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold text-xs"
-                  >
-                    <option value="indoor">Indoor ในร่ม 🏟️</option>
-                    <option value="outdoor">Outdoor กลางแจ้ง ☀️</option>
-                    <option value="air_conditioned">VIP ติดแอร์ ❄️</option>
-                    <option value="parquet">พื้นไม้ FIBA 🏀</option>
-                    <option value="clay">คอร์ทดิน 🎾</option>
-                  </select>
+                  <label className="font-bold text-slate-700 mb-1 block flex items-center justify-between text-xs">
+                    <span>
+                      {activeTenant?.businessType === 'sports'
+                        ? 'ประเภทสนาม / คอร์ท'
+                        : activeTenant?.businessType === 'spa' || activeTenant?.businessType === 'salon' || activeTenant?.businessType === 'clinic'
+                        ? 'ประเภทห้อง / เตียงบริการ'
+                        : 'ประเภทสถานที่ / โต๊ะ'}
+                    </span>
+                    <span className="text-[10px] text-emerald-600 font-bold">เลือกหรือพิมพ์เองได้</span>
+                  </label>
+                  <div className="space-y-1.5">
+                    <select
+                      value={
+                        ['indoor', 'outdoor', 'air_conditioned', 'parquet', 'clay', 'VIP ติดแอร์ ❄️', 'Indoor ในร่ม 🏟️', 'Outdoor กลางแจ้ง ☀️', 'สนามหญ้าจริง 🌿', 'ห้องส่วนตัว VIP 🚪', 'เตียงนวดคู่ (Couple Room) 💑', 'เก้าอี้ทำผม/ตัดผม 🪑', 'ห้องทรีตเมนต์ 💆', 'โต๊ะส่วนตัว (Private Table) 🍷', 'โซนระเบียงริมน้ำ 🌊', 'เคาน์เตอร์บาร์ 🍸'].includes(editingCourt.type || '')
+                          ? editingCourt.type
+                          : 'custom'
+                      }
+                      onChange={(e) => {
+                        if (e.target.value === 'custom') {
+                          setEditingCourt({ ...editingCourt, type: '' });
+                        } else {
+                          setEditingCourt({ ...editingCourt, type: e.target.value });
+                        }
+                      }}
+                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold text-xs bg-white text-slate-900"
+                    >
+                      <optgroup label="🏆 สนาม / คอร์ทกีฬา">
+                        <option value="indoor">Indoor ในร่ม 🏟️</option>
+                        <option value="outdoor">Outdoor กลางแจ้ง ☀️</option>
+                        <option value="air_conditioned">VIP ติดแอร์ ❄️</option>
+                        <option value="parquet">พื้นไม้ FIBA 🏀</option>
+                        <option value="clay">คอร์ทดิน 🎾</option>
+                        <option value="สนามหญ้าจริง 🌿">สนามหญ้าจริง 🌿</option>
+                      </optgroup>
+
+                      <optgroup label="🛋️ ห้อง / เตียงบริการ (สปา/คลินิก/ร้านตัดผม)">
+                        <option value="ห้องส่วนตัว VIP 🚪">ห้องส่วนตัว VIP 🚪</option>
+                        <option value="เตียงนวดคู่ (Couple Room) 💑">เตียงนวดคู่ (Couple Room) 💑</option>
+                        <option value="เก้าอี้ทำผม/ตัดผม 🪑">เก้าอี้ทำผม/ตัดผม 🪑</option>
+                        <option value="ห้องทรีตเมนต์ 💆">ห้องทรีตเมนต์ 💆</option>
+                      </optgroup>
+
+                      <optgroup label="🍽️ สถานที่ / โต๊ะ (ร้านอาหาร & ทั่วไป)">
+                        <option value="โต๊ะส่วนตัว (Private Table) 🍷">โต๊ะส่วนตัว (Private Table) 🍷</option>
+                        <option value="โซนระเบียงริมน้ำ 🌊">โซนระเบียงริมน้ำ 🌊</option>
+                        <option value="เคาน์เตอร์บาร์ 🍸">เคาน์เตอร์บาร์ 🍸</option>
+                      </optgroup>
+
+                      <option value="custom">✍️ พิมพ์กำหนดประเภทเอง...</option>
+                    </select>
+
+                    {(!['indoor', 'outdoor', 'air_conditioned', 'parquet', 'clay', 'VIP ติดแอร์ ❄️', 'Indoor ในร่ม 🏟️', 'Outdoor กลางแจ้ง ☀️', 'สนามหญ้าจริง 🌿', 'ห้องส่วนตัว VIP 🚪', 'เตียงนวดคู่ (Couple Room) 💑', 'เก้าอี้ทำผม/ตัดผม 🪑', 'ห้องทรีตเมนต์ 💆', 'โต๊ะส่วนตัว (Private Table) 🍷', 'โซนระเบียงริมน้ำ 🌊', 'เคาน์เตอร์บาร์ 🍸'].includes(editingCourt.type || '')) && (
+                      <input
+                        type="text"
+                        value={editingCourt.type || ''}
+                        onChange={(e) => setEditingCourt({ ...editingCourt, type: e.target.value })}
+                        placeholder="พิมพ์ระบุประเภทเอง เช่น สนามหญ้าเทียมไร้เม็ดยาง, ห้อง VIP..."
+                        className="w-full p-2.5 border border-emerald-300 bg-emerald-50/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-800 animate-in fade-in duration-150"
+                      />
+                    )}
+                  </div>
                 </div>
 
                 <div>

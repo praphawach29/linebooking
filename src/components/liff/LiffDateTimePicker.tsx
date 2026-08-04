@@ -184,6 +184,7 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
     const isAvailableForSelectedHours = checkSlotAvailableForHours(slot.startTime, bookingHours);
     const displayLabel = getSlotDisplayLabel(slot.startTime, bookingHours);
     const isSelected = activeTime === slot.startTime || activeTime === displayLabel;
+    const isMultiHour = bookingHours > 1;
 
     return (
       <button
@@ -196,7 +197,9 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
             setActiveTime(displayLabel);
           }
         }}
-        className={`py-2.5 px-1.5 rounded-2xl border text-xs font-bold transition-all duration-200 flex flex-col items-center justify-center gap-0.5 ${
+        className={`rounded-2xl border font-bold transition-all duration-200 flex items-center justify-between gap-2 ${
+          isMultiHour ? 'py-2.5 px-4' : 'py-2.5 px-1.5 flex-col justify-center'
+        } ${
           !isAvailableForSelectedHours
             ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed line-through'
             : isSelected
@@ -204,9 +207,9 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
             : 'bg-white text-slate-800 border-slate-200 hover:border-emerald-500/40 hover:bg-emerald-50/50'
         }`}
       >
-        <span className="font-extrabold text-[12px]">{displayLabel}</span>
+        <span className={`font-extrabold ${isMultiHour ? 'text-[12px]' : 'text-[12px]'}`}>{displayLabel}</span>
         <span
-          className={`text-[9.5px] font-black ${
+          className={`text-[9.5px] font-black shrink-0 ${
             !isAvailableForSelectedHours
               ? 'text-slate-300'
               : isSelected
@@ -214,7 +217,7 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
               : 'text-emerald-600'
           }`}
         >
-          {isAvailableForSelectedHours ? 'ว่าง' : 'เต็มแล้ว'}
+          {isAvailableForSelectedHours ? 'ว่าง' : 'เต็ม'}
         </span>
       </button>
     );
@@ -242,34 +245,34 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
   }
 
   return (
-    <div className="p-4 space-y-5 pb-[240px]">
+    <div className="p-4 space-y-4 pb-28">
       {/* Service & Staff Info Header Card */}
-      <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-5 rounded-[24px] shadow-premium space-y-3 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-10 -mt-10"></div>
-        <div className="flex items-center justify-between text-xs opacity-90 border-b border-white/10 pb-3 relative z-10">
-          <span className="font-extrabold flex items-center gap-1.5 text-primary-light">
-            <Sparkles className="w-4 h-4" />
-            เลือกรอบเวลาการจอง ({bookingHours} ชั่วโมง)
+      <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-4 rounded-[22px] shadow-premium space-y-2 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-28 h-28 bg-white/5 rounded-full blur-2xl -mr-8 -mt-8"></div>
+        <div className="flex items-center justify-between text-xs opacity-90 border-b border-white/10 pb-2 relative z-10">
+          <span className="font-extrabold flex items-center gap-1 text-primary-light text-[11px]">
+            <Sparkles className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>เลือกรอบเวลา ({bookingHours} ชม.)</span>
           </span>
-          <span className="bg-emerald-500 text-white px-3 py-1 rounded-full font-black text-xs shadow-sm">
+          <span className="bg-emerald-500 text-white px-2.5 py-0.5 rounded-full font-black text-[11px] shadow-sm shrink-0">
             {totalDurationMinutes} นาที
           </span>
         </div>
-        <div className="flex items-center justify-between pt-1 relative z-10">
-          <div>
-            <h2 className="font-black text-[15px] leading-tight truncate max-w-[200px]">
+        <div className="flex items-center justify-between pt-0.5 relative z-10">
+          <div className="flex-1 min-w-0 pr-2">
+            <h2 className="font-black text-[14px] leading-tight truncate">
               {service.name}
             </h2>
-            <p className="text-[11px] text-slate-300 font-medium mt-1">
+            <p className="text-[10px] text-slate-300 font-medium mt-0.5 truncate">
               {terms.selectedResourceLabel}: <span className="font-bold text-white">{staff ? staff.name : terms.autoAssignedText}</span>
             </p>
           </div>
-          <div className="text-right">
+          <div className="text-right shrink-0">
             <span className="text-[10px] text-slate-400 block font-bold">
-              {selectedAddons.length > 0 ? 'ราคารวม' : `ค่าบริการ (${bookingHours} ชม.)`}
+              {selectedAddons.length > 0 ? 'ราคารวม' : `฿/ชม.`}
             </span>
-            <span className="text-xl font-black text-emerald-400 drop-shadow-sm">
-              <span className="text-sm mr-0.5">฿</span>{totalPrice.toLocaleString()}
+            <span className="text-lg font-black text-emerald-400">
+              <span className="text-xs mr-0.5">฿</span>{totalPrice.toLocaleString()}
             </span>
           </div>
         </div>
@@ -278,12 +281,12 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
       {/* Duration Selector Bar */}
       <div className="bg-white border border-slate-200/80 p-4 rounded-3xl shadow-sm space-y-2.5">
         <div className="flex items-center justify-between">
-          <span className="text-[13px] font-black text-slate-900 flex items-center gap-1.5">
-            <Clock className="w-4 h-4 text-emerald-600" />
+          <span className="text-[12px] font-black text-slate-900 flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5 text-emerald-600" />
             {terms.durationLabel}
           </span>
-          <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-xl border border-emerald-200">
-            {bookingHours} ชั่วโมงต่อเนื่อง
+          <span className="text-[11px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-xl border border-emerald-200">
+            {bookingHours} ชม.
           </span>
         </div>
 
@@ -314,10 +317,10 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
       </div>
 
       {/* Calendar View Toggle Header */}
-      <div className="flex items-center justify-between pt-2">
-        <h3 className="text-[13px] font-black text-foreground flex items-center gap-2">
-          <CalendarIcon className="w-4 h-4 text-primary" />
-          เลือกวันที่ต้องการเข้าใช้บริการ
+      <div className="flex items-center justify-between">
+        <h3 className="text-[12px] font-black text-foreground flex items-center gap-1.5">
+          <CalendarIcon className="w-3.5 h-3.5 text-primary" />
+          เลือกวันที่
         </h3>
         <div className="bg-slate-100 p-1 rounded-xl flex gap-1 text-[11px] font-black shadow-inner">
           <button
@@ -521,7 +524,7 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
                   <Sun className="w-3.5 h-3.5" />
                   <span>ช่วงเช้า (08:00 - 12:00 น.)</span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className={`grid gap-2 ${bookingHours > 1 ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3'}`}>
                   {morningSlots.map((slot) => renderSlotButton(slot))}
                 </div>
               </div>
@@ -534,7 +537,7 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
                   <Sunset className="w-3.5 h-3.5" />
                   <span>ช่วงบ่าย (12:00 - 17:00 น.)</span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className={`grid gap-2 ${bookingHours > 1 ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3'}`}>
                   {afternoonSlots.map((slot) => renderSlotButton(slot))}
                 </div>
               </div>
@@ -547,7 +550,7 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
                   <Moon className="w-3.5 h-3.5" />
                   <span>ช่วงเย็น/ค่ำ (17:00 - 23:00 น.)</span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className={`grid gap-2 ${bookingHours > 1 ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3'}`}>
                   {eveningSlots.map((slot) => renderSlotButton(slot))}
                 </div>
               </div>
@@ -556,18 +559,18 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
         )}
       </div>
 
-      {/* Sticky Bottom Action Bar with Summary */}
-      <div className="sticky bottom-[60px] left-0 right-0 p-4 bg-white/95 backdrop-blur-md rounded-3xl shadow-[0_-8px_30px_rgba(0,0,0,0.12)] border border-slate-200 z-30 max-w-md mx-auto flex flex-col gap-2.5 my-3">
+      {/* Sticky Bottom Action Bar */}
+      <div className="sticky bottom-[64px] left-0 right-0 bg-white/96 backdrop-blur-md rounded-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.10)] border border-slate-200 z-30 p-3.5 flex flex-col gap-2">
         <div className="flex items-center justify-between px-1">
           <div>
-            <p className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider mb-0.5">รอบเวลาที่เลือก</p>
-            <p className="text-[14px] font-black text-slate-900">
-              {activeTime ? `${activeDateThai}, ${activeTime} น.` : 'กรุณาแตะเลือกเวลาร้าน'}
+            <p className="text-[9px] text-slate-500 font-extrabold uppercase tracking-wider mb-0.5">รอบเวลาที่เลือก</p>
+            <p className="text-[13px] font-black text-slate-900 leading-tight">
+              {activeTime ? `${activeDateThai}, ${activeTime} น.` : 'แตะเลือกเวลา'}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider mb-0.5">รวมทั้งหมด</p>
-            <p className="text-[15px] font-black text-emerald-600">฿{totalPrice.toLocaleString()}</p>
+            <p className="text-[9px] text-slate-500 font-extrabold uppercase tracking-wider mb-0.5">รวมทั้งหมด</p>
+            <p className="text-[14px] font-black text-emerald-600">฿{totalPrice.toLocaleString()}</p>
           </div>
         </div>
         <button

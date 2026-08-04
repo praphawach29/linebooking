@@ -143,7 +143,7 @@ export const LiffStaffSelect: React.FC<LiffStaffSelectProps> = ({
       </div>
 
       {/* Sticky Bottom Action Bar */}
-      <div className="sticky bottom-[60px] left-0 right-0 p-4 bg-white/95 backdrop-blur-md rounded-3xl shadow-[0_-8px_30px_rgba(0,0,0,0.12)] border border-slate-200 z-30 max-w-md mx-auto flex flex-col gap-2.5 my-3">
+      <div className="sticky bottom-[64px] left-0 right-0 bg-white/96 backdrop-blur-md rounded-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.10)] border border-slate-200 z-30 p-3.5 flex flex-col gap-2">
         <div className="flex items-center justify-between px-1">
           <div>
             <p className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider mb-0.5">

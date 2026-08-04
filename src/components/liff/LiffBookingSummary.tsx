@@ -165,7 +165,7 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
   };
 
   return (
-    <div className="p-4 space-y-5 pb-[240px]">
+    <div className="p-4 space-y-4 pb-28">
       <div className="text-center space-y-1 mt-2">
         <h2 className="text-lg font-black text-foreground">สรุปรายละเอียดการจอง</h2>
         <p className="text-[13px] text-slate-500 font-medium">เลือกบริการเสริม ชำระเงินมัดจำ ยืนยันคิวทันที</p>
@@ -556,26 +556,16 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
         </div>
       </div>
 
-      {/* Sticky Bottom Action Bar with Summary */}
-      <div className="fixed bottom-[90px] left-4 right-4 p-4 bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 z-50 max-w-[368px] mx-auto flex flex-col gap-3">
-        {/* Debug Modal Button (kept for development) */}
-        <button
-          type="button"
-          onClick={() => setShowSummaryModal(true)}
-          className="w-full bg-slate-50 hover:bg-slate-100 text-slate-500 font-bold py-2 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors text-[10px] border border-slate-200 shadow-sm mb-1"
-        >
-          <Sparkles className="w-3 h-3 text-slate-400" />
-          <span>ดูรูปแบบบิลตัวจริง (Summary Modal)</span>
-        </button>
-
+      {/* Sticky Bottom Action Bar */}
+      <div className="sticky bottom-[64px] left-0 right-0 bg-white/96 backdrop-blur-md rounded-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.10)] border border-slate-200 z-30 p-3.5 flex flex-col gap-2">
         <div className="flex items-center justify-between px-1">
           <div>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">ยอดชำระมัดจำ (50%)</p>
+            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">ยอดชำระมัดจำ ({depositPct}%)</p>
             <p className="text-[14px] font-black text-primary">฿{(depositAmount ?? 0).toLocaleString()}</p>
           </div>
           <div className="text-right">
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">ยอดรวมทั้งหมด</p>
-            <p className="text-[14px] font-black text-slate-900">฿{(totalPrice ?? 0).toLocaleString()}</p>
+            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">ยอดรวมทั้งหมด</p>
+            <p className="text-[13px] font-black text-slate-900">฿{(totalPrice ?? 0).toLocaleString()}</p>
           </div>
         </div>
 
@@ -660,7 +650,7 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
               </p>
               <p className="text-slate-700 flex items-start gap-2">
                  <UserCheck className="w-3.5 h-3.5 text-primary mt-0.5" />
-                <span><strong className="text-foreground">ผู้ให้บริการ:</strong> {staff ? staff.name : 'ช่างคนใดก็ได้'}</span>
+                <span><strong className="text-foreground">{terms.selectedResourceLabel}:</strong> {staff ? staff.name : terms.autoAssignedText}</span>
               </p>
               <p className="text-slate-700 flex items-start gap-2">
                  <FileText className="w-3.5 h-3.5 text-primary mt-0.5" />

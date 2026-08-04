@@ -66,7 +66,7 @@ export const LiffBookingConfirmation: React.FC<LiffBookingConfirmationProps> = (
   };
 
   return (
-    <div className="p-4 space-y-5 pb-[240px]">
+    <div className="p-4 space-y-4 pb-28">
       {/* Top Success Badge */}
       <div className="premium-card bg-gradient-to-b from-success/10 to-white border-success/20 p-8 text-center space-y-4 relative overflow-hidden mt-2 shadow-sm">
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-success"></div>
@@ -214,7 +214,7 @@ export const LiffBookingConfirmation: React.FC<LiffBookingConfirmationProps> = (
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 pb-8 bg-white/95 backdrop-blur-xl border-t border-slate-200/60 z-50 max-w-[400px] mx-auto space-y-3 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+      <div className="sticky bottom-[64px] left-0 right-0 bg-white/96 backdrop-blur-xl rounded-3xl border-t border-slate-200/60 z-30 p-3.5 space-y-2.5 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         {/* Calendar Add Button */}
         <button
           onClick={handleDownloadCalendar}

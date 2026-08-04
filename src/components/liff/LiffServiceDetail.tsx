@@ -19,7 +19,7 @@ export const LiffServiceDetail: React.FC<LiffServiceDetailProps> = ({
   const depositAmount = (service.price * depositPct) / 100;
 
   return (
-    <div className="p-4 space-y-5 pb-[240px]">
+    <div className="p-4 space-y-4 pb-28">
       {/* Service Cover Image */}
       {service.imageUrl && (
         <div className="rounded-[24px] overflow-hidden shadow-premium border border-border/50 relative">
@@ -106,7 +106,7 @@ export const LiffServiceDetail: React.FC<LiffServiceDetailProps> = ({
       <div className="premium-card p-5 space-y-4">
         <h3 className="text-[13px] font-black text-foreground flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-primary" />
-          ช่าง/ผู้ให้บริการสำหรับบริการนี้ ({qualifiedStaffs.length} คน)
+          {qualifiedStaffs.length > 0 ? `ผู้ให้บริการที่รองรับ (${qualifiedStaffs.length} คน)` : 'ยังไม่มีผู้ให้บริการ'}
         </h3>
         <div className="space-y-3">
           {qualifiedStaffs.map((staff) => (
@@ -136,16 +136,16 @@ export const LiffServiceDetail: React.FC<LiffServiceDetailProps> = ({
         </div>
       </div>
 
-      {/* Sticky Bottom Action Bar with Summary */}
-      <div className="fixed bottom-[90px] left-4 right-4 p-4 bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 z-50 max-w-[368px] mx-auto flex flex-col gap-3">
+      {/* Sticky Bottom Action Bar */}
+      <div className="sticky bottom-[64px] left-0 right-0 bg-white/96 backdrop-blur-md rounded-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.10)] border border-slate-200 z-30 p-3.5 flex flex-col gap-2">
         <div className="flex items-center justify-between px-1">
           <div>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">ราคาค่าบริการ</p>
-            <p className="text-[14px] font-black text-slate-900">เริ่มต้น ฿{service.price.toLocaleString()}</p>
+            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">ราคาค่าบริการ</p>
+            <p className="text-[13px] font-black text-slate-900">เริ่มต้น ฿{service.price.toLocaleString()}</p>
           </div>
           <div className="text-right">
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">มัดจำออนไลน์</p>
-            <p className="text-[14px] font-black text-primary">฿{(service.price / 2).toLocaleString()}</p>
+            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">มัดจำออนไลน์ ({depositPct}%)</p>
+            <p className="text-[13px] font-black text-primary">฿{(depositAmount ?? 0).toLocaleString()}</p>
           </div>
         </div>
         <button

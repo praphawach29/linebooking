@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Service, Staff, SelectedAddon, Court } from '../../types';
 import { useSaaS } from '../../context/SaaSContext';
 import { getTenantTerminology } from '../../lib/tenant-terminology';
@@ -7,7 +7,6 @@ import {
   Clock,
   ChevronRight,
   ChevronLeft,
-  Check,
   Sun,
   Sunset,
   Moon,
@@ -16,9 +15,9 @@ import {
   Sparkles,
   CheckCircle2,
   XCircle,
+  X,
 } from 'lucide-react';
 import { SkeletonCard } from '../common/SkeletonCard';
-
 import { calculateServicePrice } from '../../lib/pricing-calculator';
 
 interface LiffDateTimePickerProps {
@@ -30,6 +29,11 @@ interface LiffDateTimePickerProps {
   selectedAddons?: SelectedAddon[];
   onSelectSlot: (date: string, time: string, hours: number) => void;
 }
+
+// Converts "HH:MM" string to integer hour number
+const toHour = (timeStr: string) => parseInt(timeStr.split(':')[0], 10);
+// Formats integer hour back to "HH:00" string
+const toTimeStr = (hour: number) => `${hour < 10 ? '0' : ''}${hour}:00`;
 
 export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
   service,
@@ -43,22 +47,20 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
   const { getAvailableSlots, activeTenant } = useSaaS();
   const terms = getTenantTerminology(activeTenant);
 
-  const [bookingHours, setBookingHours] = useState<number>(1);
   const addonsTotal = selectedAddons.reduce((sum, a) => sum + (a.price || 0), 0);
   const addonsExtraDuration = selectedAddons.reduce((sum, a) => sum + (a.extraDurationMinutes || 0), 0);
-  
-  const [activeDate, setActiveDate] = useState<string>(initialDate);
-  const [activeTime, setActiveTime] = useState<string>(initialTime);
 
-  const calculated = calculateServicePrice(service, activeTime, activeDate);
-  const currentServicePrice = (calculated.finalPrice || service.price || 1200) * bookingHours;
-  const totalPrice = currentServicePrice + addonsTotal;
-  const totalDurationMinutes = (service.durationMinutes * bookingHours) + addonsExtraDuration;
+  const [activeDate, setActiveDate] = useState<string>(initialDate);
+
+  // Tap-to-Range state: start slot hour, end slot hour (both null = nothing selected)
+  const [rangeStart, setRangeStart] = useState<number | null>(null);
+  const [rangeEnd, setRangeEnd] = useState<number | null>(null);
 
   const [viewType, setViewType] = useState<'month' | 'strip'>('strip');
   const [slots, setSlots] = useState<Awaited<ReturnType<typeof getAvailableSlots>>>([]);
   const [isSlotsLoading, setIsSlotsLoading] = useState(true);
   const [slotsError, setSlotsError] = useState<string | null>(null);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
 
   // Month navigation state for month grid view
   const today = new Date();
@@ -69,13 +71,37 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
     'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
     'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
   ];
-
   const shortMonthNamesThai = [
     'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
     'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
   ];
-
   const dayNamesThai = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+
+  // Derived selection values
+  const selectedHours = rangeStart !== null && rangeEnd !== null
+    ? Math.abs(rangeEnd - rangeStart) + 1
+    : rangeStart !== null ? 1 : 0;
+
+  const selectedStartHour = rangeStart !== null && rangeEnd !== null
+    ? Math.min(rangeStart, rangeEnd)
+    : rangeStart;
+
+  const selectedEndHour = rangeStart !== null && rangeEnd !== null
+    ? Math.max(rangeStart, rangeEnd) + 1  // end time is exclusive (end of last slot)
+    : rangeStart !== null ? rangeStart + 1 : null;
+
+  const activeTimeDisplay = selectedStartHour !== null && selectedEndHour !== null
+    ? selectedHours === 1
+      ? `${toTimeStr(selectedStartHour)}`
+      : `${toTimeStr(selectedStartHour)} - ${toTimeStr(selectedEndHour)}`
+    : '';
+
+  // Price calculation
+  const calculated = calculateServicePrice(service, activeTimeDisplay, activeDate);
+  const pricePerHour = calculated.finalPrice || service.price || 1200;
+  const totalServicePrice = pricePerHour * (selectedHours || 1);
+  const totalPrice = (selectedHours > 0 ? totalServicePrice : pricePerHour) + addonsTotal;
+  const totalDurationMinutes = (service.durationMinutes * (selectedHours || 1)) + addonsExtraDuration;
 
   // Generate 14-day date strip
   const dateStrip = Array.from({ length: 14 }).map((_, i) => {
@@ -87,12 +113,10 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
       dayName: dayNamesThai[d.getDay()],
       dayNumber: d.getDate(),
       monthName: shortMonthNamesThai[d.getMonth()],
-      yearBE: d.getFullYear() + 543,
       fullThai: `${d.getDate()} ${monthNamesThai[d.getMonth()]} ${d.getFullYear() + 543}`,
     };
   });
 
-  // Calendar matrix generator for month view
   const getDaysInMonth = (year: number, month: number) => {
     const firstDay = new Date(year, month, 1).getDay();
     const totalDays = new Date(year, month + 1, 0).getDate();
@@ -100,136 +124,167 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
   };
 
   const handlePrevMonth = () => {
-    if (calendarMonth === 0) {
-      setCalendarMonth(11);
-      setCalendarYear(calendarYear - 1);
-    } else {
-      setCalendarMonth(calendarMonth - 1);
-    }
+    if (calendarMonth === 0) { setCalendarMonth(11); setCalendarYear(calendarYear - 1); }
+    else setCalendarMonth(calendarMonth - 1);
   };
-
   const handleNextMonth = () => {
-    if (calendarMonth === 11) {
-      setCalendarMonth(0);
-      setCalendarYear(calendarYear + 1);
-    } else {
-      setCalendarMonth(calendarMonth + 1);
-    }
+    if (calendarMonth === 11) { setCalendarMonth(0); setCalendarYear(calendarYear + 1); }
+    else setCalendarMonth(calendarMonth + 1);
   };
 
   const { firstDay, totalDays } = getDaysInMonth(calendarYear, calendarMonth);
 
+  // Load slots when date/service/staff changes
   useEffect(() => {
     let cancelled = false;
     setIsSlotsLoading(true);
     setSlotsError(null);
+    setRangeStart(null);
+    setRangeEnd(null);
+    setSelectionError(null);
 
     getAvailableSlots(activeDate, service.id, staff?.id, court?.id)
-      .then((nextSlots) => {
-        if (!cancelled) setSlots(nextSlots);
-      })
+      .then((nextSlots) => { if (!cancelled) setSlots(nextSlots); })
       .catch((error: unknown) => {
         if (!cancelled) {
           setSlots([]);
-          setSlotsError(
-            error instanceof Error ? error.message : 'Unable to load available slots',
-          );
+          setSlotsError(error instanceof Error ? error.message : 'ไม่สามารถโหลดรอบเวลาได้');
         }
       })
-      .finally(() => {
-        if (!cancelled) setIsSlotsLoading(false);
-      });
+      .finally(() => { if (!cancelled) setIsSlotsLoading(false); });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [activeDate, service.id, staff?.id]);
 
-  // Time groupings
-  const morningSlots = slots.filter((s) => {
-    const hour = parseInt(s.startTime.split(':')[0], 10);
-    return hour < 12;
-  });
-
-  const afternoonSlots = slots.filter((s) => {
-    const hour = parseInt(s.startTime.split(':')[0], 10);
-    return hour >= 12 && hour < 17;
-  });
-
-  const eveningSlots = slots.filter((s) => {
-    const hour = parseInt(s.startTime.split(':')[0], 10);
-    return hour >= 17;
-  });
-
-  const checkSlotAvailableForHours = (startTimeStr: string, hrs: number) => {
-    const startHour = parseInt(startTimeStr.split(':')[0], 10);
-    for (let i = 0; i < hrs; i++) {
-      const checkH = startHour + i;
-      const checkHStr = checkH < 10 ? `0${checkH}:00` : `${checkH}:00`;
-      const targetSlot = slots.find((s) => s.startTime === checkHStr);
-      if (!targetSlot || !targetSlot.isAvailable) return false;
+  // --- Tap-to-Range Logic ---
+  // Returns true if all slots from hourA to hourB (inclusive, ordered) are available
+  const isRangeAllAvailable = useCallback((hourA: number, hourB: number): boolean => {
+    const lo = Math.min(hourA, hourB);
+    const hi = Math.max(hourA, hourB);
+    for (let h = lo; h <= hi; h++) {
+      const slot = slots.find(s => toHour(s.startTime) === h);
+      if (!slot || !slot.isAvailable) return false;
     }
     return true;
+  }, [slots]);
+
+  const handleSlotTap = useCallback((hour: number, isAvailable: boolean) => {
+    if (!isAvailable) return;
+    setSelectionError(null);
+
+    // Nothing selected → set start
+    if (rangeStart === null) {
+      setRangeStart(hour);
+      setRangeEnd(null);
+      return;
+    }
+
+    // Tap same slot as start → deselect
+    if (hour === rangeStart && rangeEnd === null) {
+      setRangeStart(null);
+      setRangeEnd(null);
+      return;
+    }
+
+    // We have a range → tapping any slot resets and sets new start
+    if (rangeEnd !== null) {
+      setRangeStart(hour);
+      setRangeEnd(null);
+      return;
+    }
+
+    // We have only a start → try to set end
+    const lo = Math.min(rangeStart, hour);
+    const hi = Math.max(rangeStart, hour);
+
+    if (!isRangeAllAvailable(lo, hi)) {
+      setSelectionError(`มีสล็อตที่ไม่ว่างในช่วง ${toTimeStr(lo)} - ${toTimeStr(hi + 1)} น. กรุณาเลือกเฉพาะช่วงที่ว่างต่อเนื่องกัน`);
+      // Keep the start, let user pick a different end
+      return;
+    }
+
+    setRangeEnd(hour);
+  }, [rangeStart, rangeEnd, isRangeAllAvailable]);
+
+  const handleClearSelection = () => {
+    setRangeStart(null);
+    setRangeEnd(null);
+    setSelectionError(null);
   };
 
-  const getSlotDisplayLabel = (startTimeStr: string, hrs: number) => {
-    if (hrs === 1) return startTimeStr;
-    const startHour = parseInt(startTimeStr.split(':')[0], 10);
-    const endHour = startHour + hrs;
-    const endHourStr = endHour < 10 ? `0${endHour}:00` : `${endHour}:00`;
-    return `${startTimeStr} - ${endHourStr}`;
+  // Determine slot visual state for each slot button
+  const getSlotState = (hour: number, isAvailable: boolean) => {
+    if (!isAvailable) return 'unavailable';
+    if (rangeStart === null) return 'idle';
+
+    const lo = rangeStart !== null && rangeEnd !== null ? Math.min(rangeStart, rangeEnd) : rangeStart;
+    const hi = rangeStart !== null && rangeEnd !== null ? Math.max(rangeStart, rangeEnd) : rangeStart;
+
+    if (hour < lo || hour > hi) {
+      // Hoverable if we only have a start (not yet a range)
+      return 'idle';
+    }
+    if (hour === lo && lo === hi) return 'solo'; // single selected
+    if (hour === lo) return 'range-start';
+    if (hour === hi) return 'range-end';
+    return 'range-mid';
   };
+
+  // Time groupings
+  const morningSlots = slots.filter(s => toHour(s.startTime) < 12);
+  const afternoonSlots = slots.filter(s => { const h = toHour(s.startTime); return h >= 12 && h < 17; });
+  const eveningSlots = slots.filter(s => toHour(s.startTime) >= 17);
+  const availableCount = slots.filter(s => s.isAvailable).length;
 
   const renderSlotButton = (slot: { startTime: string; isAvailable: boolean }) => {
-    const isAvailableForSelectedHours = checkSlotAvailableForHours(slot.startTime, bookingHours);
-    const displayLabel = getSlotDisplayLabel(slot.startTime, bookingHours);
-    const isSelected = activeTime === slot.startTime || activeTime === displayLabel;
-    const isMultiHour = bookingHours > 1;
+    const hour = toHour(slot.startTime);
+    const state = getSlotState(hour, slot.isAvailable);
+    const isInRange = state === 'solo' || state === 'range-start' || state === 'range-mid' || state === 'range-end';
+
+    // Preview: when we have a start but not end, show which slots would extend range
+    const wouldExtend = rangeStart !== null && rangeEnd === null && slot.isAvailable
+      && isRangeAllAvailable(Math.min(rangeStart, hour), Math.max(rangeStart, hour));
+
+    let buttonClass = `relative h-12 rounded-2xl border font-bold transition-all duration-200 flex items-center justify-between px-3 gap-1 text-[12px] select-none `;
+
+    if (state === 'unavailable') {
+      buttonClass += 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed';
+    } else if (state === 'solo') {
+      buttonClass += 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/25 scale-[1.02]';
+    } else if (state === 'range-start') {
+      buttonClass += 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/25 rounded-r-none border-r-0';
+    } else if (state === 'range-mid') {
+      buttonClass += 'bg-emerald-500 text-white border-emerald-500 rounded-none border-x-0';
+    } else if (state === 'range-end') {
+      buttonClass += 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/25 rounded-l-none border-l-0';
+    } else if (wouldExtend && rangeEnd === null) {
+      buttonClass += 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100 hover:border-emerald-400';
+    } else {
+      buttonClass += 'bg-white text-slate-800 border-slate-200 hover:border-emerald-500/40 hover:bg-emerald-50/50 active:scale-[0.97]';
+    }
 
     return (
       <button
         key={slot.startTime}
-        disabled={!isAvailableForSelectedHours}
-        onClick={() => {
-          if (bookingHours === 1) {
-            setActiveTime(slot.startTime);
-          } else {
-            setActiveTime(displayLabel);
-          }
-        }}
-        className={`rounded-2xl border font-bold transition-all duration-200 flex items-center justify-between gap-2 ${
-          isMultiHour ? 'py-2.5 px-4' : 'py-2.5 px-1.5 flex-col justify-center'
-        } ${
-          !isAvailableForSelectedHours
-            ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed line-through'
-            : isSelected
-            ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20 scale-[1.03]'
-            : 'bg-white text-slate-800 border-slate-200 hover:border-emerald-500/40 hover:bg-emerald-50/50'
-        }`}
+        disabled={state === 'unavailable'}
+        onClick={() => handleSlotTap(hour, slot.isAvailable)}
+        className={buttonClass}
       >
-        <span className={`font-extrabold ${isMultiHour ? 'text-[12px]' : 'text-[12px]'}`}>{displayLabel}</span>
-        <span
-          className={`text-[9.5px] font-black shrink-0 ${
-            !isAvailableForSelectedHours
-              ? 'text-slate-300'
-              : isSelected
-              ? 'text-white/90'
-              : 'text-emerald-600'
-          }`}
-        >
-          {isAvailableForSelectedHours ? 'ว่าง' : 'เต็ม'}
+        <span className="font-extrabold">{slot.startTime}</span>
+        <span className={`text-[9px] font-black shrink-0 ${
+          state === 'unavailable' ? 'text-slate-300' :
+          isInRange ? 'text-white/90' :
+          wouldExtend ? 'text-emerald-600' : 'text-emerald-600'
+        }`}>
+          {state === 'unavailable' ? 'เต็ม' : isInRange ? '✓' : 'ว่าง'}
         </span>
       </button>
     );
   };
 
-  // Active date thai display
+  // Active date display
   const activeDateObj = new Date(activeDate);
-  const activeDateThai = `${activeDateObj.getDate()} ${
-    monthNamesThai[activeDateObj.getMonth()]
-  } ${activeDateObj.getFullYear() + 543}`;
-
-  const availableCount = slots.filter((s) => s.isAvailable).length;
+  const activeDateThai = `${activeDateObj.getDate()} ${monthNamesThai[activeDateObj.getMonth()]} ${activeDateObj.getFullYear() + 543}`;
 
   if (isSlotsLoading) {
     return (
@@ -237,12 +292,12 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
         <div className="flex items-center justify-between mb-4">
           <div className="h-6 bg-slate-200 rounded w-1/3 animate-pulse"></div>
         </div>
-        {[1, 2, 3].map((n) => (
-          <SkeletonCard key={n} />
-        ))}
+        {[1, 2, 3].map((n) => <SkeletonCard key={n} />)}
       </div>
     );
   }
+
+  const canConfirm = selectedStartHour !== null && selectedHours >= 1;
 
   return (
     <div className="p-4 space-y-4 pb-28">
@@ -252,67 +307,44 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
         <div className="flex items-center justify-between text-xs opacity-90 border-b border-white/10 pb-2 relative z-10">
           <span className="font-extrabold flex items-center gap-1 text-primary-light text-[11px]">
             <Sparkles className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>เลือกรอบเวลา ({bookingHours} ชม.)</span>
+            <span>เลือกรอบเวลา {selectedHours > 0 ? `(${selectedHours} ชม.)` : ''}</span>
           </span>
-          <span className="bg-emerald-500 text-white px-2.5 py-0.5 rounded-full font-black text-[11px] shadow-sm shrink-0">
-            {totalDurationMinutes} นาที
-          </span>
+          {selectedHours > 0 && (
+            <span className="bg-emerald-500 text-white px-2.5 py-0.5 rounded-full font-black text-[11px] shadow-sm shrink-0">
+              {totalDurationMinutes} นาที
+            </span>
+          )}
         </div>
         <div className="flex items-center justify-between pt-0.5 relative z-10">
           <div className="flex-1 min-w-0 pr-2">
-            <h2 className="font-black text-[14px] leading-tight truncate">
-              {service.name}
-            </h2>
+            <h2 className="font-black text-[14px] leading-tight truncate">{service.name}</h2>
             <p className="text-[10px] text-slate-300 font-medium mt-0.5 truncate">
               {terms.selectedResourceLabel}: <span className="font-bold text-white">{staff ? staff.name : terms.autoAssignedText}</span>
             </p>
           </div>
           <div className="text-right shrink-0">
             <span className="text-[10px] text-slate-400 block font-bold">
-              {selectedAddons.length > 0 ? 'ราคารวม' : `฿/ชม.`}
+              {selectedHours > 1 ? 'ราคารวม' : '฿/ชม.'}
             </span>
             <span className="text-lg font-black text-emerald-400">
-              <span className="text-xs mr-0.5">฿</span>{totalPrice.toLocaleString()}
+              <span className="text-xs mr-0.5">฿</span>
+              {selectedHours > 0 ? totalPrice.toLocaleString() : pricePerHour.toLocaleString()}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Duration Selector Bar */}
-      <div className="bg-white border border-slate-200/80 p-4 rounded-3xl shadow-sm space-y-2.5">
-        <div className="flex items-center justify-between">
-          <span className="text-[12px] font-black text-slate-900 flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5 text-emerald-600" />
-            {terms.durationLabel}
-          </span>
-          <span className="text-[11px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-xl border border-emerald-200">
-            {bookingHours} ชม.
-          </span>
+      {/* HOW TO USE hint */}
+      <div className="bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
+          <span className="text-blue-600 font-black text-[11px]">?</span>
         </div>
-
-        <div className="grid grid-cols-4 gap-2 pt-1">
-          {[1, 2, 3, 4].map((hrs) => {
-            const isSelected = bookingHours === hrs;
-            return (
-              <button
-                key={hrs}
-                onClick={() => {
-                  setBookingHours(hrs);
-                  setActiveTime(''); // Reset selected time when duration changes
-                }}
-                className={`py-2.5 px-2 rounded-2xl text-xs font-black transition-all flex flex-col items-center gap-0.5 border ${
-                  isSelected
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20 scale-[1.03]'
-                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                }`}
-              >
-                <span>{hrs} ชม.</span>
-                <span className={`text-[10px] ${isSelected ? 'text-white/90 font-extrabold' : 'text-slate-400 font-medium'}`}>
-                  ฿{(service.price * hrs).toLocaleString()}
-                </span>
-              </button>
-            );
-          })}
+        <div>
+          <p className="text-[11px] font-black text-blue-800">วิธีเลือกเวลา</p>
+          <p className="text-[10px] text-blue-600 font-medium leading-relaxed">
+            กดสล็อตเริ่มต้น → กดสล็อตสิ้นสุด ระบบจะเลือกช่วงเวลาทั้งหมดให้อัตโนมัติ<br />
+            สล็อตสีเทา = เต็มแล้ว ไม่สามารถเลือกได้
+          </p>
         </div>
       </div>
 
@@ -325,25 +357,15 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
         <div className="bg-slate-100 p-1 rounded-xl flex gap-1 text-[11px] font-black shadow-inner">
           <button
             onClick={() => setViewType('strip')}
-            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all duration-300 ${
-              viewType === 'strip'
-                ? 'bg-white text-primary shadow-sm scale-[1.02]'
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
+            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all duration-300 ${viewType === 'strip' ? 'bg-white text-primary shadow-sm scale-[1.02]' : 'text-slate-500 hover:text-slate-900'}`}
           >
-            <ListFilter className="w-3.5 h-3.5" />
-            รายวัน
+            <ListFilter className="w-3.5 h-3.5" />รายวัน
           </button>
           <button
             onClick={() => setViewType('month')}
-            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all duration-300 ${
-              viewType === 'month'
-                ? 'bg-white text-primary shadow-sm scale-[1.02]'
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
+            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all duration-300 ${viewType === 'month' ? 'bg-white text-primary shadow-sm scale-[1.02]' : 'text-slate-500 hover:text-slate-900'}`}
           >
-            <Grid className="w-3.5 h-3.5" />
-            ปฏิทิน
+            <Grid className="w-3.5 h-3.5" />ปฏิทิน
           </button>
         </div>
       </div>
@@ -357,29 +379,16 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
               return (
                 <button
                   key={item.dateStr}
-                  onClick={() => {
-                    setActiveDate(item.dateStr);
-                    setActiveTime(''); // Reset time when date changes
-                  }}
+                  onClick={() => { setActiveDate(item.dateStr); handleClearSelection(); }}
                   className={`flex-shrink-0 flex flex-col items-center justify-center w-16 py-3 rounded-2xl border transition-all duration-300 snap-start ${
                     isSelected
                       ? 'bg-primary text-white border-primary shadow-[0_4px_12px_rgba(79,70,229,0.3)] ring-2 ring-primary/20 scale-[1.05]'
                       : 'bg-white text-slate-700 border-border hover:border-primary/30 shadow-sm'
                   }`}
                 >
-                  <span
-                    className={`text-[11px] font-black ${
-                      isSelected ? 'text-white/80' : 'text-slate-400'
-                    }`}
-                  >
-                    {item.dayName}
-                  </span>
-                  <span className="text-xl font-black my-0.5">
-                    {item.dayNumber}
-                  </span>
-                  <span className={`text-[10px] font-bold ${
-                    isSelected ? 'text-white' : 'text-slate-500'
-                  }`}>{item.monthName}</span>
+                  <span className={`text-[11px] font-black ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>{item.dayName}</span>
+                  <span className="text-xl font-black my-0.5">{item.dayNumber}</span>
+                  <span className={`text-[10px] font-bold ${isSelected ? 'text-white' : 'text-slate-500'}`}>{item.monthName}</span>
                 </button>
               );
             })}
@@ -387,82 +396,48 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
         </div>
       )}
 
-      {/* View 2: Full Interactive Month Calendar Grid View */}
+      {/* View 2: Full Month Calendar Grid */}
       {viewType === 'month' && (
-        <div className="premium-card p-4 space-y-4">
-          {/* Month Header Navigation */}
-          <div className="flex items-center justify-between px-2">
-            <button
-              onClick={handlePrevMonth}
-              className="p-2 hover:bg-slate-100 rounded-xl text-slate-600 transition-colors active:scale-95"
-            >
+        <div className="bg-white border border-slate-200/80 rounded-3xl p-4 shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
+            <button onClick={handlePrevMonth} className="p-2 hover:bg-slate-100 rounded-xl text-slate-600 transition-colors active:scale-95">
               <ChevronLeft className="w-5 h-5" />
             </button>
             <span className="text-[13px] font-black text-foreground">
               {monthNamesThai[calendarMonth]} {calendarYear + 543}
             </span>
-            <button
-              onClick={handleNextMonth}
-              className="p-2 hover:bg-slate-100 rounded-xl text-slate-600 transition-colors active:scale-95"
-            >
+            <button onClick={handleNextMonth} className="p-2 hover:bg-slate-100 rounded-xl text-slate-600 transition-colors active:scale-95">
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>
-
-          {/* Weekday Labels */}
           <div className="grid grid-cols-7 text-center text-[11px] font-black text-slate-400 border-b border-border/50 pb-2">
-            {dayNamesThai.map((d) => (
-              <div key={d}>{d}</div>
-            ))}
+            {dayNamesThai.map((d) => <div key={d}>{d}</div>)}
           </div>
-
-          {/* Day Cells Matrix */}
           <div className="grid grid-cols-7 gap-1.5 text-center text-[13px]">
-            {/* Empty offset cells */}
-            {Array.from({ length: firstDay }).map((_, idx) => (
-              <div key={`empty-${idx}`} className="h-10" />
-            ))}
-
-            {/* Actual Month Days */}
+            {Array.from({ length: firstDay }).map((_, idx) => <div key={`empty-${idx}`} className="h-10" />)}
             {Array.from({ length: totalDays }).map((_, idx) => {
               const dayNum = idx + 1;
               const monthStr = (calendarMonth + 1).toString().padStart(2, '0');
               const dayStr = dayNum.toString().padStart(2, '0');
               const dateKey = `${calendarYear}-${monthStr}-${dayStr}`;
-
               const isSelected = activeDate === dateKey;
-              const isToday =
-                today.getFullYear() === calendarYear &&
-                today.getMonth() === calendarMonth &&
-                today.getDate() === dayNum;
-
-              // Check if date is past
+              const isToday = today.getFullYear() === calendarYear && today.getMonth() === calendarMonth && today.getDate() === dayNum;
               const cellDate = new Date(calendarYear, calendarMonth, dayNum);
-              const isPast =
-                cellDate < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-
+              const isPast = cellDate < new Date(today.getFullYear(), today.getMonth(), today.getDate());
               return (
                 <button
                   key={dateKey}
                   disabled={isPast}
-                  onClick={() => {
-                    setActiveDate(dateKey);
-                    setActiveTime('');
-                  }}
+                  onClick={() => { setActiveDate(dateKey); handleClearSelection(); }}
                   className={`h-10 w-full rounded-xl flex flex-col items-center justify-center font-bold text-[13px] transition-all duration-300 ${
-                    isPast
-                      ? 'text-slate-300 cursor-not-allowed bg-slate-50/50'
-                      : isSelected
-                      ? 'bg-primary text-white font-black shadow-md shadow-primary/30 ring-2 ring-primary/20 scale-110'
-                      : isToday
-                      ? 'bg-primary/10 text-primary border border-primary/20'
-                      : 'hover:bg-slate-100 text-slate-700 hover:scale-105'
+                    isPast ? 'text-slate-300 cursor-not-allowed bg-slate-50/50'
+                    : isSelected ? 'bg-primary text-white font-black shadow-md shadow-primary/30 ring-2 ring-primary/20 scale-110'
+                    : isToday ? 'bg-primary/10 text-primary border border-primary/20'
+                    : 'hover:bg-slate-100 text-slate-700 hover:scale-105'
                   }`}
                 >
                   <span>{dayNum}</span>
-                  {isSelected && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-white -mt-1 shadow-sm"></span>
-                  )}
+                  {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white -mt-1 shadow-sm"></span>}
                 </button>
               );
             })}
@@ -486,10 +461,52 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
         </span>
       </div>
 
+      {/* Selection Error Alert */}
+      {selectionError && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 flex items-start gap-3">
+          <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
+            <span className="text-amber-600 font-black text-[11px]">!</span>
+          </div>
+          <div className="flex-1">
+            <p className="text-[11px] font-black text-amber-800">เลือกช่วงเวลาไม่ได้</p>
+            <p className="text-[10px] text-amber-700 font-medium mt-0.5">{selectionError}</p>
+          </div>
+          <button onClick={() => setSelectionError(null)} className="text-amber-400 hover:text-amber-600 mt-0.5">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Selection Summary (when range selected) */}
+      {selectedHours > 0 && selectedStartHour !== null && selectedEndHour !== null && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center">
+              <Clock className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <p className="text-[11px] font-black text-emerald-800">ช่วงเวลาที่เลือก</p>
+              <p className="text-[13px] font-black text-emerald-900">
+                {toTimeStr(selectedStartHour)} - {toTimeStr(selectedEndHour)} น.
+                <span className="ml-2 text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-lg">
+                  {selectedHours} ชม.
+                </span>
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleClearSelection}
+            className="text-emerald-400 hover:text-emerald-700 p-1 rounded-lg hover:bg-emerald-100 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Time Slots Selection Area */}
       <div className="space-y-4 pt-2">
         {slotsError && (
-          <div className="border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700">
+          <div className="border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700 rounded-xl">
             {slotsError}
           </div>
         )}
@@ -498,9 +515,14 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
             <Clock className="w-4 h-4 text-primary" />
             เลือกรอบเวลาที่สะดวก
           </h3>
-          {slots.length > 0 && (
+          {rangeStart !== null && rangeEnd === null && (
+            <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200 animate-pulse">
+              กดสล็อตสิ้นสุด
+            </span>
+          )}
+          {rangeStart === null && (
             <span className="text-[11px] text-slate-500 font-medium">
-              คลิกเพื่อเลือกเวลา
+              แตะสล็อตที่ต้องการ
             </span>
           )}
         </div>
@@ -508,12 +530,8 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
         {slots.length === 0 ? (
           <div className="premium-card text-center space-y-2 py-10 px-6">
             <XCircle className="w-10 h-10 text-danger/80 mx-auto mb-2" />
-            <p className="text-[13px] text-slate-800 font-black">
-              ไม่มีรอบเวลาบริการว่างในวันที่เลือก
-            </p>
-            <p className="text-[11px] text-slate-500 font-medium">
-              ร้านอาจปิดบริการหรือคิวเต็มแล้ว กรุณาเลือกวันอื่นในปฏิทิน
-            </p>
+            <p className="text-[13px] text-slate-800 font-black">ไม่มีรอบเวลาบริการว่างในวันที่เลือก</p>
+            <p className="text-[11px] text-slate-500 font-medium">ร้านอาจปิดบริการหรือคิวเต็มแล้ว กรุณาเลือกวันอื่นในปฏิทิน</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -524,7 +542,7 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
                   <Sun className="w-3.5 h-3.5" />
                   <span>ช่วงเช้า (08:00 - 12:00 น.)</span>
                 </div>
-                <div className={`grid gap-2 ${bookingHours > 1 ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3'}`}>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {morningSlots.map((slot) => renderSlotButton(slot))}
                 </div>
               </div>
@@ -537,7 +555,7 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
                   <Sunset className="w-3.5 h-3.5" />
                   <span>ช่วงบ่าย (12:00 - 17:00 น.)</span>
                 </div>
-                <div className={`grid gap-2 ${bookingHours > 1 ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3'}`}>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {afternoonSlots.map((slot) => renderSlotButton(slot))}
                 </div>
               </div>
@@ -550,7 +568,7 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
                   <Moon className="w-3.5 h-3.5" />
                   <span>ช่วงเย็น/ค่ำ (17:00 - 23:00 น.)</span>
                 </div>
-                <div className={`grid gap-2 ${bookingHours > 1 ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3'}`}>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {eveningSlots.map((slot) => renderSlotButton(slot))}
                 </div>
               </div>
@@ -565,25 +583,36 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
           <div>
             <p className="text-[9px] text-slate-500 font-extrabold uppercase tracking-wider mb-0.5">รอบเวลาที่เลือก</p>
             <p className="text-[13px] font-black text-slate-900 leading-tight">
-              {activeTime ? `${activeDateThai}, ${activeTime} น.` : 'แตะเลือกเวลา'}
+              {canConfirm && selectedStartHour !== null && selectedEndHour !== null
+                ? `${activeDateThai}, ${toTimeStr(selectedStartHour)} - ${toTimeStr(selectedEndHour)} น.`
+                : 'แตะสล็อตเพื่อเลือกเวลา'}
             </p>
           </div>
           <div className="text-right">
             <p className="text-[9px] text-slate-500 font-extrabold uppercase tracking-wider mb-0.5">รวมทั้งหมด</p>
-            <p className="text-[14px] font-black text-emerald-600">฿{totalPrice.toLocaleString()}</p>
+            <p className="text-[14px] font-black text-emerald-600">
+              ฿{canConfirm ? totalPrice.toLocaleString() : pricePerHour.toLocaleString()}
+              {canConfirm && selectedHours > 1 && (
+                <span className="text-[10px] font-bold text-slate-400 ml-1">({selectedHours} ชม.)</span>
+              )}
+            </p>
           </div>
         </div>
         <button
-          disabled={!activeTime}
-          onClick={() => onSelectSlot(activeDate, activeTime, bookingHours)}
+          disabled={!canConfirm}
+          onClick={() => {
+            if (canConfirm && selectedStartHour !== null) {
+              onSelectSlot(activeDate, activeTimeDisplay, selectedHours);
+            }
+          }}
           className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-6 rounded-2xl text-[14px] shadow-lg shadow-emerald-600/20 flex items-center justify-between group disabled:bg-slate-300 disabled:shadow-none disabled:text-slate-500 transition-all"
         >
           <span className="truncate">
-            {activeTime
-              ? `ยืนยัน ${activeTime} น.`
+            {canConfirm && selectedStartHour !== null && selectedEndHour !== null
+              ? `ยืนยัน ${toTimeStr(selectedStartHour)}-${toTimeStr(selectedEndHour)} น. (${selectedHours} ชม.)`
               : 'กรุณาเลือกรอบเวลา'}
           </span>
-          <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform ${activeTime ? 'bg-white/20 group-hover:translate-x-1' : 'bg-transparent'}`}>
+          <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform ${canConfirm ? 'bg-white/20 group-hover:translate-x-1' : 'bg-transparent'}`}>
             <ChevronRight className="w-5 h-5 text-white" />
           </div>
         </button>

@@ -39,6 +39,7 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
 }) => {
   const { getAvailableSlots } = useSaaS();
 
+  const [bookingHours, setBookingHours] = useState<number>(1);
   const addonsTotal = selectedAddons.reduce((sum, a) => sum + (a.price || 0), 0);
   const addonsExtraDuration = selectedAddons.reduce((sum, a) => sum + (a.extraDurationMinutes || 0), 0);
   
@@ -46,9 +47,9 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
   const [activeTime, setActiveTime] = useState<string>(initialTime);
 
   const calculated = calculateServicePrice(service, activeTime, activeDate);
-  const currentServicePrice = calculated.finalPrice;
+  const currentServicePrice = (calculated.finalPrice || service.price || 1200) * bookingHours;
   const totalPrice = currentServicePrice + addonsTotal;
-  const totalDurationMinutes = service.durationMinutes + addonsExtraDuration;
+  const totalDurationMinutes = (service.durationMinutes * bookingHours) + addonsExtraDuration;
 
   const [viewType, setViewType] = useState<'month' | 'strip'>('strip');
   const [slots, setSlots] = useState<Awaited<ReturnType<typeof getAvailableSlots>>>([]);
@@ -156,6 +157,65 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
     return hour >= 17;
   });
 
+  const checkSlotAvailableForHours = (startTimeStr: string, hrs: number) => {
+    const startHour = parseInt(startTimeStr.split(':')[0], 10);
+    for (let i = 0; i < hrs; i++) {
+      const checkH = startHour + i;
+      const checkHStr = checkH < 10 ? `0${checkH}:00` : `${checkH}:00`;
+      const targetSlot = slots.find((s) => s.startTime === checkHStr);
+      if (!targetSlot || !targetSlot.isAvailable) return false;
+    }
+    return true;
+  };
+
+  const getSlotDisplayLabel = (startTimeStr: string, hrs: number) => {
+    if (hrs === 1) return startTimeStr;
+    const startHour = parseInt(startTimeStr.split(':')[0], 10);
+    const endHour = startHour + hrs;
+    const endHourStr = endHour < 10 ? `0${endHour}:00` : `${endHour}:00`;
+    return `${startTimeStr} - ${endHourStr}`;
+  };
+
+  const renderSlotButton = (slot: { startTime: string; isAvailable: boolean }) => {
+    const isAvailableForSelectedHours = checkSlotAvailableForHours(slot.startTime, bookingHours);
+    const displayLabel = getSlotDisplayLabel(slot.startTime, bookingHours);
+    const isSelected = activeTime === slot.startTime || activeTime === displayLabel;
+
+    return (
+      <button
+        key={slot.startTime}
+        disabled={!isAvailableForSelectedHours}
+        onClick={() => {
+          if (bookingHours === 1) {
+            setActiveTime(slot.startTime);
+          } else {
+            setActiveTime(displayLabel);
+          }
+        }}
+        className={`py-2.5 px-1.5 rounded-2xl border text-xs font-bold transition-all duration-200 flex flex-col items-center justify-center gap-0.5 ${
+          !isAvailableForSelectedHours
+            ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed line-through'
+            : isSelected
+            ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20 scale-[1.03]'
+            : 'bg-white text-slate-800 border-slate-200 hover:border-emerald-500/40 hover:bg-emerald-50/50'
+        }`}
+      >
+        <span className="font-extrabold text-[12px]">{displayLabel}</span>
+        <span
+          className={`text-[9.5px] font-black ${
+            !isAvailableForSelectedHours
+              ? 'text-slate-300'
+              : isSelected
+              ? 'text-white/90'
+              : 'text-emerald-600'
+          }`}
+        >
+          {isAvailableForSelectedHours ? 'ว่าง' : 'เต็มแล้ว'}
+        </span>
+      </button>
+    );
+  };
+
   // Active date thai display
   const activeDateObj = new Date(activeDate);
   const activeDateThai = `${activeDateObj.getDate()} ${
@@ -185,9 +245,9 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
         <div className="flex items-center justify-between text-xs opacity-90 border-b border-white/10 pb-3 relative z-10">
           <span className="font-extrabold flex items-center gap-1.5 text-primary-light">
             <Sparkles className="w-4 h-4" />
-            เลือกรอบเวลาการจอง
+            เลือกรอบเวลาการจอง ({bookingHours} ชั่วโมง)
           </span>
-          <span className="bg-white/10 px-3 py-1 rounded-full font-black text-white backdrop-blur-md">
+          <span className="bg-emerald-500 text-white px-3 py-1 rounded-full font-black text-xs shadow-sm">
             {totalDurationMinutes} นาที
           </span>
         </div>
@@ -202,12 +262,50 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
           </div>
           <div className="text-right">
             <span className="text-[10px] text-slate-400 block font-bold">
-              {selectedAddons.length > 0 ? 'ราคารวม' : 'ค่าบริการ'}
+              {selectedAddons.length > 0 ? 'ราคารวม' : `ค่าบริการ (${bookingHours} ชม.)`}
             </span>
-            <span className="text-xl font-black text-primary-light drop-shadow-sm">
+            <span className="text-xl font-black text-emerald-400 drop-shadow-sm">
               <span className="text-sm mr-0.5">฿</span>{totalPrice.toLocaleString()}
             </span>
           </div>
+        </div>
+      </div>
+
+      {/* Duration Selector Bar for Sports Courts (1, 2, 3, 4 Hours) */}
+      <div className="bg-white border border-slate-200/80 p-4 rounded-3xl shadow-sm space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[13px] font-black text-slate-900 flex items-center gap-1.5">
+            <Clock className="w-4 h-4 text-emerald-600" />
+            เลือกระยะเวลาการเล่น (ชั่วโมง)
+          </span>
+          <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-xl border border-emerald-200">
+            {bookingHours} ชั่วโมงต่อเนื่อง
+          </span>
+        </div>
+
+        <div className="grid grid-cols-4 gap-2 pt-1">
+          {[1, 2, 3, 4].map((hrs) => {
+            const isSelected = bookingHours === hrs;
+            return (
+              <button
+                key={hrs}
+                onClick={() => {
+                  setBookingHours(hrs);
+                  setActiveTime(''); // Reset selected time when duration changes
+                }}
+                className={`py-2.5 px-2 rounded-2xl text-xs font-black transition-all flex flex-col items-center gap-0.5 border ${
+                  isSelected
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20 scale-[1.03]'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <span>{hrs} ชม.</span>
+                <span className={`text-[10px] ${isSelected ? 'text-white/90 font-extrabold' : 'text-slate-400 font-medium'}`}>
+                  ฿{(service.price * hrs).toLocaleString()}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -414,132 +512,39 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
           <div className="space-y-4">
             {/* Morning Period */}
             {morningSlots.length > 0 && (
-              <div className="premium-card p-4 space-y-3">
-                <div className="flex items-center gap-1.5 text-amber-500 text-[11px] font-black bg-amber-50 w-fit px-2.5 py-1 rounded-lg">
+              <div className="bg-white border border-slate-200/80 rounded-3xl p-4 space-y-3 shadow-sm">
+                <div className="flex items-center gap-1.5 text-amber-600 text-[11px] font-black bg-amber-50 w-fit px-3 py-1 rounded-xl border border-amber-200/60">
                   <Sun className="w-3.5 h-3.5" />
-                  <span>ช่วงเช้า (09:00 - 12:00 น.)</span>
+                  <span>ช่วงเช้า (08:00 - 12:00 น.)</span>
                 </div>
-                <div className="grid grid-cols-3 gap-2.5">
-                  {morningSlots.map((slot) => {
-                    const isSelected = activeTime === slot.startTime;
-                    return (
-                      <button
-                        key={slot.startTime}
-                        disabled={!slot.isAvailable}
-                        onClick={() => setActiveTime(slot.startTime)}
-                        className={`py-2.5 px-2 rounded-2xl border text-[13px] font-bold transition-all duration-300 flex flex-col items-center justify-center gap-1 ${
-                          !slot.isAvailable
-                            ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed line-through'
-                            : isSelected
-                            ? 'bg-primary text-white border-primary shadow-md shadow-primary/20 ring-2 ring-primary/20 scale-[1.03]'
-                            : 'bg-white text-slate-700 border-border hover:border-primary/40 hover:bg-slate-50'
-                        }`}
-                      >
-                        <div className="flex items-center gap-1">
-                          <span>{slot.startTime}</span>
-                        </div>
-                        <span
-                          className={`text-[9px] font-black ${
-                            !slot.isAvailable
-                              ? 'text-slate-300'
-                              : isSelected
-                              ? 'text-white/90'
-                              : 'text-primary'
-                          }`}
-                        >
-                          {slot.isAvailable ? 'ว่าง' : 'เต็มแล้ว'}
-                        </span>
-                      </button>
-                    );
-                  })}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {morningSlots.map((slot) => renderSlotButton(slot))}
                 </div>
               </div>
             )}
 
             {/* Afternoon Period */}
             {afternoonSlots.length > 0 && (
-              <div className="premium-card p-4 space-y-3">
-                <div className="flex items-center gap-1.5 text-orange-500 text-[11px] font-black bg-orange-50 w-fit px-2.5 py-1 rounded-lg">
+              <div className="bg-white border border-slate-200/80 rounded-3xl p-4 space-y-3 shadow-sm">
+                <div className="flex items-center gap-1.5 text-orange-600 text-[11px] font-black bg-orange-50 w-fit px-3 py-1 rounded-xl border border-orange-200/60">
                   <Sunset className="w-3.5 h-3.5" />
                   <span>ช่วงบ่าย (12:00 - 17:00 น.)</span>
                 </div>
-                <div className="grid grid-cols-3 gap-2.5">
-                  {afternoonSlots.map((slot) => {
-                    const isSelected = activeTime === slot.startTime;
-                    return (
-                      <button
-                        key={slot.startTime}
-                        disabled={!slot.isAvailable}
-                        onClick={() => setActiveTime(slot.startTime)}
-                        className={`py-2.5 px-2 rounded-2xl border text-[13px] font-bold transition-all duration-300 flex flex-col items-center justify-center gap-1 ${
-                          !slot.isAvailable
-                            ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed line-through'
-                            : isSelected
-                            ? 'bg-primary text-white border-primary shadow-md shadow-primary/20 ring-2 ring-primary/20 scale-[1.03]'
-                            : 'bg-white text-slate-700 border-border hover:border-primary/40 hover:bg-slate-50'
-                        }`}
-                      >
-                        <div className="flex items-center gap-1">
-                          <span>{slot.startTime}</span>
-                        </div>
-                        <span
-                          className={`text-[9px] font-black ${
-                            !slot.isAvailable
-                              ? 'text-slate-300'
-                              : isSelected
-                              ? 'text-white/90'
-                              : 'text-primary'
-                          }`}
-                        >
-                          {slot.isAvailable ? 'ว่าง' : 'เต็มแล้ว'}
-                        </span>
-                      </button>
-                    );
-                  })}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {afternoonSlots.map((slot) => renderSlotButton(slot))}
                 </div>
               </div>
             )}
 
             {/* Evening Period */}
             {eveningSlots.length > 0 && (
-              <div className="premium-card p-4 space-y-3">
-                <div className="flex items-center gap-1.5 text-indigo-500 text-[11px] font-black bg-indigo-50 w-fit px-2.5 py-1 rounded-lg">
+              <div className="bg-white border border-slate-200/80 rounded-3xl p-4 space-y-3 shadow-sm">
+                <div className="flex items-center gap-1.5 text-indigo-600 text-[11px] font-black bg-indigo-50 w-fit px-3 py-1 rounded-xl border border-indigo-200/60">
                   <Moon className="w-3.5 h-3.5" />
-                  <span>ช่วงเย็น/ค่ำ (17:00 - 20:00 น.)</span>
+                  <span>ช่วงเย็น/ค่ำ (17:00 - 23:00 น.)</span>
                 </div>
-                <div className="grid grid-cols-3 gap-2.5">
-                  {eveningSlots.map((slot) => {
-                    const isSelected = activeTime === slot.startTime;
-                    return (
-                      <button
-                        key={slot.startTime}
-                        disabled={!slot.isAvailable}
-                        onClick={() => setActiveTime(slot.startTime)}
-                        className={`py-2.5 px-2 rounded-2xl border text-[13px] font-bold transition-all duration-300 flex flex-col items-center justify-center gap-1 ${
-                          !slot.isAvailable
-                            ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed line-through'
-                            : isSelected
-                            ? 'bg-primary text-white border-primary shadow-md shadow-primary/20 ring-2 ring-primary/20 scale-[1.03]'
-                            : 'bg-white text-slate-700 border-border hover:border-primary/40 hover:bg-slate-50'
-                        }`}
-                      >
-                        <div className="flex items-center gap-1">
-                          <span>{slot.startTime}</span>
-                        </div>
-                        <span
-                          className={`text-[9px] font-black ${
-                            !slot.isAvailable
-                              ? 'text-slate-300'
-                              : isSelected
-                              ? 'text-white/90'
-                              : 'text-primary'
-                          }`}
-                        >
-                          {slot.isAvailable ? 'ว่าง' : 'เต็มแล้ว'}
-                        </span>
-                      </button>
-                    );
-                  })}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {eveningSlots.map((slot) => renderSlotButton(slot))}
                 </div>
               </div>
             )}

@@ -140,6 +140,7 @@ interface SaaSContextType {
   updateTenantSettings: (settings: Partial<Tenant['settings']>, tenantInfo?: Partial<Tenant>) => void;
   updateTenant: (tenantId: string, updates: Partial<Tenant>) => Promise<void>;
   updateCurrentUserContact: (contact: { phone?: string; email?: string }) => Promise<boolean>;
+  updateBusinessHours: (hours: BusinessHour[]) => Promise<void>;
   deleteTenant: (tenantId: string) => Promise<void>;
   markNotificationAsRead: (notificationId: string) => void;
   addOnboardingTenant: (tenantData: Partial<Tenant>, initialService: Partial<Service>) => void;
@@ -1098,6 +1099,29 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (error) console.error('Error deleting tenant in Supabase:', error.message);
   };
 
+  const updateBusinessHours = async (hours: BusinessHour[]): Promise<void> => {
+    if (!activeTenant) return;
+    setBusinessHours(hours);
+
+    for (const bh of hours) {
+      const row = {
+        tenant_id: activeTenant.id,
+        day_of_week: bh.dayOfWeek,
+        open_time: bh.openTime,
+        close_time: bh.closeTime,
+        is_open: bh.isOpen,
+      };
+
+      const { error } = await supabase
+        .from('business_hours')
+        .upsert(row, { onConflict: 'tenant_id,day_of_week' });
+
+      if (error) {
+        console.error('Error upserting business_hours:', error.message);
+      }
+    }
+  };
+
   const markNotificationAsRead = (notificationId: string) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === notificationId ? { ...n, status: 'read' as const } : n))
@@ -1286,6 +1310,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         updateTenantSettings,
         updateTenant,
         updateCurrentUserContact,
+        updateBusinessHours,
         deleteTenant,
         markNotificationAsRead,
         addOnboardingTenant,

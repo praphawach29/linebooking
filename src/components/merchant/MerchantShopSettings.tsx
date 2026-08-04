@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
+import { BusinessHour } from '../../types';
 import {
   Store,
   Upload,
@@ -13,6 +14,8 @@ import {
   Tag,
   FileText,
   Sparkles,
+  Clock,
+  Copy,
 } from 'lucide-react';
 
 // Preset sample logo avatars for quick selection
@@ -25,8 +28,18 @@ const PRESET_LOGOS = [
   { name: 'ร้านกาแฟ / คาเฟ่', url: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=150&auto=format&fit=crop&q=80' },
 ];
 
+const DAYS_LIST = [
+  { id: 1, name: 'วันจันทร์' },
+  { id: 2, name: 'วันอังคาร' },
+  { id: 3, name: 'วันพุธ' },
+  { id: 4, name: 'วันพฤหัสบดี' },
+  { id: 5, name: 'วันศุกร์' },
+  { id: 6, name: 'วันเสาร์' },
+  { id: 0, name: 'วันอาทิตย์' },
+];
+
 export const MerchantShopSettings: React.FC = () => {
-  const { activeTenant, updateTenant } = useSaaS();
+  const { activeTenant, updateTenant, businessHours, updateBusinessHours } = useSaaS();
 
   const [name, setName] = useState(activeTenant?.name || '');
   const [logoUrl, setLogoUrl] = useState(activeTenant?.logoUrl || '');
@@ -37,11 +50,50 @@ export const MerchantShopSettings: React.FC = () => {
   const [address, setAddress] = useState(activeTenant?.address || '');
   const [businessType, setBusinessType] = useState<any>(activeTenant?.businessType || 'other');
 
+  // Business Hours State
+  const [localHours, setLocalHours] = useState<BusinessHour[]>(() => {
+    return [1, 2, 3, 4, 5, 6, 0].map((dow) => {
+      const existing = businessHours.find((h) => h.dayOfWeek === dow && (!h.tenantId || h.tenantId === activeTenant?.id));
+      if (existing) return existing;
+      return {
+        id: `bh-${dow}`,
+        tenantId: activeTenant?.id || '',
+        dayOfWeek: dow,
+        openTime: '08:00',
+        closeTime: '23:00',
+        isOpen: true,
+      };
+    });
+  });
+
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   if (!activeTenant) return null;
+
+  const handleHourChange = (dow: number, field: keyof BusinessHour, value: any) => {
+    setLocalHours((prev) =>
+      prev.map((h) => (h.dayOfWeek === dow ? { ...h, [field]: value } : h))
+    );
+  };
+
+  const applyPresetHours = (openTime: string, closeTime: string) => {
+    setLocalHours((prev) =>
+      prev.map((h) => ({ ...h, openTime, closeTime, isOpen: true }))
+    );
+  };
+
+  const copyToAllDays = (source: BusinessHour) => {
+    setLocalHours((prev) =>
+      prev.map((h) => ({
+        ...h,
+        openTime: source.openTime,
+        closeTime: source.closeTime,
+        isOpen: source.isOpen,
+      }))
+    );
+  };
 
   // Handle local file upload & convert to Data URL
   const handleLogoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -103,6 +155,10 @@ export const MerchantShopSettings: React.FC = () => {
         businessType,
       });
 
+      if (updateBusinessHours) {
+        await updateBusinessHours(localHours);
+      }
+
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 4000);
     } catch (err: any) {
@@ -122,11 +178,9 @@ export const MerchantShopSettings: React.FC = () => {
             <Store className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-extrabold text-white flex items-center gap-2">
-              ตั้งค่าข้อมูลร้านค้า & โลโก้
-            </h1>
-            <p className="text-xs text-slate-300 mt-1">
-              จัดการชื่อร้าน, โลโก้, ข้อมูลติดต่อ และรายละเอียดของร้านค้าที่แสดงบน LINE OA
+            <h1 className="text-xl font-black">{activeTenant.name}</h1>
+            <p className="text-slate-300 text-xs mt-0.5 font-medium">
+              ตั้งค่าชื่อร้าน โลโก้ รูปหน้าปก เวลาเปิด-ปิด และข้อมูลการติดต่อหน้าร้าน
             </p>
           </div>
         </div>
@@ -140,147 +194,81 @@ export const MerchantShopSettings: React.FC = () => {
       </div>
 
       {saveSuccess && (
-        <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 p-4 rounded-2xl flex items-center gap-3 animate-in fade-in">
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-2xl flex items-center gap-3 text-xs font-bold animate-fadeIn">
           <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-          <span className="text-xs font-extrabold">
-            บันทึกข้อมูลและโลโก้ร้านค้าสำเร็จเรียบร้อยแล้ว! 🚀
-          </span>
+          <span>บันทึกข้อมูลร้านค้า โลโก้ และเวลาทำการเรียบร้อยแล้ว</span>
         </div>
       )}
 
       {saveError && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-800 p-4 rounded-2xl flex items-center gap-3 animate-in fade-in">
+        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-2xl flex items-center gap-3 text-xs font-bold">
           <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
-          <span className="text-xs font-extrabold">{saveError}</span>
+          <span>{saveError}</span>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Section 1: Logo & Cover Image */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-6">
+        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-5">
           <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
             <ImageIcon className="w-4 h-4 text-emerald-600" />
-            รูปโลโก้และภาพปกของร้านค้า (Shop Logo & Cover)
+            โลโก้ & ภาพหน้าปก (Brand Assets)
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Logo Preview & Custom Upload */}
-            <div className="space-y-3">
-              <label className="block text-xs font-bold text-slate-700">
-                โลโก้ร้านค้า (Shop Logo) *
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-2">
+                โลโก้ร้านค้า (Logo Avatar)
               </label>
-
-              <div className="flex items-center gap-4">
-                <div className="w-20 h-20 rounded-2xl bg-slate-100 border-2 border-slate-200 overflow-hidden flex items-center justify-center shrink-0 shadow-md">
-                  {logoUrl ? (
-                    <img src={logoUrl} alt="Shop Logo Preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <Store className="w-8 h-8 text-slate-400" />
-                  )}
-                </div>
-
-                <div className="space-y-2 flex-1">
-                  <label className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl cursor-pointer transition-all shadow-sm shadow-emerald-600/20 active:scale-95">
-                    <Upload className="w-4 h-4" />
-                    <span>อัปโหลดรูปจากเครื่อง</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoFileUpload}
-                      className="hidden"
-                    />
+              <div className="flex items-center gap-4 mb-3">
+                <img
+                  src={logoUrl || 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=150&auto=format&fit=crop&q=80'}
+                  alt="Logo preview"
+                  className="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-500/30 shadow-md flex-shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <label className="cursor-pointer inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-2 rounded-xl text-xs transition-colors">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>อัปโหลดโลโก้ใหม่</span>
+                    <input type="file" accept="image/*" onChange={handleLogoFileUpload} className="hidden" />
                   </label>
-                  <p className="text-[10px] text-slate-400">รองรับไฟล์ JPG, PNG, WEBP (ไม่เกิน 5MB)</p>
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-500 mb-1">
-                  หรือวาง URL รูปภาพโลโก้:
-                </label>
-                <input
-                  type="url"
-                  value={logoUrl}
-                  onChange={(e) => setLogoUrl(e.target.value)}
-                  placeholder="https://example.com/logo.png"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                />
-              </div>
-
-              {/* Preset Sample Logos */}
-              <div className="pt-2">
-                <p className="text-[11px] font-bold text-slate-500 mb-2">เลือกใช้ตัวอย่างโลโก้สำเร็จรูป:</p>
+                <span className="text-[11px] font-bold text-slate-500 block mb-1.5">เลือกใช้ตัวอย่างโลโก้สำเร็จรูป:</span>
                 <div className="grid grid-cols-3 gap-2">
-                  {PRESET_LOGOS.map((preset, idx) => (
+                  {PRESET_LOGOS.map((p) => (
                     <button
-                      key={idx}
+                      key={p.name}
                       type="button"
-                      onClick={() => setLogoUrl(preset.url)}
-                      className={`flex items-center gap-2 p-1.5 rounded-xl border text-left transition-all ${
-                        logoUrl === preset.url
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-800 font-bold shadow-xs'
-                          : 'border-slate-200 hover:bg-slate-50 text-slate-600'
-                      }`}
+                      onClick={() => setLogoUrl(p.url)}
+                      className="p-1.5 rounded-xl border border-slate-200 hover:border-emerald-500 text-[10px] font-bold text-slate-600 hover:text-emerald-700 flex flex-col items-center gap-1 transition-colors"
                     >
-                      <img src={preset.url} alt={preset.name} className="w-7 h-7 rounded-lg object-cover shrink-0" />
-                      <span className="text-[10px] truncate">{preset.name}</span>
+                      <img src={p.url} className="w-8 h-8 rounded-lg object-cover" alt={p.name} />
+                      <span className="truncate w-full text-center">{p.name}</span>
                     </button>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* Cover Image Upload */}
-            <div className="space-y-3">
-              <label className="block text-xs font-bold text-slate-700">
-                รูปภาพปกหน้าร้าน (Cover Image)
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-2">
+                รูปภาพหน้าปก (Cover Banner)
               </label>
-
-              <div className="h-28 rounded-2xl bg-slate-100 border-2 border-slate-200 overflow-hidden flex items-center justify-center relative shadow-sm">
-                {coverImageUrl ? (
-                  <img src={coverImageUrl} alt="Cover Preview" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="text-center text-slate-400">
-                    <ImageIcon className="w-8 h-8 mx-auto mb-1 opacity-50" />
-                    <span className="text-[11px]">ยังไม่มีรูปปกหน้าร้าน</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <label className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs px-3.5 py-2 rounded-xl cursor-pointer transition-all shadow-sm active:scale-95">
-                  <Upload className="w-4 h-4" />
-                  <span>อัปโหลดรูปปก</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleCoverFileUpload}
-                    className="hidden"
-                  />
-                </label>
-                {coverImageUrl && (
-                  <button
-                    type="button"
-                    onClick={() => setCoverImageUrl('')}
-                    className="text-xs text-red-500 hover:underline px-2 py-1"
-                  >
-                    ลบรูปปก
-                  </button>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-500 mb-1">
-                  หรือวาง URL รูปปก:
-                </label>
-                <input
-                  type="url"
-                  value={coverImageUrl}
-                  onChange={(e) => setCoverImageUrl(e.target.value)}
-                  placeholder="https://images.unsplash.com/photo-..."
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              {coverImageUrl && (
+                <img
+                  src={coverImageUrl}
+                  alt="Cover preview"
+                  className="w-full h-24 rounded-2xl object-cover border border-slate-200 shadow-sm mb-2"
                 />
-              </div>
+              )}
+              <label className="cursor-pointer inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-2 rounded-xl text-xs transition-colors">
+                <Upload className="w-3.5 h-3.5" />
+                <span>อัปโหลดรูปหน้าปก</span>
+                <input type="file" accept="image/*" onChange={handleCoverFileUpload} className="hidden" />
+              </label>
             </div>
           </div>
         </div>
@@ -390,6 +378,109 @@ export const MerchantShopSettings: React.FC = () => {
                 className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
+          </div>
+        </div>
+
+        {/* Section 4: Business Hours Settings */}
+        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-emerald-600" />
+                เวลาเปิด - ปิดทำการร้านค้า (Business Hours)
+              </h2>
+              <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                กำหนดเวลาให้บริการในแต่ละวันของสัปดาห์ (ระบบนำไปปล่อยสล็อตจองให้อัตโนมัติ)
+              </p>
+            </div>
+            {/* Quick Presets */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => applyPresetHours('08:00', '23:00')}
+                className="text-[10px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-2.5 py-1 rounded-xl border border-emerald-200 transition-colors"
+              >
+                ⚽ 08:00 - 23:00 น. (สนามกีฬา)
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPresetHours('09:00', '19:00')}
+                className="text-[10px] font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 px-2.5 py-1 rounded-xl border border-slate-200 transition-colors"
+              >
+                💈 09:00 - 19:00 น. (สปา/ตัดผม)
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-2.5 pt-1">
+            {DAYS_LIST.map((day) => {
+              const bh = localHours.find((h) => h.dayOfWeek === day.id) || {
+                id: `bh-${day.id}`,
+                tenantId: activeTenant.id,
+                dayOfWeek: day.id,
+                openTime: '08:00',
+                closeTime: '23:00',
+                isOpen: true,
+              };
+
+              return (
+                <div
+                  key={day.id}
+                  className={`p-3 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                    bh.isOpen ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-100/60 border-slate-200/60 opacity-60'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 w-36 shrink-0">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={bh.isOpen}
+                        onChange={(e) => handleHourChange(day.id, 'isOpen', e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                    </label>
+                    <span className="font-extrabold text-xs text-slate-800">{day.name}</span>
+                  </div>
+
+                  {bh.isOpen ? (
+                    <div className="flex items-center gap-2 flex-1 justify-start sm:justify-center text-xs">
+                      <span className="text-slate-500 font-bold text-[11px]">เปิด:</span>
+                      <input
+                        type="time"
+                        value={bh.openTime}
+                        onChange={(e) => handleHourChange(day.id, 'openTime', e.target.value)}
+                        className="bg-white border border-slate-300 rounded-xl px-2 py-1 font-mono font-bold text-xs focus:outline-none focus:border-emerald-500"
+                      />
+                      <span className="text-slate-400 font-bold">-</span>
+                      <span className="text-slate-500 font-bold text-[11px]">ปิด:</span>
+                      <input
+                        type="time"
+                        value={bh.closeTime}
+                        onChange={(e) => handleHourChange(day.id, 'closeTime', e.target.value)}
+                        className="bg-white border border-slate-300 rounded-xl px-2 py-1 font-mono font-bold text-xs focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  ) : (
+                    <span className="text-xs font-bold text-red-500 bg-red-50 px-2.5 py-1 rounded-lg border border-red-200">
+                      ปิดทำการประจำวัน
+                    </span>
+                  )}
+
+                  {bh.isOpen && (
+                    <button
+                      type="button"
+                      onClick={() => copyToAllDays(bh)}
+                      title="คัดลอกเวลาเปิด-ปิดนี้ไปยังทุกวัน"
+                      className="text-[10px] font-bold text-slate-500 hover:text-emerald-700 bg-white hover:bg-emerald-50 px-2.5 py-1 rounded-xl border border-slate-200 hover:border-emerald-300 transition-colors flex items-center gap-1 shrink-0 self-end sm:self-center"
+                    >
+                      <Copy className="w-3 h-3 text-slate-400" />
+                      <span>ใช้เวลานี้ทุกวัน</span>
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 

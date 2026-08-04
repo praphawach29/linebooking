@@ -41,13 +41,15 @@ export const LiffCourtSelect: React.FC<LiffCourtSelectProps> = ({
   const getCourtBadge = (type?: string) => {
     switch (type) {
       case 'indoor':
-        return <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Indoor ร่ม</span>;
+        return <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Indoor ในร่ม 🏟️</span>;
+      case 'outdoor':
+        return <span className="bg-sky-100 text-sky-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Outdoor กลางแจ้ง ☀️</span>;
       case 'air_conditioned':
         return <span className="bg-sky-100 text-sky-800 text-[10px] font-bold px-2 py-0.5 rounded-full">VIP ติดแอร์ ❄️</span>;
       case 'clay':
-        return <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">คอร์ทดินแดง 🎾</span>;
+        return <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">คอร์ทดิน 🎾</span>;
       case 'parquet':
-        return <span className="bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded-full">พื้นไม้ FIBA 🏀</span>;
+        return <span className="bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded-full">ปาร์เก้ FIBA 🏀</span>;
       default:
         return <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full">มาตรฐาน</span>;
     }

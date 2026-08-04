@@ -16,6 +16,10 @@ export class CreateCustomerBookingDto {
   @IsLooseUuid()
   staffId?: string;
 
+  @IsOptional()
+  @IsLooseUuid()
+  courtId?: string;
+
   @IsRealDateString({
     message: 'bookingDate must be a valid real date in YYYY-MM-DD format',
   })

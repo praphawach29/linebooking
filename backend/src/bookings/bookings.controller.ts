@@ -51,7 +51,7 @@ export class BookingsController {
       query.bookingDate,
       query.serviceId,
       query.staffId,
-      { actor: 'customer' },
+      { actor: 'customer', courtId: query.courtId },
     );
   }
 
@@ -68,6 +68,7 @@ export class BookingsController {
       customerUserId: customer.id,
       serviceId: dto.serviceId,
       staffId: dto.staffId ?? undefined,
+      courtId: dto.courtId ?? undefined,
       bookingDate: dto.bookingDate,
       startTime: dto.startTime,
       customerName: dto.customerName,
@@ -88,6 +89,7 @@ export class BookingsController {
       customerUserId: dto.customerId,
       serviceId: dto.serviceId,
       staffId: dto.staffId ?? undefined,
+      courtId: dto.courtId ?? undefined,
       bookingDate: dto.bookingDate,
       startTime: dto.startTime,
       customerName: dto.customerName,

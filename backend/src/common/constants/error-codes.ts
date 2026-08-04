@@ -16,6 +16,7 @@ export enum ErrorCode {
   // Resource & Service Errors
   SERVICE_NOT_FOUND = 'SERVICE_NOT_FOUND',
   SERVICE_INACTIVE = 'SERVICE_INACTIVE',
+  RESOURCE_NOT_FOUND = 'RESOURCE_NOT_FOUND',
 
   // Staff Errors
   STAFF_NOT_FOUND = 'STAFF_NOT_FOUND',

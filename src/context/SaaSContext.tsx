@@ -139,6 +139,7 @@ interface SaaSContextType {
   deleteCourt: (courtId: string) => void;
   updateTenantSettings: (settings: Partial<Tenant['settings']>, tenantInfo?: Partial<Tenant>) => void;
   updateTenant: (tenantId: string, updates: Partial<Tenant>) => Promise<void>;
+  updateCurrentUserContact: (contact: { phone?: string; email?: string }) => Promise<boolean>;
   deleteTenant: (tenantId: string) => Promise<void>;
   markNotificationAsRead: (notificationId: string) => void;
   addOnboardingTenant: (tenantData: Partial<Tenant>, initialService: Partial<Service>) => void;
@@ -610,7 +611,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const response = await getAvailableSlotsFromApi(
         activeTenant.id,
-        { serviceId, bookingDate: dateStr, staffId },
+        { serviceId, bookingDate: dateStr, staffId, courtId },
       );
       if (response && response.slots && response.slots.length > 0) {
         return response.slots
@@ -687,6 +688,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const input = {
         serviceId: data.serviceId,
         staffId: data.staffId,
+        courtId: data.courtId,
         bookingDate: data.bookingDate,
         startTime: data.startTime,
         customerName: data.customerName,
@@ -717,7 +719,8 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       const localStaff = staffs.find((item) => item.id === response.staffId);
-      const savedBooking = mapBookingApiResponse(response, service, localStaff);
+      const localCourt = courts.find((item) => item.id === response.courtId || item.id === data.courtId);
+      const savedBooking = mapBookingApiResponse(response, service, localStaff, localCourt);
 
       setBookings((prev) => [savedBooking, ...prev]);
       setError(null);
@@ -1036,6 +1039,29 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // อัปเดตข้อมูลร้านค้า (ใช้ทั้งจาก Super Admin, เมนูตั้งค่าร้านค้า และตอนต่ออายุแพ็กเกจ) + persist ลง Supabase
+  const updateCurrentUserContact = async (contact: { phone?: string; email?: string }): Promise<boolean> => {
+    if (!currentUser) return false;
+
+    const updates: Partial<User> = {
+      phone: contact.phone?.trim() || '',
+      email: contact.email?.trim() || '',
+    };
+
+    setCurrentUser((prev) => (prev ? { ...prev, ...updates } : prev));
+
+    const { error } = await supabase
+      .from('users')
+      .update({ phone: updates.phone || null, email: updates.email || null })
+      .eq('id', currentUser.id);
+
+    if (error) {
+      console.error('Error updating user contact in Supabase:', error.message);
+      setCurrentUser(currentUser);
+      return false;
+    }
+
+    return true;
+  };
   const updateTenant = async (tenantId: string, updates: Partial<Tenant>) => {
     setTenants((prev) =>
       prev.map((t) => (t.id === tenantId ? ({ ...t, ...updates } as Tenant) : t))
@@ -1259,6 +1285,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         deleteCourt,
         updateTenantSettings,
         updateTenant,
+        updateCurrentUserContact,
         deleteTenant,
         markNotificationAsRead,
         addOnboardingTenant,

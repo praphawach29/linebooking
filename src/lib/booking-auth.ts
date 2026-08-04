@@ -1,8 +1,15 @@
 import type { Liff } from '@line/liff';
 
+export interface LiffProfile {
+  userId: string;
+  displayName: string;
+  pictureUrl?: string;
+  statusMessage?: string;
+}
+
 type BookingLiffClient = Pick<
   Liff,
-  'init' | 'isLoggedIn' | 'login' | 'getIDToken'
+  'init' | 'isLoggedIn' | 'login' | 'getIDToken' | 'getProfile'
 >;
 
 export interface LineTokenOptions {
@@ -73,6 +80,47 @@ export async function getLineIdToken(
     );
   }
   return token;
+}
+
+export async function getLiffProfile(
+  liffId: string,
+  options: LineTokenOptions = {},
+): Promise<LiffProfile> {
+  const normalizedLiffId = liffId.trim();
+  if (!normalizedLiffId) {
+    throw new BookingAuthError(
+      'LIFF_ID_NOT_CONFIGURED',
+      'LIFF ID is not configured for this tenant',
+      null,
+    );
+  }
+
+  const client = options.client ?? (await loadLiffClient());
+  if (!initializedLiffIds.has(normalizedLiffId)) {
+    await client.init({ liffId: normalizedLiffId });
+    initializedLiffIds.add(normalizedLiffId);
+  }
+
+  if (!client.isLoggedIn()) {
+    client.login({
+      redirectUri:
+        options.redirectUri ??
+        (typeof window === 'undefined' ? undefined : window.location.href),
+    });
+    throw new BookingAuthError(
+      'LIFF_LOGIN_REDIRECT_STARTED',
+      'LINE login is required to view profile',
+      'liff_login',
+    );
+  }
+
+  const profile = await client.getProfile();
+  return {
+    userId: profile.userId,
+    displayName: profile.displayName,
+    pictureUrl: profile.pictureUrl,
+    statusMessage: profile.statusMessage,
+  };
 }
 
 export async function getMerchantAccessToken(

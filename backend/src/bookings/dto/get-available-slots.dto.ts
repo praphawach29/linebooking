@@ -16,4 +16,8 @@ export class GetAvailableSlotsQueryDto {
   @IsOptional()
   @IsLooseUuid({ message: 'staffId must be a valid UUID' })
   staffId?: string;
+
+  @IsOptional()
+  @IsLooseUuid({ message: 'courtId must be a valid UUID' })
+  courtId?: string;
 }

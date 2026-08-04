@@ -546,12 +546,14 @@ describe('AvailabilityService', () => {
       startTime: '10:00',
       endTime: '10:45',
       staffId: null,
+      courtId: null,
       available: true,
     });
     expect(result.slots[1]).toEqual({
       startTime: '10:15',
       endTime: '11:00',
       staffId: null,
+      courtId: null,
       available: true,
     });
   });

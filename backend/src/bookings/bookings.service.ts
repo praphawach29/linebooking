@@ -121,6 +121,27 @@ export class BookingsService {
               });
             }
 
+            let selectedCourt: { id: string; name: string } | null = null;
+            if (command.courtId) {
+              selectedCourt = await tx.courts.findFirst({
+                where: {
+                  id: command.courtId,
+                  tenant_id: command.tenantId,
+                  is_active: true,
+                  OR: [{ service_id: command.serviceId }, { service_id: null }],
+                },
+                select: { id: true, name: true },
+              });
+
+              if (!selectedCourt) {
+                throw new NotFoundException({
+                  statusCode: 404,
+                  code: ErrorCode.RESOURCE_NOT_FOUND,
+                  message: 'Court not found or inactive for this service',
+                });
+              }
+            }
+
             // 5. Calculate Availability INSIDE transaction using tx
             const availability =
               await this.availabilityService.calculateAvailability(
@@ -128,7 +149,7 @@ export class BookingsService {
                 command.bookingDate,
                 command.serviceId,
                 command.staffId,
-                { actor: command.actor, txPrisma: tx },
+                { actor: command.actor, txPrisma: tx, courtId: command.courtId },
               );
 
             // 6. Match candidate slot at exact startTime (HH:mm)
@@ -213,6 +234,8 @@ export class BookingsService {
                 staffId: finalStaffId,
                 staff_name: staffName,
                 staff_avatar: staffAvatar,
+                court_id: selectedCourt?.id || null,
+                court_name: selectedCourt?.name || null,
                 bookingDate: bookingDateObj,
                 startTime: startTimeObj,
                 endTime: endTimeObj,
@@ -251,6 +274,8 @@ export class BookingsService {
                   : Number(createdBooking.service_price),
               staffId: createdBooking.staffId,
               staffName: createdBooking.staff_name,
+              courtId: createdBooking.court_id,
+              courtName: createdBooking.court_name,
               bookingDate: command.bookingDate,
               startTime: command.startTime,
               endTime: matchingSlot.endTime,

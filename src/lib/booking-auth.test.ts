@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';
 import {
   BookingAuthError,
+  getLiffProfile,
   getLineIdToken,
   getMerchantAccessToken,
   resetBookingAuthStateForTests,
@@ -66,6 +67,7 @@ describe('booking-auth', () => {
       isLoggedIn: () => true,
       login: () => undefined,
       getIDToken: () => null,
+      getProfile: async () => ({ userId: 'U123', displayName: 'Test' }),
     };
 
     await assert.rejects(
@@ -76,6 +78,28 @@ describe('booking-auth', () => {
         return true;
       },
     );
+  });
+
+  it('fetches LIFF profile when logged in', async () => {
+    const client = {
+      init: async () => undefined,
+      isLoggedIn: () => true,
+      login: () => undefined,
+      getIDToken: () => 'token',
+      getProfile: async () => ({
+        userId: 'U123456789',
+        displayName: 'Jack Sports User',
+        pictureUrl: 'https://example.com/avatar.jpg',
+        statusMessage: 'Ready to play',
+      }),
+    };
+
+    const profile = await getLiffProfile('2001234567-AbCdEfGh', {
+      client: client as never,
+    });
+    assert.equal(profile.userId, 'U123456789');
+    assert.equal(profile.displayName, 'Jack Sports User');
+    assert.equal(profile.pictureUrl, 'https://example.com/avatar.jpg');
   });
 
   it('returns the Supabase merchant session access token', async () => {

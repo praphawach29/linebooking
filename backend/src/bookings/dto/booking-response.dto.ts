@@ -2,6 +2,7 @@ export interface AvailableSlotDto {
   startTime: string;
   endTime: string;
   staffId: string | null;
+  courtId?: string | null;
   available: boolean;
 }
 
@@ -25,6 +26,8 @@ export interface BookingResponseDto {
   servicePrice?: number | null;
   staffId?: string | null;
   staffName?: string | null;
+  courtId?: string | null;
+  courtName?: string | null;
   bookingDate: string;
   startTime: string;
   endTime: string;

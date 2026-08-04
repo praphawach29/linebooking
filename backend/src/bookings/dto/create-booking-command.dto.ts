@@ -6,6 +6,7 @@ export interface CreateBookingCommand {
   customerUserId: string;
   serviceId: string;
   staffId?: string;
+  courtId?: string;
   bookingDate: string; // YYYY-MM-DD
   startTime: string;   // HH:mm
   customerName?: string;

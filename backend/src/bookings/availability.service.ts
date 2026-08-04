@@ -17,6 +17,7 @@ export interface CandidateSlot {
   startTime: string; // HH:mm
   endTime: string;   // HH:mm
   staffId: string | null;
+  courtId?: string | null;
   available: boolean;
 }
 
@@ -38,6 +39,7 @@ export interface AvailabilityResult {
 export interface AvailabilityOptions {
   actor?: 'customer' | 'merchant';
   txPrisma?: Prisma.TransactionClient | PrismaService;
+  courtId?: string;
 }
 
 @Injectable()
@@ -58,6 +60,7 @@ export class AvailabilityService {
   ): Promise<AvailabilityResult> {
     const db = options.txPrisma || this.prisma;
     const actor = options.actor || 'customer';
+    const courtId = options.courtId;
 
     // 1. Fetch & validate Tenant
     const tenant = await db.tenant.findUnique({
@@ -162,6 +165,29 @@ export class AvailabilityService {
         code: ErrorCode.SERVICE_INACTIVE,
         message: 'Service is currently inactive',
       });
+    }
+
+    let selectedCourt: { id: string; name: string } | null = null;
+    if (courtId) {
+      const court = await db.courts.findFirst({
+        where: {
+          id: courtId,
+          tenant_id: tenantId,
+          is_active: true,
+          OR: [{ service_id: serviceId }, { service_id: null }],
+        },
+        select: { id: true, name: true },
+      });
+
+      if (!court) {
+        throw new NotFoundException({
+          statusCode: 404,
+          code: ErrorCode.RESOURCE_NOT_FOUND,
+          message: 'Court not found or inactive for this service',
+        });
+      }
+
+      selectedCourt = court;
     }
 
     const durationMinutes = service.durationMinutes;
@@ -303,6 +329,7 @@ export class AvailabilityService {
         endTime: true,
         staffId: true,
         serviceId: true,
+        court_id: true,
         service: {
           select: { bufferMinutes: true },
         },
@@ -415,14 +442,24 @@ export class AvailabilityService {
             };
           });
 
-        const peakConcurrent = this.calculatePeakConcurrentBookings(
-          startMins,
-          candidateConflictEndMins,
-          overlappingBookings,
-        );
+        if (selectedCourt) {
+          isAvailable = !existingBookings.some((b) => {
+            if (b.court_id !== selectedCourt.id) return false;
+            const bStartMins = this.timeToMinutes(this.formatTimeString(b.startTime));
+            const bEndMins = this.timeToMinutes(this.formatTimeString(b.endTime));
+            const bBufferMins = b.service?.bufferMinutes || 0;
+            return startMins < bEndMins + bBufferMins && candidateConflictEndMins > bStartMins;
+          });
+        } else {
+          const peakConcurrent = this.calculatePeakConcurrentBookings(
+            startMins,
+            candidateConflictEndMins,
+            overlappingBookings,
+          );
 
-        if (peakConcurrent >= maxCapacity) {
-          isAvailable = false;
+          if (peakConcurrent >= maxCapacity) {
+            isAvailable = false;
+          }
         }
       }
 
@@ -430,6 +467,7 @@ export class AvailabilityService {
         startTime: slotStartStr,
         endTime: slotEndStr,
         staffId: isAvailable ? assignedStaffId : null,
+        courtId: isAvailable ? selectedCourt?.id ?? null : null,
         available: isAvailable,
       });
     }

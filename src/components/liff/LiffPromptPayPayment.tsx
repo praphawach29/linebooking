@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Service, Staff, Booking, SelectedAddon, PaymentMethod } from '../../types';
+import { Service, Staff, Court, Booking, SelectedAddon, PaymentMethod } from '../../types';
 import { useSaaS } from '../../context/SaaSContext';
 import { QrCode, Copy, Check, Sparkles, ShieldCheck, AlertCircle, Clock } from 'lucide-react';
 
 interface LiffPromptPayPaymentProps {
   service: Service;
   staff: Staff | null;
+  court?: Court | null;
   date: string;
   time: string;
   bookingHours?: number;
@@ -20,6 +21,7 @@ interface LiffPromptPayPaymentProps {
 export const LiffPromptPayPayment: React.FC<LiffPromptPayPaymentProps> = ({
   service,
   staff,
+  court,
   date,
   time,
   bookingHours: bookingHoursProp,
@@ -82,6 +84,7 @@ export const LiffPromptPayPayment: React.FC<LiffPromptPayPaymentProps> = ({
     const newBooking = await createBooking({
       serviceId: service.id,
       staffId: staff?.id,
+      courtId: court?.id,
       bookingDate: date,
       startTime: time,
       selectedAddons,

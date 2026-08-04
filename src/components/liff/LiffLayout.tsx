@@ -14,6 +14,7 @@ import {
 import { LiffHome } from './LiffHome';
 import { LiffServiceDetail } from './LiffServiceDetail';
 import { LiffStaffSelect } from './LiffStaffSelect';
+import { LiffCourtSelect } from './LiffCourtSelect';
 import { LiffDateTimePicker } from './LiffDateTimePicker';
 import { LiffBookingSummary } from './LiffBookingSummary';
 import { LiffPromptPayPayment } from './LiffPromptPayPayment';
@@ -23,13 +24,15 @@ import { LiffNotifications } from './LiffNotifications';
 import { LiffProfile } from './LiffProfile';
 import LiffRewards from './LiffRewards';
 import LiffPointHistory from './LiffPointHistory';
+import { useLiffProfile } from '../../hooks/useLiffProfile';
 import { autoAssignStaff, autoAssignResource } from './BookingStepEngine';
-import { Service, Staff, Booking, SelectedAddon, PaymentMethod } from '../../types';
+import { Service, Staff, Court, Booking, SelectedAddon, PaymentMethod } from '../../types';
 
 export type LiffStep =
   | 'home'
   | 'service_detail'
   | 'staff_select'
+  | 'court_select'
   | 'date_time_select'
   | 'booking_summary'
   | 'promptpay_payment'
@@ -43,12 +46,14 @@ export type LiffStep =
 export const LiffLayout: React.FC = () => {
   const { activeTenant: rawActiveTenant, tenants, services, staffs, courts, notifications, reviews, isLoading, currentUser } = useSaaS();
   const activeTenant = rawActiveTenant || (tenants && tenants.length > 0 ? tenants[0] : null);
+  const liffProfile = useLiffProfile(activeTenant?.liffId);
   const [currentStep, setCurrentStep] = useState<LiffStep>('home');
   const [activeTab, setActiveTab] = useState<'home' | 'my_bookings' | 'notifications' | 'profile'>('home');
 
   // Booking Flow State
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
+  const [selectedCourt, setSelectedCourt] = useState<Court | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date(Date.now() + 86400000).toISOString().split('T')[0]
   );
@@ -106,39 +111,58 @@ export const LiffLayout: React.FC = () => {
     );
   }
 
+  const shouldRequireResource = () => {
+    const flowConfig = activeTenant.settings?.bookingFlowConfig;
+    return flowConfig?.steps?.requireResource ?? activeTenant.settings?.enableCourtSelection ?? false;
+  };
+
+  const shouldRequireStaff = () => {
+    const flowConfig = activeTenant.settings?.bookingFlowConfig;
+    return flowConfig?.steps?.requireStaff ?? activeTenant.settings?.enableStaffSelection ?? true;
+  };
+
+  const goToNextSelectionStep = (requireStaff: boolean, requireResource: boolean) => {
+    if (requireStaff) {
+      setCurrentStep('staff_select');
+      return;
+    }
+
+    const assigned = autoAssignStaff(staffs);
+    setSelectedStaff(assigned);
+
+    if (requireResource) {
+      setCurrentStep('court_select');
+      return;
+    }
+
+    setSelectedCourt(autoAssignResource(courts));
+    setCurrentStep('date_time_select');
+  };
+
   const handleSelectService = (service: Service) => {
     setSelectedService(service);
     setSelectedAddons([]);
-
-    // Check merchant step configuration
-    const flowConfig = activeTenant.settings?.bookingFlowConfig;
-    const requireStaff = flowConfig?.steps?.requireStaff ?? activeTenant.settings?.enableStaffSelection ?? true;
-
-    if (requireStaff) {
-      setCurrentStep('staff_select');
-    } else {
-      // Auto assign staff if turned off
-      const assigned = autoAssignStaff(staffs);
-      setSelectedStaff(assigned);
-      setCurrentStep('date_time_select');
-    }
+    setSelectedStaff(null);
+    setSelectedCourt(null);
+    goToNextSelectionStep(shouldRequireStaff(), shouldRequireResource());
   };
 
   const handleStartBooking = () => {
-    const flowConfig = activeTenant.settings?.bookingFlowConfig;
-    const requireStaff = flowConfig?.steps?.requireStaff ?? activeTenant.settings?.enableStaffSelection ?? true;
-
-    if (requireStaff) {
-      setCurrentStep('staff_select');
-    } else {
-      const assigned = autoAssignStaff(staffs);
-      setSelectedStaff(assigned);
-      setCurrentStep('date_time_select');
-    }
+    goToNextSelectionStep(shouldRequireStaff(), shouldRequireResource());
   };
 
   const handleSelectStaff = (staff: Staff | null) => {
     setSelectedStaff(staff || autoAssignStaff(staffs));
+    if (shouldRequireResource()) {
+      setCurrentStep('court_select');
+      return;
+    }
+    setSelectedCourt(autoAssignResource(courts));
+    setCurrentStep('date_time_select');
+  };
+
+  const handleSelectCourt = (court: Court | null) => {
+    setSelectedCourt(court);
     setCurrentStep('date_time_select');
   };
 
@@ -191,7 +215,8 @@ export const LiffLayout: React.FC = () => {
                 onClick={() => {
                   if (currentStep === 'service_detail') setCurrentStep('home');
                   else if (currentStep === 'staff_select') setCurrentStep('service_detail');
-                  else if (currentStep === 'date_time_select') setCurrentStep('staff_select');
+                  else if (currentStep === 'court_select') setCurrentStep(shouldRequireStaff() ? 'staff_select' : 'service_detail');
+                  else if (currentStep === 'date_time_select') setCurrentStep(shouldRequireResource() ? 'court_select' : shouldRequireStaff() ? 'staff_select' : 'service_detail');
                   else if (currentStep === 'booking_summary') setCurrentStep('date_time_select');
                   else if (currentStep === 'promptpay_payment') setCurrentStep('booking_summary');
                   else setCurrentStep('home');
@@ -252,7 +277,7 @@ export const LiffLayout: React.FC = () => {
         {/* LIFF Main Scrollable Body */}
         <div className="flex-1 overflow-y-auto bg-slate-50 pb-24 scrollbar-none">
           {currentStep === 'home' && (
-            <LiffHome onSelectService={handleSelectService} />
+            <LiffHome liffProfile={liffProfile} onSelectService={handleSelectService} />
           )}
 
           {currentStep === 'service_detail' && selectedService && (
@@ -270,10 +295,19 @@ export const LiffLayout: React.FC = () => {
             />
           )}
 
+          {currentStep === 'court_select' && selectedService && (
+            <LiffCourtSelect
+              service={selectedService}
+              selectedAddons={selectedAddons}
+              onSelectCourt={handleSelectCourt}
+            />
+          )}
+
           {currentStep === 'date_time_select' && selectedService && (
             <LiffDateTimePicker
               service={selectedService}
               staff={selectedStaff}
+              court={selectedCourt}
               selectedDate={selectedDate}
               selectedTime={selectedTime}
               selectedAddons={selectedAddons}
@@ -285,6 +319,7 @@ export const LiffLayout: React.FC = () => {
             <LiffBookingSummary
               service={selectedService}
               staff={selectedStaff}
+              court={selectedCourt}
               date={selectedDate}
               time={selectedTime}
               bookingHours={selectedBookingHours}
@@ -297,6 +332,7 @@ export const LiffLayout: React.FC = () => {
             <LiffPromptPayPayment
               service={selectedService}
               staff={selectedStaff}
+              court={selectedCourt}
               date={selectedDate}
               time={selectedTime}
               bookingHours={selectedBookingHours}

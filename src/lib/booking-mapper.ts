@@ -1,10 +1,11 @@
-import type { Booking, BookingStatus, PaymentMethod, Service, Staff } from '../types';
+import type { Booking, BookingStatus, Court, PaymentMethod, Service, Staff } from '../types';
 import type { BookingApiResponse } from './booking-api';
 
 export function mapBookingApiResponse(
   response: BookingApiResponse,
   service: Service,
   staff?: Staff,
+  court?: Court,
 ): Booking {
   return {
     id: response.id,
@@ -20,6 +21,8 @@ export function mapBookingApiResponse(
     staffId: response.staffId || undefined,
     staffName: response.staffName || undefined,
     staffAvatar: staff?.avatarUrl,
+    courtId: response.courtId || court?.id || undefined,
+    courtName: response.courtName || court?.name || undefined,
     bookingDate: response.bookingDate,
     startTime: response.startTime,
     endTime: response.endTime,

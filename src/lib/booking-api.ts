@@ -56,6 +56,7 @@ export class BookingApiError extends Error {
 export interface CreateCustomerBookingInput {
   serviceId: string;
   staffId?: string;
+  courtId?: string;
   bookingDate: string;
   startTime: string;
   customerName?: string;
@@ -81,6 +82,8 @@ export interface BookingApiResponse {
   servicePrice?: number | null;
   staffId?: string | null;
   staffName?: string | null;
+  courtId?: string | null;
+  courtName?: string | null;
   bookingDate: string;
   startTime: string;
   endTime: string;
@@ -129,6 +132,7 @@ export async function getAvailableSlots(
     serviceId: string;
     bookingDate: string;
     staffId?: string;
+    courtId?: string;
   },
   options: BookingRequestOptions = {},
 ): Promise<AvailableSlotsApiResponse> {
@@ -137,6 +141,7 @@ export async function getAvailableSlots(
     bookingDate: query.bookingDate,
   });
   if (query.staffId) search.set('staffId', query.staffId);
+  if (query.courtId) search.set('courtId', query.courtId);
 
   return requestJson<AvailableSlotsApiResponse>(
     `/bookings/available-slots?${search.toString()}`,
@@ -211,6 +216,7 @@ function customerBody(
   };
 
   if (input.staffId) body.staffId = input.staffId;
+  if (input.courtId) body.courtId = input.courtId;
   if (input.customerName) body.customerName = input.customerName;
   if (input.customerPhone) body.customerPhone = input.customerPhone;
   if (input.notes) body.notes = input.notes;

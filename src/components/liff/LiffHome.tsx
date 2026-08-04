@@ -22,13 +22,15 @@ import {
   Phone,
   ShieldCheck,
 } from 'lucide-react';
+import { LiffProfileData } from '../../hooks/useLiffProfile';
 import { SkeletonCard } from '../common/SkeletonCard';
 
 interface LiffHomeProps {
   onSelectService: (service: Service) => void;
+  liffProfile?: LiffProfileData;
 }
 
-export const LiffHome: React.FC<LiffHomeProps> = ({ onSelectService }) => {
+export const LiffHome: React.FC<LiffHomeProps> = ({ onSelectService, liffProfile }) => {
   const { activeTenant, services, staffs, courts, currentUser, isLoading, reviews, bookings } = useSaaS();
   const [selectedCategory, setSelectedCategory] = useState<string>('ทั้งหมด');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -173,8 +175,19 @@ export const LiffHome: React.FC<LiffHomeProps> = ({ onSelectService }) => {
       {/* User Greeting Bar */}
       <div className="px-5 py-3 bg-white border-b border-slate-100 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2">
+          {liffProfile?.pictureUrl ? (
+            <img
+              src={liffProfile.pictureUrl}
+              alt={liffProfile.displayName}
+              className="w-6 h-6 rounded-full object-cover border border-emerald-500/30 shadow-sm"
+            />
+          ) : null}
           <span className="text-xs font-bold text-slate-500">สวัสดี,</span>
-          <span className="text-sm font-black text-slate-900">{currentUser?.name || 'คุณลูกค้า'}</span>
+          <span className="text-sm font-black text-slate-900">
+            {liffProfile?.displayName && liffProfile.displayName !== 'ลูกค้า LINE User'
+              ? liffProfile.displayName
+              : (currentUser?.displayName || currentUser?.name || 'คุณลูกค้า')}
+          </span>
         </div>
         <span className="text-[11px] font-extrabold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/60">
           LINE OA Booking

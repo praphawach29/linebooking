@@ -15,13 +15,23 @@ import {
   Scissors,
   Sparkles,
   Trophy,
-  PlusCircle,
   ShieldCheck,
-  MapPin
+  MapPin,
+  PlusCircle,
+  Upload,
+  ImageIcon,
+  Link
 } from 'lucide-react';
 
 import { getTenantQuotaInfo } from '../../lib/quota-manager';
 import { MerchantSubscriptionModal } from './MerchantSubscriptionModal';
+
+const PRESET_COURT_IMAGES = [
+  { label: 'สนามฟุตบอล ⚽', url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=500&auto=format&fit=crop&q=60' },
+  { label: 'คอร์ทแบดมินตัน 🏸', url: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=500&auto=format&fit=crop&q=60' },
+  { label: 'สนามบาสเกตบอล 🏀', url: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=500&auto=format&fit=crop&q=60' },
+  { label: 'สนามเทนนิส 🎾', url: 'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?w=500&auto=format&fit=crop&q=60' },
+];
 
 const DAYS_OF_WEEK = [
   { id: 1, label: 'จันทร์', short: 'จ.' },
@@ -691,15 +701,96 @@ export const MerchantStaffManager: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <label className="font-bold text-slate-700 mb-1 block">URL รูปภาพสนาม</label>
-                <input
-                  type="url"
-                  value={editingCourt.imageUrl || ''}
-                  onChange={(e) => setEditingCourt({ ...editingCourt, imageUrl: e.target.value })}
-                  placeholder="https://..."
-                  className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono text-[11px]"
-                />
+              {/* รูปภาพสนาม (Court Image with local device upload) */}
+              <div className="space-y-2 pt-1 border-t border-slate-100">
+                <label className="block text-slate-700 font-bold flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <ImageIcon className="w-4 h-4 text-emerald-600" />
+                    <span>รูปภาพสนาม / คอร์ท (แสดงบน LIFF)</span>
+                  </span>
+                  {editingCourt.imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingCourt({ ...editingCourt, imageUrl: '' })}
+                      className="text-[10px] text-red-500 hover:underline font-bold"
+                    >
+                      ลบรูปภาพ
+                    </button>
+                  )}
+                </label>
+
+                {/* Image Preview & Upload Row */}
+                <div className="flex items-center gap-3">
+                  <div className="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 overflow-hidden shrink-0 relative flex items-center justify-center">
+                    {editingCourt.imageUrl ? (
+                      <img
+                        src={editingCourt.imageUrl}
+                        alt="Court Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="text-center p-1 text-slate-400">
+                        <ImageIcon className="w-5 h-5 mx-auto" />
+                        <span className="text-[8px] font-bold block">ไม่มีรูป</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-1.5">
+                    {/* Local Storage / Device Memory File Upload Button */}
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 transition-colors">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>อัปโหลดรูปจากความจำเครื่อง</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setEditingCourt({ ...editingCourt, imageUrl: reader.result as string });
+                          };
+                          reader.readAsDataURL(file);
+                        }}
+                      />
+                    </label>
+
+                    {/* URL Input */}
+                    <div className="relative">
+                      <Link className="w-3 h-3 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="url"
+                        value={editingCourt.imageUrl || ''}
+                        onChange={(e) => setEditingCourt({ ...editingCourt, imageUrl: e.target.value })}
+                        placeholder="หรือวาง URL รูปภาพ (https://...)"
+                        className="w-full text-xs pl-7 pr-3 py-1.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Preset Selector */}
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 block mb-1">เลือกรูปตัวอย่างด่วน:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {PRESET_COURT_IMAGES.map((preset) => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => setEditingCourt({ ...editingCourt, imageUrl: preset.url })}
+                        className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition-colors ${
+                          editingCourt.imageUrl === preset.url
+                            ? 'bg-emerald-600 text-white border-emerald-600'
+                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div className="flex gap-2 pt-2">

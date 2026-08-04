@@ -914,6 +914,77 @@ export const MerchantServiceManager: React.FC = () => {
                 />
               </div>
 
+              {/* รูปภาพบริการเสริม (Addon Image with local device upload) */}
+              <div className="space-y-2 pt-1 border-t border-slate-100">
+                <label className="block text-slate-700 font-bold flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <ImageIcon className="w-4 h-4 text-amber-600" />
+                    <span>รูปภาพบริการเสริม (แสดงบน LIFF)</span>
+                  </span>
+                  {editingAddon.imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingAddon({ ...editingAddon, imageUrl: '' })}
+                      className="text-[10px] text-red-500 hover:underline font-bold"
+                    >
+                      ลบรูปภาพ
+                    </button>
+                  )}
+                </label>
+
+                {/* Image Preview & Upload Row */}
+                <div className="flex items-center gap-3">
+                  <div className="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 overflow-hidden shrink-0 relative flex items-center justify-center">
+                    {editingAddon.imageUrl ? (
+                      <img
+                        src={editingAddon.imageUrl}
+                        alt="Addon Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="text-center p-1 text-slate-400">
+                        <ImageIcon className="w-5 h-5 mx-auto" />
+                        <span className="text-[8px] font-bold block">ไม่มีรูป</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-1.5">
+                    {/* Local Storage / Device Memory File Upload Button */}
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold border border-amber-200 transition-colors">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>อัปโหลดรูปจากความจำเครื่อง</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setEditingAddon({ ...editingAddon, imageUrl: reader.result as string });
+                          };
+                          reader.readAsDataURL(file);
+                        }}
+                      />
+                    </label>
+
+                    {/* URL Input */}
+                    <div className="relative">
+                      <Link className="w-3 h-3 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="url"
+                        value={editingAddon.imageUrl || ''}
+                        onChange={(e) => setEditingAddon({ ...editingAddon, imageUrl: e.target.value })}
+                        placeholder="หรือวาง URL รูปภาพ (https://...)"
+                        className="w-full text-xs pl-7 pr-3 py-1.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex gap-2 pt-3 border-t border-slate-100 bg-white sticky bottom-0 z-10 shrink-0 mt-3">
                 <button
                   type="button"

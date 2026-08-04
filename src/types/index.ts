@@ -107,6 +107,7 @@ export interface ServiceAddon {
   category: string;
   badge?: string;
   icon?: string;
+  imageUrl?: string;
   options?: ServiceAddonOption[];
   isActive: boolean;
 }

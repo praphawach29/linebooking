@@ -81,12 +81,25 @@ export const MerchantLineOASettings: React.FC = () => {
       }
     );
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setTimeout(() => setSaved(false), 4000);
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto text-xs">
+    <div className="space-y-6 max-w-4xl mx-auto text-xs relative">
       
+      {/* Floating Top Notification Banner */}
+      {saved && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-2xl border border-emerald-400 flex items-center gap-3 animate-in slide-in-from-top-4 duration-300 font-bold text-xs">
+          <div className="w-7 h-7 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+            <Check className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <p className="font-extrabold text-sm">บันทึกการตั้งค่าเรียบร้อยแล้ว!</p>
+            <p className="text-[11px] text-emerald-100 font-medium">ข้อมูล LINE Channel ID, Secret และ LIFF App ID ถูกบันทึกแล้ว</p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between">
         <div>
@@ -565,12 +578,28 @@ export const MerchantLineOASettings: React.FC = () => {
           </div>
         </div>
 
+        {saved && (
+          <div className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-2xl flex items-center gap-3 text-emerald-950 font-bold text-xs animate-in fade-in duration-200 shadow-xs">
+            <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-xs">
+              <Check className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="font-bold text-emerald-900">บันทึกการตั้งค่า LINE OA สำเร็จแล้ว!</p>
+              <p className="text-[11px] text-emerald-700 font-normal">ระบบพร้อมใช้งานสำหรับการแจ้งเตือนและการเปิดจองคิวผ่าน LIFF</p>
+            </div>
+          </div>
+        )}
+
         <button
           type="submit"
-          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-2xl shadow-md transition-colors text-xs flex items-center justify-center gap-2"
+          className={`w-full font-bold py-3.5 px-4 rounded-2xl transition-all text-xs flex items-center justify-center gap-2 ${
+            saved
+              ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/30 scale-[1.01]'
+              : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20 active:scale-[0.99]'
+          }`}
         >
           <Check className="w-4 h-4" />
-          <span>บันทึกการตั้งค่า LINE OA & ข้อความแจ้งเตือน</span>
+          <span>{saved ? '✨ บันทึกการตั้งค่าเรียบร้อยแล้ว!' : 'บันทึกการตั้งค่า LINE OA & ข้อความแจ้งเตือน'}</span>
         </button>
       </form>
 

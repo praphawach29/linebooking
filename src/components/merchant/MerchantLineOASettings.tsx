@@ -53,9 +53,18 @@ export const MerchantLineOASettings: React.FC = () => {
   ]);
 
   const [saved, setSaved] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://linebooking-amber.vercel.app';
   const webhookUrl = `${currentOrigin}/api/line/webhook?tenant=${activeTenant.slug}`;
+
+  const handleCopyWebhook = () => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(webhookUrl);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 3000);
+    }
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,22 +229,74 @@ export const MerchantLineOASettings: React.FC = () => {
         </div>
       </div>
 
-      {/* Webhook URL Copy Box */}
-      <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-3xl space-y-2">
-        <label className="font-bold text-emerald-900 block">Webhook URL สำหรับนำไปใส่ใน LINE Developers Console</label>
-        <div className="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-emerald-300 font-mono text-xs">
-          <span className="flex-1 truncate text-slate-800 font-bold">{webhookUrl}</span>
-          <button
-            type="button"
-            onClick={() => {
-              navigator.clipboard.writeText(webhookUrl);
-              alert('คัดลอก Webhook URL เรียบร้อยแล้ว!');
-            }}
-            className="p-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center gap-1 text-[11px] font-bold"
+      {/* Redesigned Premium Webhook URL Card */}
+      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 text-white p-5 rounded-3xl border border-slate-700/60 shadow-lg relative overflow-hidden space-y-4">
+        {/* Background glow effect */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 flex-shrink-0">
+              <LinkIcon className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-extrabold text-sm text-white">Webhook URL สำหรับ LINE Messaging API</h3>
+                <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                  ร้านค้า: {activeTenant.name} ({activeTenant.slug})
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 mt-0.5">
+                นำ URL นี้ไปใส่ใน LINE Developers Console &gt; Messaging API เพื่อเปิดระบบโต้ตอบอัตโนมัติ
+              </p>
+            </div>
+          </div>
+
+          <a
+            href="https://developers.line.biz/console/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-700/80 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-600 transition-colors flex-shrink-0 self-start sm:self-auto"
           >
-            <Copy className="w-3.5 h-3.5" />
-            <span>คัดลอก</span>
-          </button>
+            <span>เปิด LINE Console</span>
+            <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+          </a>
+        </div>
+
+        {/* Copy Bar */}
+        <div className="space-y-2 relative z-10">
+          <div className="flex items-center gap-2 bg-slate-950/80 p-2.5 rounded-2xl border border-slate-700/80 font-mono text-xs shadow-inner">
+            <span className="flex-1 truncate text-emerald-300 font-bold select-all">{webhookUrl}</span>
+            <button
+              type="button"
+              onClick={handleCopyWebhook}
+              className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold shadow-md ${
+                copySuccess
+                  ? 'bg-emerald-500 text-slate-950 shadow-emerald-500/30 scale-105'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20 active:scale-95'
+              }`}
+            >
+              {copySuccess ? (
+                <>
+                  <Check className="w-4 h-4 text-slate-950" />
+                  <span>คัดลอกแล้ว!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4" />
+                  <span>คัดลอก URL</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Toast Notification Banner (Replaces native browser alert) */}
+          {copySuccess && (
+            <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-2xl flex items-center gap-2 text-emerald-200 text-xs font-bold animate-in fade-in slide-in-from-top-1 duration-200">
+              <Sparkles className="w-4 h-4 text-amber-300 flex-shrink-0" />
+              <span>✨ คัดลอก Webhook URL สำเร็จ! นำไปวางในช่อง Webhook URL ใน LINE Developers ได้ทันที</span>
+            </div>
+          )}
         </div>
       </div>
 

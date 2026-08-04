@@ -499,11 +499,21 @@ export const MerchantServiceManager: React.FC = () => {
                   <input
                     type="number"
                     required
-                    value={editingService.durationMinutes || 60}
-                    onChange={(e) =>
-                      setEditingService({ ...editingService, durationMinutes: Number(e.target.value) })
-                    }
-                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
+                    min={1}
+                    value={editingService.durationMinutes === 0 || editingService.durationMinutes === undefined ? '' : editingService.durationMinutes}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setEditingService({
+                        ...editingService,
+                        durationMinutes: val === '' ? 0 : Number(val),
+                      });
+                    }}
+                    onBlur={() => {
+                      if (!editingService.durationMinutes || editingService.durationMinutes < 1) {
+                        setEditingService({ ...editingService, durationMinutes: 60 });
+                      }
+                    }}
+                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono font-bold text-slate-900"
                   />
                 </div>
 
@@ -511,11 +521,16 @@ export const MerchantServiceManager: React.FC = () => {
                   <label className="block text-slate-700 font-bold mb-1">พัก (Buffer m)</label>
                   <input
                     type="number"
-                    value={editingService.bufferMinutes || 15}
-                    onChange={(e) =>
-                      setEditingService({ ...editingService, bufferMinutes: Number(e.target.value) })
-                    }
-                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
+                    min={0}
+                    value={editingService.bufferMinutes === undefined ? '' : editingService.bufferMinutes}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setEditingService({
+                        ...editingService,
+                        bufferMinutes: val === '' ? 0 : Number(val),
+                      });
+                    }}
+                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono font-bold text-slate-900"
                   />
                 </div>
 
@@ -524,9 +539,16 @@ export const MerchantServiceManager: React.FC = () => {
                   <input
                     type="number"
                     required
-                    value={editingService.price || 500}
-                    onChange={(e) => setEditingService({ ...editingService, price: Number(e.target.value) })}
-                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
+                    min={0}
+                    value={editingService.price === 0 || editingService.price === undefined ? '' : editingService.price}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setEditingService({
+                        ...editingService,
+                        price: val === '' ? 0 : Number(val),
+                      });
+                    }}
+                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono font-bold text-slate-900"
                   />
                 </div>
               </div>
@@ -855,9 +877,13 @@ export const MerchantServiceManager: React.FC = () => {
                   <input
                     type="number"
                     required
-                    value={editingAddon.price || 150}
-                    onChange={(e) => setEditingAddon({ ...editingAddon, price: Number(e.target.value) })}
-                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-mono"
+                    min={0}
+                    value={editingAddon.price === 0 || editingAddon.price === undefined ? '' : editingAddon.price}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setEditingAddon({ ...editingAddon, price: val === '' ? 0 : Number(val) });
+                    }}
+                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-mono font-bold text-slate-900"
                   />
                 </div>
 
@@ -865,12 +891,14 @@ export const MerchantServiceManager: React.FC = () => {
                   <label className="block text-slate-700 font-bold mb-1">เพิ่มเวลาบริการ (นาที)</label>
                   <input
                     type="number"
-                    value={editingAddon.extraDurationMinutes || 0}
-                    onChange={(e) =>
-                      setEditingAddon({ ...editingAddon, extraDurationMinutes: Number(e.target.value) })
-                    }
+                    min={0}
+                    value={editingAddon.extraDurationMinutes === 0 || editingAddon.extraDurationMinutes === undefined ? '' : editingAddon.extraDurationMinutes}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setEditingAddon({ ...editingAddon, extraDurationMinutes: val === '' ? 0 : Number(val) });
+                    }}
                     placeholder="0 ถ้าไม่เพิ่มเวลา"
-                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-mono"
+                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-mono font-bold text-slate-900"
                   />
                 </div>
               </div>

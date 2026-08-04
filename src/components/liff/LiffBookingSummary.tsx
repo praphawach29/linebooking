@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Service, Staff, Court, PaymentMethod, SelectedAddon, ServiceAddon } from '../../types';
 import { useSaaS } from '../../context/SaaSContext';
+import { useLiffProfile } from '../../hooks/useLiffProfile';
 import { getTenantTerminology } from '../../lib/tenant-terminology';
 import {
   Calendar,
@@ -68,8 +69,22 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
     return 1;
   })();
 
+  const liffProfile = useLiffProfile(activeTenant?.liffId);
+
   // Auto-fill from LINE profile / saved contact if available
-  const [customerName, setCustomerName] = useState(currentUser?.displayName || '');
+  const [customerName, setCustomerName] = useState<string>(() => {
+    if (liffProfile?.displayName && liffProfile.displayName !== 'ลูกค้า LINE User') {
+      return liffProfile.displayName;
+    }
+    return currentUser?.displayName || currentUser?.name || '';
+  });
+
+  useEffect(() => {
+    if (liffProfile?.displayName && liffProfile.displayName !== 'ลูกค้า LINE User') {
+      setCustomerName(liffProfile.displayName);
+    }
+  }, [liffProfile?.displayName]);
+
   const [customerPhone, setCustomerPhone] = useState<string>(() => {
     try {
       const saved = localStorage.getItem('liff_customer_contact');
@@ -252,7 +267,18 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
             <div className="flex-1">
               <span className="text-[11px] text-emerald-800 font-extrabold block">{terms.selectedResourceLabel}</span>
               <span className="font-black text-slate-900">
-                {court.name} {court.extraPricePerHour ? <span className="text-emerald-600">(+฿{court.extraPricePerHour})</span> : ''}
+                {court.name}
+                {court.extraPricePerHour ? (
+                  court.extraPricePerHour < 0 ? (
+                    <span className="text-emerald-700 font-bold ml-1.5 text-xs">
+                      (ส่วนลด {Math.abs(court.extraPricePerHour)} บาท)
+                    </span>
+                  ) : (
+                    <span className="text-amber-700 font-bold ml-1.5 text-xs">
+                      (VIP +{court.extraPricePerHour} บาท)
+                    </span>
+                  )
+                ) : null}
               </span>
             </div>
           </div>
@@ -550,7 +576,7 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-2 text-[13px] pt-3 shadow-inner mt-2">
           <div className="flex justify-between text-slate-600 font-bold">
             <span>
-              บริการหลัก ({service.name})
+              {service.name}
               {calculated.appliedRule ? ` [${calculated.appliedRule.name}]` : ''}
             </span>
             <span>฿{(baseServicePrice ?? 0).toLocaleString()}</span>

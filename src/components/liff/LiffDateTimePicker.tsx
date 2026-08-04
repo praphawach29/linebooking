@@ -589,20 +589,29 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
       {/* Sticky Bottom Action Bar */}
       <div className="sticky bottom-[64px] left-0 right-0 bg-white/96 backdrop-blur-md rounded-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.10)] border border-slate-200 z-30 p-3.5 flex flex-col gap-2">
         <div className="flex items-center justify-between px-1">
-          <div>
+          <div className="min-w-0 pr-2">
             <p className="text-[9px] text-slate-500 font-extrabold uppercase tracking-wider mb-0.5">รอบเวลาที่เลือก</p>
-            <p className="text-[13px] font-black text-slate-900 leading-tight">
-              {canConfirm && selectedStartHour !== null && selectedEndHour !== null
-                ? `${activeDateThai}, ${toTimeStr(selectedStartHour)} - ${toTimeStr(selectedEndHour)} น.`
-                : 'แตะสล็อตเพื่อเลือกเวลา'}
-            </p>
+            {canConfirm && selectedStartHour !== null && selectedEndHour !== null ? (
+              <div className="space-y-0.5">
+                <p className="text-[12px] font-black text-slate-900 leading-snug truncate">
+                  {activeDateThai}
+                </p>
+                <p className="text-[12px] font-extrabold text-emerald-700 leading-snug">
+                  {toTimeStr(selectedStartHour)} - {toTimeStr(selectedEndHour)} น.
+                </p>
+              </div>
+            ) : (
+              <p className="text-[12px] font-black text-slate-900 leading-snug">
+                แตะสล็อตเพื่อเลือกเวลา
+              </p>
+            )}
           </div>
-          <div className="text-right">
+          <div className="text-right shrink-0">
             <p className="text-[9px] text-slate-500 font-extrabold uppercase tracking-wider mb-0.5">รวมทั้งหมด</p>
             <p className="text-[14px] font-black text-emerald-600">
               ฿{canConfirm ? totalPrice.toLocaleString() : pricePerHour.toLocaleString()}
-              {canConfirm && selectedHours > 1 && (
-                <span className="text-[10px] font-bold text-slate-400 ml-1">({selectedHours} ชม.)</span>
+              {canConfirm && selectedHours > 0 && (
+                <span className="block text-[10px] font-bold text-slate-500">({selectedHours} ชม.)</span>
               )}
             </p>
           </div>
@@ -616,10 +625,8 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
           }}
           className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-6 rounded-2xl text-[14px] shadow-lg shadow-emerald-600/20 flex items-center justify-between group disabled:bg-slate-300 disabled:shadow-none disabled:text-slate-500 transition-all"
         >
-          <span className="truncate">
-            {canConfirm && selectedStartHour !== null && selectedEndHour !== null
-              ? `ยืนยัน ${toTimeStr(selectedStartHour)}-${toTimeStr(selectedEndHour)} น. (${selectedHours} ชม.)`
-              : 'กรุณาเลือกรอบเวลา'}
+          <span className="truncate font-black text-sm">
+            {canConfirm ? 'ยืนยัน' : 'กรุณาเลือกรอบเวลา'}
           </span>
           <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform ${canConfirm ? 'bg-white/20 group-hover:translate-x-1' : 'bg-transparent'}`}>
             <ChevronRight className="w-5 h-5 text-white" />

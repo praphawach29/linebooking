@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
-import { Staff, Court } from '../../types';
+import { Staff, Court, OperatingSchedule } from '../../types';
 import {
   Users,
   UserPlus,
@@ -42,6 +42,14 @@ const DAYS_OF_WEEK = [
   { id: 6, label: 'เสาร์', short: 'ส.' },
   { id: 0, label: 'อาทิตย์', short: 'อา.' },
 ];
+
+// Default operating schedule (all days, 08:00-22:00)
+const DEFAULT_OPERATING_SCHEDULE: OperatingSchedule = {
+  isCustom: false,
+  days: [0, 1, 2, 3, 4, 5, 6],
+  startTime: '08:00',
+  endTime: '22:00',
+};
 
 export const MerchantStaffManager: React.FC = () => {
   const { activeTenant, staffs, services, saveStaff, deleteStaff, bookings, courts, saveCourt, deleteCourt, setMerchantTab } = useSaaS();
@@ -265,6 +273,19 @@ export const MerchantStaffManager: React.FC = () => {
                             {(court.extraPricePerHour || 0) > 0
                               ? `+฿${court.extraPricePerHour}/ชม.`
                               : `-฿${Math.abs(court.extraPricePerHour || 0)}/ชม.`}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Operating Schedule Badge */}
+                      {court.operatingSchedule?.isCustom && (
+                        <div className="flex items-center gap-1.5 text-[10px] mt-1 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-xl">
+                          <Clock className="w-3 h-3 text-emerald-600 shrink-0" />
+                          <span className="font-bold text-emerald-800">
+                            {court.operatingSchedule.startTime}–{court.operatingSchedule.endTime} น.
+                          </span>
+                          <span className="text-emerald-600 font-medium">
+                            ({court.operatingSchedule.days.length === 7 ? 'ทุกวัน' : `${court.operatingSchedule.days.length} วัน/สัปดาห์`})
                           </span>
                         </div>
                       )}
@@ -898,6 +919,99 @@ export const MerchantStaffManager: React.FC = () => {
                     ))}
                   </div>
                 </div>
+              </div>
+
+
+              {/* Operating Schedule Section for Court */}
+              <div className="space-y-3 pt-1 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-700 text-xs flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-emerald-600" />
+                    ตารางเวลาเปิด-ปิดเฉพาะของสนามนี้
+                  </label>
+                  <div
+                    onClick={() => {
+                      const curr = editingCourt.operatingSchedule || DEFAULT_OPERATING_SCHEDULE;
+                      setEditingCourt({
+                        ...editingCourt,
+                        operatingSchedule: { ...curr, isCustom: !curr.isCustom },
+                      });
+                    }}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    <span className="text-[11px] text-slate-500 font-semibold">
+                      {editingCourt.operatingSchedule?.isCustom ? 'กำหนดเอง' : 'ใช้ตามร้านค้า'}
+                    </span>
+                    <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                      editingCourt.operatingSchedule?.isCustom ? 'bg-emerald-500' : 'bg-slate-300'
+                    }`}>
+                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                        editingCourt.operatingSchedule?.isCustom ? 'translate-x-[18px]' : 'translate-x-[2px]'
+                      }`} />
+                    </div>
+                  </div>
+                </div>
+
+                {editingCourt.operatingSchedule?.isCustom && (
+                  <div className="bg-emerald-50/60 p-3 rounded-2xl border border-emerald-200 space-y-3">
+                    <div>
+                      <p className="text-[11px] font-bold text-slate-600 mb-1.5">วันที่เปิดให้บริการ:</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {DAYS_OF_WEEK.map((d) => {
+                          const schedule = editingCourt.operatingSchedule || DEFAULT_OPERATING_SCHEDULE;
+                          const isOn = (schedule.days || []).includes(d.id);
+                          return (
+                            <button
+                              key={d.id}
+                              type="button"
+                              onClick={() => {
+                                const curr = editingCourt.operatingSchedule || DEFAULT_OPERATING_SCHEDULE;
+                                const days = isOn
+                                  ? curr.days.filter((x) => x !== d.id)
+                                  : [...curr.days, d.id].sort();
+                                setEditingCourt({ ...editingCourt, operatingSchedule: { ...curr, days } });
+                              }}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                isOn ? 'bg-emerald-600 text-white' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-100'
+                              }`}
+                            >
+                              {d.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-600 mb-1 block">เวลาเปิดบริการ</label>
+                        <input
+                          type="time"
+                          value={editingCourt.operatingSchedule?.startTime || '08:00'}
+                          onChange={(e) => {
+                            const curr = editingCourt.operatingSchedule || DEFAULT_OPERATING_SCHEDULE;
+                            setEditingCourt({ ...editingCourt, operatingSchedule: { ...curr, startTime: e.target.value } });
+                          }}
+                          className="w-full p-2 bg-white border border-slate-200 rounded-xl font-mono text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-600 mb-1 block">เวลาปิดบริการ</label>
+                        <input
+                          type="time"
+                          value={editingCourt.operatingSchedule?.endTime || '22:00'}
+                          onChange={(e) => {
+                            const curr = editingCourt.operatingSchedule || DEFAULT_OPERATING_SCHEDULE;
+                            setEditingCourt({ ...editingCourt, operatingSchedule: { ...curr, endTime: e.target.value } });
+                          }}
+                          className="w-full p-2 bg-white border border-slate-200 rounded-xl font-mono text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-emerald-700 font-medium">
+                      ⚡ ลูกค้าจะจองได้เฉพาะช่วง {editingCourt.operatingSchedule?.startTime || '08:00'}–{editingCourt.operatingSchedule?.endTime || '22:00'} น. ตามวันที่กำหนด
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2 pt-2">

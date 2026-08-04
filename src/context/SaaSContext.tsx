@@ -103,7 +103,7 @@ interface SaaSContextType {
   switchTenant: (tenantId: string) => void;
   
   // Slot availability engine
-  getAvailableSlots: (date: string, serviceId: string, staffId?: string) => Promise<AvailableSlot[]>;
+  getAvailableSlots: (date: string, serviceId: string, staffId?: string, courtId?: string) => Promise<AvailableSlot[]>;
   
   // Booking operations
   createBooking: (data: {
@@ -561,9 +561,51 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     dateStr: string,
     serviceId: string,
     staffId?: string,
+    courtId?: string,
   ): Promise<AvailableSlot[]> => {
     if (!activeTenant) return [];
     const service = services.find((item) => item.id === serviceId);
+    const court = courtId ? courts.find((c) => c.id === courtId) : undefined;
+
+    // --- Determine effective operating hours (court-specific > service-specific > shop default) ---
+    const shopBusinessHours = businessHours;
+
+    // Helper: resolve operating schedule for a given date
+    const resolveSchedule = (dateIso: string) => {
+      const d = new Date(dateIso);
+      const dow = d.getDay(); // 0=Sun
+
+      // 1. Court-specific schedule (most specific)
+      if (court?.operatingSchedule?.isCustom) {
+        const sch = court.operatingSchedule;
+        if (!sch.days.includes(dow)) return null; // closed day for this court
+        return { startTime: sch.startTime, endTime: sch.endTime };
+      }
+
+      // 2. Service-specific schedule
+      if (service?.operatingSchedule?.isCustom) {
+        const sch = service.operatingSchedule;
+        if (!sch.days.includes(dow)) return null; // closed day for this service
+        return { startTime: sch.startTime, endTime: sch.endTime };
+      }
+
+      // 3. Shop-wide business hours
+      const bh = shopBusinessHours.find((h) => h.dayOfWeek === dow);
+      if (bh) {
+        if (!bh.isOpen) return null; // shop closed
+        return { startTime: bh.openTime, endTime: bh.closeTime };
+      }
+
+      // 4. Default fallback (08:00 - 23:00)
+      return { startTime: '08:00', endTime: '23:00' };
+    };
+
+    const schedule = resolveSchedule(dateStr);
+    if (!schedule) return []; // closed on this day
+
+    const parseHour = (t: string) => parseInt(t.split(':')[0], 10);
+    const startHour = parseHour(schedule.startTime);
+    const endHour = parseHour(schedule.endTime);
 
     try {
       const response = await getAvailableSlotsFromApi(
@@ -571,23 +613,25 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         { serviceId, bookingDate: dateStr, staffId },
       );
       if (response && response.slots && response.slots.length > 0) {
-        return response.slots.map((slot) => ({
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-          isAvailable: slot.available,
-          reason: slot.available ? undefined : 'BOOKED',
-          price: service?.price ?? 1200,
-        }));
+        return response.slots
+          .filter((slot) => {
+            const h = parseHour(slot.startTime);
+            return h >= startHour && h < endHour;
+          })
+          .map((slot) => ({
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            isAvailable: slot.available,
+            reason: slot.available ? undefined : 'BOOKED',
+            price: service?.price ?? 1200,
+          }));
       }
     } catch (e) {
       // Ignore API errors and generate dynamic slots locally
     }
 
-    // Dynamic slot generation for sports court / venue booking (08:00 - 23:00)
+    // Dynamic slot generation within operating hours
     const durationMinutes = service?.durationMinutes || 60;
-    const startHour = 8;
-    const endHour = 23;
-
     const generatedSlots: AvailableSlot[] = [];
     const activeDateBookings = bookings.filter(
       (b) => b.tenantId === activeTenant.id && b.bookingDate === dateStr && b.status !== 'cancelled'
@@ -600,8 +644,11 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const startTime = `${hourStr}:00`;
       const endTime = `${endHourStr}:00`;
 
-      // Check if this time slot is already booked
-      const isBooked = activeDateBookings.some((b) => b.startTime === startTime);
+      // Check if this time slot is already booked (for this court if specified, else any)
+      const isBooked = activeDateBookings.some((b) =>
+        b.startTime === startTime &&
+        (courtId ? b.courtId === courtId : true)
+      );
 
       generatedSlots.push({
         startTime,

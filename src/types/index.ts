@@ -2,6 +2,17 @@ export type TenantPlan = 'free' | 'pro' | 'enterprise';
 
 export type BookingFlowMode = 'service_staff_time' | 'sports_court_time' | 'service_time_only';
 
+/**
+ * กำหนดวันและเวลาให้บริการสำหรับบริการหลัก/บริการย่อยแต่ละรายการ
+ * days: [0=อาทิตย์, 1=จันทร์, ..., 6=เสาร์]
+ */
+export interface OperatingSchedule {
+  isCustom: boolean;       // true = ใช้ตารางเวลาของตัวเอง, false = ใช้ตามร้านค้า
+  days: number[];          // วันที่เปิดให้บริการ [0,1,2,3,4,5,6]
+  startTime: string;       // เวลาเปิด เช่น "08:00"
+  endTime: string;         // เวลาปิด เช่น "22:00"
+}
+
 export interface Court {
   id: string;
   tenantId: string;
@@ -13,6 +24,7 @@ export interface Court {
   imageUrl?: string;
   extraPricePerHour?: number;
   isActive: boolean;
+  operatingSchedule?: OperatingSchedule; // ตารางเวลาเฉพาะของสนามนี้
 }
 
 export type BookingPresetTemplate = 'EXPRESS_QUEUE' | 'SERVICE_AND_STAFF' | 'RESOURCE_AND_SLOT' | 'CUSTOM';
@@ -147,6 +159,7 @@ export interface Service {
   sortOrder: number;
   addons?: ServiceAddon[];
   timePricingRules?: TimePricingRule[];
+  operatingSchedule?: OperatingSchedule; // ตารางเวลาเฉพาะของบริการนี้
 }
 
 export interface Staff {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Service, Staff, SelectedAddon } from '../../types';
+import { Service, Staff, SelectedAddon, Court } from '../../types';
 import { useSaaS } from '../../context/SaaSContext';
 import { getTenantTerminology } from '../../lib/tenant-terminology';
 import {
@@ -24,6 +24,7 @@ import { calculateServicePrice } from '../../lib/pricing-calculator';
 interface LiffDateTimePickerProps {
   service: Service;
   staff: Staff | null;
+  court?: Court | null;
   selectedDate: string;
   selectedTime: string;
   selectedAddons?: SelectedAddon[];
@@ -33,6 +34,7 @@ interface LiffDateTimePickerProps {
 export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
   service,
   staff,
+  court,
   selectedDate: initialDate,
   selectedTime: initialTime,
   selectedAddons = [],
@@ -122,7 +124,7 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
     setIsSlotsLoading(true);
     setSlotsError(null);
 
-    getAvailableSlots(activeDate, service.id, staff?.id)
+    getAvailableSlots(activeDate, service.id, staff?.id, court?.id)
       .then((nextSlots) => {
         if (!cancelled) setSlots(nextSlots);
       })

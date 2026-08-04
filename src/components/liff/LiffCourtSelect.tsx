@@ -120,6 +120,7 @@ export const LiffCourtSelect: React.FC<LiffCourtSelectProps> = ({
       <div className="space-y-2.5">
         {displayCourts.map((court) => {
           const isSelected = selectedCourtId === court.id;
+          const courtEffectivePrice = Math.max(0, basePrice + (court.extraPricePerHour || 0));
           return (
             <div
               key={court.id}
@@ -152,23 +153,26 @@ export const LiffCourtSelect: React.FC<LiffCourtSelectProps> = ({
                 )}
 
                 <div className="flex items-center justify-between mt-2 pt-1 border-t border-slate-100 text-[10px]">
-                  <span className="text-emerald-700 font-medium flex items-center gap-1">
+                  <span className="text-slate-500 font-medium flex items-center gap-1">
                     <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                    รหัสสนาม: {court.code}
+                    รหัส: {court.code}
                   </span>
-                  {court.extraPricePerHour ? (
-                    court.extraPricePerHour > 0 ? (
-                      <span className="text-amber-700 font-bold">
-                        +฿{court.extraPricePerHour} /ชม. (VIP)
-                      </span>
-                    ) : (
-                      <span className="text-emerald-700 font-bold">
-                        -฿{Math.abs(court.extraPricePerHour)} /ชม. (ส่วนลดสนาม)
-                      </span>
-                    )
-                  ) : (
-                    <span className="text-slate-400 font-medium">ราคาปกติ</span>
-                  )}
+                  <div className="text-right">
+                    <span className="text-[13px] font-black text-emerald-600">
+                      ฿{courtEffectivePrice.toLocaleString()} <span className="text-[9px] text-slate-500 font-normal">/ชม.</span>
+                    </span>
+                    {court.extraPricePerHour ? (
+                      court.extraPricePerHour < 0 ? (
+                        <span className="block text-[9px] text-emerald-600 font-bold">
+                          (ส่วนลด ฿{Math.abs(court.extraPricePerHour)})
+                        </span>
+                      ) : (
+                        <span className="block text-[9px] text-amber-600 font-bold">
+                          (+฿{court.extraPricePerHour} VIP)
+                        </span>
+                      )
+                    ) : null}
+                  </div>
                 </div>
               </div>
 

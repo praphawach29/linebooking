@@ -548,31 +548,31 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
       </div>
 
       {/* Sticky Bottom Action Bar with Summary */}
-      <div className="fixed bottom-[90px] left-4 right-4 p-4 bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 z-50 max-w-[368px] mx-auto flex flex-col gap-3">
+      <div className="sticky bottom-[60px] left-0 right-0 p-4 bg-white/95 backdrop-blur-md rounded-3xl shadow-[0_-8px_30px_rgba(0,0,0,0.12)] border border-slate-200 z-30 max-w-md mx-auto flex flex-col gap-2.5 my-3">
         <div className="flex items-center justify-between px-1">
           <div>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">เวลาที่เลือก</p>
+            <p className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider mb-0.5">รอบเวลาที่เลือก</p>
             <p className="text-[14px] font-black text-slate-900">
-              {activeTime ? `${activeDateThai}, ${activeTime} น.` : 'กรุณาเลือกเวลา'}
+              {activeTime ? `${activeDateThai}, ${activeTime} น.` : 'กรุณาแตะเลือกเวลาร้าน'}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">รวมทั้งหมด</p>
-            <p className="text-[14px] font-black text-primary">฿{totalPrice.toLocaleString()}</p>
+            <p className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider mb-0.5">รวมทั้งหมด</p>
+            <p className="text-[15px] font-black text-emerald-600">฿{totalPrice.toLocaleString()}</p>
           </div>
         </div>
         <button
           disabled={!activeTime}
           onClick={() => onSelectSlot(activeDate, activeTime)}
-          className="w-full btn-primary py-4 px-6 text-[15px] shadow-premium flex items-center justify-between group disabled:bg-slate-300 disabled:shadow-none disabled:border-slate-300 disabled:text-slate-500"
+          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-6 rounded-2xl text-[14px] shadow-lg shadow-emerald-600/20 flex items-center justify-between group disabled:bg-slate-300 disabled:shadow-none disabled:text-slate-500 transition-all"
         >
           <span>
             {activeTime
               ? `ยืนยันรอบเวลา ${activeTime} น.`
               : 'กรุณาเลือกรอบเวลาที่ต้องการ'}
           </span>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform ${activeTime ? 'bg-white/20 group-hover:translate-x-1' : 'bg-transparent'}`}>
-              <ChevronRight className="w-5 h-5 text-white" />
+          <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform ${activeTime ? 'bg-white/20 group-hover:translate-x-1' : 'bg-transparent'}`}>
+            <ChevronRight className="w-5 h-5 text-white" />
           </div>
         </button>
       </div>

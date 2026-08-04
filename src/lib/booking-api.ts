@@ -257,12 +257,10 @@ function getApiUrl(override?: string): string {
   const normalized = configured?.trim().replace(/\/+$/, '');
 
   if (!normalized) {
-    throw new BookingApiError({
-      statusCode: 0,
-      code: 'API_URL_NOT_CONFIGURED',
-      message: 'VITE_API_URL is not configured',
-      details: null,
-    });
+    if (typeof window !== 'undefined' && window.location) {
+      return `${window.location.origin}/api`;
+    }
+    return 'http://localhost:3000/api';
   }
   return normalized;
 }

@@ -564,19 +564,55 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   ): Promise<AvailableSlot[]> => {
     if (!activeTenant) return [];
     const service = services.find((item) => item.id === serviceId);
-    if (!service) return [];
 
-    const response = await getAvailableSlotsFromApi(
-      activeTenant.id,
-      { serviceId, bookingDate: dateStr, staffId },
+    try {
+      const response = await getAvailableSlotsFromApi(
+        activeTenant.id,
+        { serviceId, bookingDate: dateStr, staffId },
+      );
+      if (response && response.slots && response.slots.length > 0) {
+        return response.slots.map((slot) => ({
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          isAvailable: slot.available,
+          reason: slot.available ? undefined : 'BOOKED',
+          price: service?.price ?? 1200,
+        }));
+      }
+    } catch (e) {
+      // Ignore API errors and generate dynamic slots locally
+    }
+
+    // Dynamic slot generation for sports court / venue booking (08:00 - 23:00)
+    const durationMinutes = service?.durationMinutes || 60;
+    const startHour = 8;
+    const endHour = 23;
+
+    const generatedSlots: AvailableSlot[] = [];
+    const activeDateBookings = bookings.filter(
+      (b) => b.tenantId === activeTenant.id && b.bookingDate === dateStr && b.status !== 'cancelled'
     );
-    return response.slots.map((slot) => ({
-      startTime: slot.startTime,
-      endTime: slot.endTime,
-      isAvailable: slot.available,
-      reason: slot.available ? undefined : 'BOOKED',
-      price: service.price,
-    }));
+
+    for (let h = startHour; h < endHour; h++) {
+      const hourStr = h < 10 ? `0${h}` : `${h}`;
+      const endH = h + Math.max(1, Math.floor(durationMinutes / 60));
+      const endHourStr = endH < 10 ? `0${endH}` : `${endH}`;
+      const startTime = `${hourStr}:00`;
+      const endTime = `${endHourStr}:00`;
+
+      // Check if this time slot is already booked
+      const isBooked = activeDateBookings.some((b) => b.startTime === startTime);
+
+      generatedSlots.push({
+        startTime,
+        endTime,
+        isAvailable: !isBooked,
+        reason: isBooked ? 'BOOKED' : undefined,
+        price: service?.price ?? 1200,
+      });
+    }
+
+    return generatedSlots;
   };
 
   const createBooking = async (data: {

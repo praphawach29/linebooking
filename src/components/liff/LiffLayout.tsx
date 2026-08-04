@@ -326,62 +326,65 @@ export const LiffLayout: React.FC = () => {
           {currentStep === 'point_history' && <LiffPointHistory onBack={() => setCurrentStep('profile')} />}
         </div>
 
-        {/* Floating Bottom Navigation Bar */}
+        {/* Sticky Bottom Navigation Bar */}
         {!['promptpay_payment', 'booking_confirmation'].includes(currentStep) && (
-          <div className="absolute bottom-6 left-5 right-5 glass-panel px-3 py-2.5 flex justify-around items-center z-40 !rounded-[24px]">
-          <button
-            onClick={() => handleTabChange('home')}
-            className={`flex flex-col items-center gap-1 p-2 w-16 transition-all duration-300 ${
-              activeTab === 'home' ? 'text-primary scale-110' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <Home className={`w-5 h-5 ${activeTab === 'home' ? 'fill-primary/20' : ''}`} />
-            <span className={`text-[10px] ${activeTab === 'home' ? 'font-bold' : 'font-medium'}`}>หน้าแรก</span>
-          </button>
+          <div className="sticky bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2 flex items-center justify-around shadow-[0_-4px_25px_rgba(0,0,0,0.06)] pb-safe">
+            <button
+              onClick={() => handleTabChange('home')}
+              className={`flex flex-col items-center gap-1 py-1.5 px-3 rounded-2xl transition-all duration-200 ${
+                activeTab === 'home'
+                  ? 'text-emerald-600 bg-emerald-50 font-black'
+                  : 'text-slate-500 hover:text-slate-800 font-medium'
+              }`}
+            >
+              <Home className={`w-5 h-5 ${activeTab === 'home' ? 'text-emerald-600' : 'text-slate-400'}`} />
+              <span className="text-[11px]">หน้าแรก</span>
+            </button>
 
-          <button
-            onClick={() => handleTabChange('my_bookings')}
-            className={`flex flex-col items-center gap-1 p-2 w-16 transition-all duration-300 ${
-              activeTab === 'my_bookings' ? 'text-primary scale-110' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <Calendar className={`w-5 h-5 ${activeTab === 'my_bookings' ? 'fill-primary/20' : ''}`} />
-            <span className={`text-[10px] ${activeTab === 'my_bookings' ? 'font-bold' : 'font-medium'}`}>คิวของฉัน</span>
-          </button>
+            <button
+              onClick={() => handleTabChange('my_bookings')}
+              className={`flex flex-col items-center gap-1 py-1.5 px-3 rounded-2xl transition-all duration-200 ${
+                activeTab === 'my_bookings'
+                  ? 'text-emerald-600 bg-emerald-50 font-black'
+                  : 'text-slate-500 hover:text-slate-800 font-medium'
+              }`}
+            >
+              <Calendar className={`w-5 h-5 ${activeTab === 'my_bookings' ? 'text-emerald-600' : 'text-slate-400'}`} />
+              <span className="text-[11px]">คิวของฉัน</span>
+            </button>
 
-          <button
-            onClick={() => handleTabChange('notifications')}
-            className={`flex flex-col items-center gap-1 p-2 w-16 transition-all duration-300 relative ${
-              activeTab === 'notifications' ? 'text-primary scale-110' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <div className="relative">
-              <Bell className={`w-5 h-5 ${activeTab === 'notifications' ? 'fill-primary/20' : ''}`} />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-danger text-white text-[9px] w-[18px] h-[18px] rounded-full flex items-center justify-center font-bold ring-2 ring-white">
-                  {unreadCount}
-                </span>
-              )}
-            </div>
-            <span className={`text-[10px] ${activeTab === 'notifications' ? 'font-bold' : 'font-medium'}`}>แจ้งเตือน</span>
-          </button>
+            <button
+              onClick={() => handleTabChange('notifications')}
+              className={`flex flex-col items-center gap-1 py-1.5 px-3 rounded-2xl transition-all duration-200 relative ${
+                activeTab === 'notifications'
+                  ? 'text-emerald-600 bg-emerald-50 font-black'
+                  : 'text-slate-500 hover:text-slate-800 font-medium'
+              }`}
+            >
+              <div className="relative">
+                <Bell className={`w-5 h-5 ${activeTab === 'notifications' ? 'text-emerald-600' : 'text-slate-400'}`} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1.5 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-black">
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
+              <span className="text-[11px]">แจ้งเตือน</span>
+            </button>
 
-          <button
-            onClick={() => handleTabChange('profile')}
-            className={`flex flex-col items-center gap-1 p-2 w-16 transition-all duration-300 ${
-              activeTab === 'profile' ? 'text-primary scale-110' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <UserIcon className={`w-5 h-5 ${activeTab === 'profile' ? 'fill-primary/20' : ''}`} />
-            <span className={`text-[10px] ${activeTab === 'profile' ? 'font-bold' : 'font-medium'}`}>ฉัน</span>
-          </button>
+            <button
+              onClick={() => handleTabChange('profile')}
+              className={`flex flex-col items-center gap-1 py-1.5 px-3 rounded-2xl transition-all duration-200 ${
+                activeTab === 'profile'
+                  ? 'text-emerald-600 bg-emerald-50 font-black'
+                  : 'text-slate-500 hover:text-slate-800 font-medium'
+              }`}
+            >
+              <UserIcon className={`w-5 h-5 ${activeTab === 'profile' ? 'text-emerald-600' : 'text-slate-400'}`} />
+              <span className="text-[11px]">ฉัน</span>
+            </button>
           </div>
         )}
-
-        {/* Bottom Home Indicator Bar */}
-        <div className="bg-transparent absolute bottom-0 h-4 w-full flex justify-center items-center pb-1 z-50 pointer-events-none">
-          <div className="w-32 h-1.5 bg-slate-900 rounded-full"></div>
-        </div>
 
       </div>
     </div>

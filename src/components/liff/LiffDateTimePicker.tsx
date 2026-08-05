@@ -310,7 +310,7 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
   const canConfirm = selectedStartHour !== null && selectedHours >= 1;
 
   return (
-    <div className="p-4 space-y-4 pb-28">
+    <div className="p-4 space-y-4 pb-4">
       {/* Service & Staff Info Header Card */}
       <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-4 rounded-[22px] shadow-premium space-y-2 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-28 h-28 bg-white/5 rounded-full blur-2xl -mr-8 -mt-8"></div>
@@ -595,7 +595,7 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
       </div>
 
       {/* Sticky Bottom Action Bar */}
-      <div className="sticky bottom-[64px] left-0 right-0 bg-white/96 backdrop-blur-md rounded-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.10)] border border-slate-200 z-30 p-3.5 flex flex-col gap-2">
+      <div className="sticky bottom-0 left-0 right-0 bg-white/96 backdrop-blur-md rounded-t-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.10)] border-t border-slate-200 z-30 p-3 flex flex-col gap-2">
         <div className="flex items-center justify-between px-1">
           <div className="min-w-0 pr-2">
             <p className="text-[9px] text-slate-500 font-extrabold uppercase tracking-wider mb-0.5">รอบเวลาที่เลือก</p>

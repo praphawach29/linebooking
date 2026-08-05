@@ -163,17 +163,6 @@ export const LiffCourtSelect: React.FC<LiffCourtSelectProps> = ({
                     <span className="text-[13px] font-black text-emerald-600">
                       ฿{courtEffectivePrice.toLocaleString()} <span className="text-[9px] text-slate-500 font-normal">/ชม.</span>
                     </span>
-                    {court.extraPricePerHour ? (
-                      court.extraPricePerHour < 0 ? (
-                        <span className="block text-[9px] text-emerald-600 font-bold">
-                          (ส่วนลด ฿{Math.abs(court.extraPricePerHour)})
-                        </span>
-                      ) : (
-                        <span className="block text-[9px] text-amber-600 font-bold">
-                          (+฿{court.extraPricePerHour} VIP)
-                        </span>
-                      )
-                    ) : null}
                   </div>
                 </div>
               </div>

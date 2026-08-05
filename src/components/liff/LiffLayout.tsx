@@ -368,10 +368,10 @@ export const LiffLayout: React.FC = () => {
 
         {/* Sticky Bottom Navigation Bar */}
         {!['promptpay_payment', 'booking_confirmation'].includes(currentStep) && (
-          <div className="sticky bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2 flex items-center justify-around shadow-[0_-4px_25px_rgba(0,0,0,0.06)] pb-safe">
+          <div className="sticky bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-1 flex items-center justify-around shadow-[0_-2px_15px_rgba(0,0,0,0.05)] pb-safe">
             <button
               onClick={() => handleTabChange('home')}
-              className={`flex flex-col items-center gap-1 py-1.5 px-3 rounded-2xl transition-all duration-200 ${
+              className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-2xl transition-all duration-200 ${
                 activeTab === 'home'
                   ? 'text-emerald-600 bg-emerald-50 font-black'
                   : 'text-slate-500 hover:text-slate-800 font-medium'

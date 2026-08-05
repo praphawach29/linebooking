@@ -212,7 +212,7 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
   };
 
   return (
-    <div className="p-4 space-y-4 pb-28">
+    <div className="p-4 space-y-4 pb-4">
       <div className="text-center space-y-1 mt-2">
         <h2 className="text-lg font-black text-foreground">สรุปรายละเอียดการจอง</h2>
         <p className="text-[13px] text-slate-500 font-medium">เลือกบริการเสริม ชำระเงินมัดจำ ยืนยันคิวทันที</p>
@@ -635,7 +635,7 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
       </div>
 
       {/* Sticky Bottom Action Bar */}
-      <div className="sticky bottom-[64px] left-0 right-0 bg-white/96 backdrop-blur-md rounded-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.10)] border border-slate-200 z-30 p-3.5 flex flex-col gap-2">
+      <div className="sticky bottom-0 left-0 right-0 bg-white/96 backdrop-blur-md rounded-t-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.10)] border-t border-slate-200 z-30 p-3 flex flex-col gap-2">
         <div className="flex items-center justify-between px-1">
           <div>
             <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">ยอดชำระมัดจำ ({depositPct}%)</p>

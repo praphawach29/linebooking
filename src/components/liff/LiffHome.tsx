@@ -189,13 +189,10 @@ export const LiffHome: React.FC<LiffHomeProps> = ({ onSelectService, liffProfile
               : (currentUser?.displayName || currentUser?.name || 'คุณลูกค้า')}
           </span>
         </div>
-        <span className="text-[11px] font-extrabold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/60">
-          LINE OA Booking
-        </span>
       </div>
 
       {/* Search & Category Filter Section */}
-      <div className="px-5 py-4 bg-white sticky top-0 z-10 border-b border-slate-100/50 space-y-4 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.02)]">
+      <div className="px-5 py-3.5 bg-white sticky top-0 z-10 border-b border-slate-100/50 space-y-3 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.02)]">
         {/* Search Input */}
         <div className="relative w-full group">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 group-focus-within:text-emerald-500 transition-colors" />
@@ -208,7 +205,7 @@ export const LiffHome: React.FC<LiffHomeProps> = ({ onSelectService, liffProfile
                 ? 'ค้นหาสนามกีฬา, ฟุตซอล, แบดมินตัน...'
                 : 'ค้นหาบริการ, หมวดหมู่...'
             }
-            className="w-full bg-slate-50 border border-slate-200/60 hover:border-emerald-500/40 rounded-2xl py-3 pl-11 pr-10 text-[14px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 focus:bg-white transition-all shadow-sm"
+            className="w-full bg-slate-50 border border-slate-200/60 hover:border-emerald-500/40 rounded-2xl py-2.5 pl-11 pr-10 text-[14px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 focus:bg-white transition-all shadow-sm"
           />
           {searchQuery && (
             <button
@@ -220,40 +217,42 @@ export const LiffHome: React.FC<LiffHomeProps> = ({ onSelectService, liffProfile
           )}
         </div>
 
-        {/* Category Pills Slider */}
-        <div className="space-y-2">
-          <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-none snap-x">
-            {categories.map((cat: string) => {
-              const isActive = selectedCategory === cat;
-              const count =
-                cat === 'ทั้งหมด'
-                  ? finalServicesList.length
-                  : finalServicesList.filter((s) => s.category === cat).length;
+        {/* Category Pills Slider - Only display if there are 2 or more distinct categories */}
+        {rawCategories.length > 1 && (
+          <div className="space-y-2">
+            <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-none snap-x">
+              {categories.map((cat: string) => {
+                const isActive = selectedCategory === cat;
+                const count =
+                  cat === 'ทั้งหมด'
+                    ? finalServicesList.length
+                    : finalServicesList.filter((s) => s.category === cat).length;
 
-              return (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`snap-start px-4 py-2 rounded-xl text-[13px] font-bold whitespace-nowrap transition-all flex items-center gap-2 ${
-                    isActive
-                      ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20 scale-[1.02]'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 shadow-sm'
-                  }`}
-                >
-                  {getCategoryIcon(cat)}
-                  <span>{cat}</span>
-                  <span
-                    className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${
-                      isActive ? 'bg-white/20 text-white' : 'bg-white text-slate-500 border border-slate-200'
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`snap-start px-4 py-2 rounded-xl text-[13px] font-bold whitespace-nowrap transition-all flex items-center gap-2 ${
+                      isActive
+                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20 scale-[1.02]'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 shadow-sm'
                     }`}
                   >
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
+                    {getCategoryIcon(cat)}
+                    <span>{cat}</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${
+                        isActive ? 'bg-white/20 text-white' : 'bg-white text-slate-500 border border-slate-200'
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Main Content Area */}

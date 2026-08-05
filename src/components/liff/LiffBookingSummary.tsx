@@ -275,17 +275,6 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
               <span className="text-[11px] text-emerald-800 font-extrabold block">{terms.selectedResourceLabel}</span>
               <span className="font-black text-slate-900">
                 {court.name}
-                {court.extraPricePerHour ? (
-                  court.extraPricePerHour < 0 ? (
-                    <span className="text-emerald-700 font-bold ml-1.5 text-xs">
-                      (ส่วนลด {Math.abs(court.extraPricePerHour)} บาท)
-                    </span>
-                  ) : (
-                    <span className="text-amber-700 font-bold ml-1.5 text-xs">
-                      (VIP +{court.extraPricePerHour} บาท)
-                    </span>
-                  )
-                ) : null}
               </span>
             </div>
           </div>

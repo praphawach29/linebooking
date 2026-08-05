@@ -5,6 +5,7 @@ import {
   Calendar,
   Clock,
   User,
+  Trophy,
   Download,
   MessageSquare,
   ChevronRight,
@@ -135,15 +136,27 @@ export const LiffBookingConfirmation: React.FC<LiffBookingConfirmationProps> = (
              </div>
           </div>
 
-          <div className="flex items-start gap-3">
-             <div className="bg-primary/5 p-2 rounded-xl text-primary border border-primary/10 shrink-0">
+          {booking.courtName ? (
+            <div className="flex items-start gap-3">
+              <div className="bg-primary/5 p-2 rounded-xl text-primary border border-primary/10 shrink-0">
+                <Trophy className="w-4 h-4" />
+              </div>
+              <div className="pt-0.5">
+                <span className="text-[11px] text-slate-500 font-bold block mb-0.5">สนาม / คอร์ท</span>
+                <span className="font-black text-foreground text-[14px]">{booking.courtName}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start gap-3">
+              <div className="bg-primary/5 p-2 rounded-xl text-primary border border-primary/10 shrink-0">
                 <User className="w-4 h-4" />
-             </div>
-             <div className="pt-0.5">
+              </div>
+              <div className="pt-0.5">
                 <span className="text-[11px] text-slate-500 font-bold block mb-0.5">ช่างผู้ให้บริการ</span>
                 <span className="font-black text-foreground text-[14px]">{booking.staffName || '-'}</span>
-             </div>
-          </div>
+              </div>
+            </div>
+          )}
 
             <div className="flex items-start gap-3">
                <div className="bg-primary/5 p-2 rounded-xl text-primary border border-primary/10 shrink-0">

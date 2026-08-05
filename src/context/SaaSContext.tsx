@@ -440,6 +440,11 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       )
       .subscribe();
 
+    // Auto polling interval every 10 seconds for real-time dashboard updates
+    const pollInterval = setInterval(() => {
+      fetchData();
+    }, 10000);
+
     // Re-fetch when user signs in (handles logout → login with different account)
     // Reset state when user signs out
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -451,6 +456,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
 
     return () => {
+      clearInterval(pollInterval);
       subscription.unsubscribe();
       channel.unsubscribe();
     };

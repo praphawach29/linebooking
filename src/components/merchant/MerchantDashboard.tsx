@@ -18,8 +18,21 @@ export const MerchantDashboard: React.FC = () => {
   const { activeTenant, bookings, services, setMerchantTab } = useSaaS();
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const [filterMode, setFilterMode] = useState<'today' | 'all'>('today');
+
+  const getLocalDateString = (d: Date = new Date()) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const todayStr = getLocalDateString();
   const todayBookings = bookings.filter((b) => b.bookingDate === todayStr);
+
+  const displayedBookings = filterMode === 'today'
+    ? todayBookings
+    : [...bookings].sort((a, b) => new Date(b.createdAt || b.bookingDate).getTime() - new Date(a.createdAt || a.bookingDate).getTime());
 
   const confirmedCount = todayBookings.filter((b) => b.status === 'confirmed' || b.status === 'checked_in').length;
   const pendingCount = todayBookings.filter((b) => b.status === 'pending').length;
@@ -155,30 +168,63 @@ export const MerchantDashboard: React.FC = () => {
         
         {/* Today's Appointments Feed (2 cols) */}
         <div className="lg:col-span-2 premium-card p-6 sm:p-8">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-extrabold text-foreground flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-slate-100">
+            <div className="flex items-center gap-2">
               <Clock className="w-5 h-5 text-primary" />
-              ตารางคิวจองวันนี้ ({todayStr})
-            </h3>
-            <button
-              onClick={() => setMerchantTab('calendar')}
-              className="text-sm text-primary hover:text-primary-hover font-bold transition-colors bg-primary/5 hover:bg-primary/10 px-4 py-2 rounded-xl"
-            >
-              ดูปฏิทินทั้งหมด &rarr;
-            </button>
+              <h3 className="text-lg font-extrabold text-foreground">
+                {filterMode === 'today' ? `ตารางคิวจองวันนี้ (${todayStr})` : 'รายการคิวจองทั้งหมด'}
+              </h3>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setFilterMode('today')}
+                  className={`px-3 py-1.5 rounded-lg transition-all ${
+                    filterMode === 'today'
+                      ? 'bg-white text-emerald-700 shadow-xs font-extrabold'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  คิววันนี้ ({todayBookings.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterMode('all')}
+                  className={`px-3 py-1.5 rounded-lg transition-all ${
+                    filterMode === 'all'
+                      ? 'bg-white text-emerald-700 shadow-xs font-extrabold'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  คิวทั้งหมด ({bookings.length})
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setMerchantTab('calendar')}
+                className="text-xs text-primary hover:text-primary-hover font-bold transition-colors bg-primary/5 hover:bg-primary/10 px-3 py-2 rounded-xl"
+              >
+                ดูปฏิทิน &rarr;
+              </button>
+            </div>
           </div>
 
-          {todayBookings.length === 0 ? (
+          {displayedBookings.length === 0 ? (
             <div className="p-12 text-center border-2 border-dashed border-border rounded-3xl bg-slate-50/50">
               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Calendar className="w-8 h-8 text-slate-400" />
               </div>
-              <p className="text-sm text-slate-500 font-bold">ยังไม่มีคิวจองสำหรับวันนี้</p>
+              <p className="text-sm text-slate-500 font-bold">
+                {filterMode === 'today' ? 'ยังไม่มีคิวจองสำหรับวันนี้' : 'ยังไม่มีรายการคิวจองในระบบ'}
+              </p>
               <p className="text-xs text-slate-400 mt-2">เริ่มต้นโดยการเพิ่มคิว Walk-in ให้ลูกค้า</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {todayBookings.map((booking) => (
+              {displayedBookings.map((booking) => (
                 <div
                   key={booking.id}
                   onClick={() => setSelectedBooking(booking)}
@@ -186,6 +232,7 @@ export const MerchantDashboard: React.FC = () => {
                 >
                   <div className="flex items-start gap-4">
                     <div className="bg-foreground text-white px-4 py-3 rounded-xl text-center flex-shrink-0 min-w-[90px] shadow-sm">
+                      <span className="text-xs font-bold text-slate-300 block mb-0.5">{booking.bookingDate}</span>
                       <span className="text-sm font-black block">{booking.startTime}</span>
                       <span className="text-[10px] text-slate-400 font-medium">ถึง {booking.endTime}</span>
                     </div>
@@ -195,13 +242,19 @@ export const MerchantDashboard: React.FC = () => {
                         <span className="font-extrabold text-sm text-foreground group-hover:text-primary transition-colors">
                           {booking.userName}
                         </span>
-                        <span className="text-[11px] text-slate-400 font-mono bg-slate-100 px-2 py-0.5 rounded-md">{booking.userPhone}</span>
+                        {booking.userPhone && (
+                          <span className="text-[11px] text-slate-400 font-mono bg-slate-100 px-2 py-0.5 rounded-md">{booking.userPhone}</span>
+                        )}
                       </div>
                       <p className="text-sm font-bold text-slate-600">{booking.serviceName}</p>
-                      <p className="text-[12px] text-slate-500 font-medium flex items-center gap-2">
-                        <span>ช่าง: <strong className="text-slate-800">{booking.staffName}</strong></span>
+                      <p className="text-[12px] text-slate-500 font-medium flex items-center gap-2 flex-wrap">
+                        {booking.courtName ? (
+                          <span>สนาม/คอร์ท: <strong className="text-emerald-700 font-extrabold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">{booking.courtName}</strong></span>
+                        ) : (
+                          <span>ช่าง: <strong className="text-slate-800">{booking.staffName || '-'}</strong></span>
+                        )}
                         <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                        <span>มาทาง: {booking.source}</span>
+                        <span>ช่องทาง: <strong className="text-slate-700">{booking.source === 'line_liff' ? 'LINE OA / LIFF' : booking.source}</strong></span>
                       </p>
                     </div>
                   </div>

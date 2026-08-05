@@ -547,17 +547,40 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
    * (เดิมหน้า LIFF อ่านตาราง bookings ทั้งตาราง ซึ่งเห็นชื่อ/เบอร์ลูกค้าคนอื่นด้วย)
    */
   const fetchMyBookings = async (lineUserId?: string): Promise<Booking[]> => {
-    const lineId = lineUserId || currentUser?.lineUserId;
-    if (!lineId) return [];
+    let lineId = lineUserId || currentUser?.lineUserId;
+    if (!lineId) {
+      try {
+        const rawProfile = localStorage.getItem('line_liff_profile_v1');
+        if (rawProfile) {
+          const parsed = JSON.parse(rawProfile);
+          if (parsed && parsed.lineUserId) {
+            lineId = parsed.lineUserId;
+          }
+        }
+      } catch (e) {}
+    }
+
+    const localBookings = getLocalStoredBookings();
+
+    if (!lineId) {
+      setBookings((prev) => {
+        const ids = new Set(localBookings.map((b) => b.id));
+        return [...localBookings, ...prev.filter((b) => !ids.has(b.id))];
+      });
+      return localBookings;
+    }
 
     const { data, error } = await supabase.rpc('get_my_bookings', { p_line_user_id: lineId });
     if (error) {
       console.error('Error fetching my bookings:', error.message);
-      return [];
+      setBookings((prev) => {
+        const ids = new Set(localBookings.map((b) => b.id));
+        return [...localBookings, ...prev.filter((b) => !ids.has(b.id))];
+      });
+      return localBookings;
     }
 
     const list = camelizeKeys(data || []) as Booking[];
-    const localBookings = getLocalStoredBookings();
     const mergedList = [...list, ...localBookings.filter((b) => !list.some((l) => l.id === b.id))];
 
     // รวมเข้ากับ state เพื่อให้หน้าอื่น ๆ (เช่นแต้มสะสม) ใช้ข้อมูลชุดเดียวกัน

@@ -208,11 +208,11 @@ export const MerchantDashboard: React.FC = () => {
 
       </div>
 
-      {/* Main Grid: Today's Timeline & Popular Services Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Main Content: Today's Timeline & Popular Services Chart */}
+      <div className="flex flex-col gap-6">
         
-        {/* Today's Appointments Feed (2 cols) */}
-        <div className="lg:col-span-2 premium-card p-6 sm:p-8">
+        {/* Today's Appointments Feed */}
+        <div className="premium-card p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-slate-100">
             <div className="flex items-center gap-2">
               <Clock className="w-5 h-5 text-primary" />

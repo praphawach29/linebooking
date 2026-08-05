@@ -314,12 +314,12 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         ] = await Promise.all([
           // If platform_admin: fetch ALL real tenants in Supabase!
           // If logged-in merchant: fetch by their specific tenant_id
-          // If public guest: fetch public_tenants
+          // If public guest: fetch active tenants (RLS restricts it)
           isPlatformAdmin
             ? supabase.from('tenants').select('*').order('created_at', { ascending: false })
             : isAuthenticated && userTenantId
             ? supabase.from('tenants').select('*').eq('id', userTenantId)
-            : supabase.from('public_tenants').select('*'),
+            : supabase.from('tenants').select('*'),
           supabase.from('services').select('*'),
           supabase.from('service_addons').select('*'),
           supabase.from('staff').select('*'),

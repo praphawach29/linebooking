@@ -10,15 +10,20 @@ import {
   AlertCircle,
   Eye,
   PlusCircle,
+  Search,
+  Check,
+  Loader2,
 } from 'lucide-react';
 import { MerchantBookingDetailModal } from './MerchantBookingDetailModal';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 export const MerchantDashboard: React.FC = () => {
-  const { activeTenant, bookings, services, setMerchantTab } = useSaaS();
+  const { activeTenant, bookings, services, setMerchantTab, updateBookingStatus } = useSaaS();
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
   const [filterMode, setFilterMode] = useState<'today' | 'all'>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const getLocalDateString = (d: Date = new Date()) => {
     const year = d.getFullYear();
@@ -31,9 +36,20 @@ export const MerchantDashboard: React.FC = () => {
   const tenantBookings = bookings.filter((b) => !activeTenant || b.tenantId === activeTenant.id);
   const todayBookings = tenantBookings.filter((b) => (b.bookingDate ? b.bookingDate.split('T')[0] : '') === todayStr);
 
-  const displayedBookings = filterMode === 'today'
+  const baseBookings = filterMode === 'today'
     ? todayBookings
     : [...tenantBookings].sort((a, b) => new Date(b.createdAt || b.bookingDate).getTime() - new Date(a.createdAt || a.bookingDate).getTime());
+
+  const displayedBookings = baseBookings.filter((b) => {
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase().trim();
+    return (
+      b.userName?.toLowerCase().includes(term) ||
+      b.userPhone?.toLowerCase().includes(term) ||
+      b.refNo?.toLowerCase().includes(term) ||
+      b.serviceName?.toLowerCase().includes(term)
+    );
+  });
 
   const activeMetricsBookings = filterMode === 'today' ? todayBookings : tenantBookings;
 
@@ -43,6 +59,18 @@ export const MerchantDashboard: React.FC = () => {
   const displayedRevenue = activeMetricsBookings
     .filter((b) => b.status !== 'cancelled')
     .reduce((sum, b) => sum + (b.finalPrice ?? b.price ?? 0), 0);
+
+  const handleQuickStatusUpdate = async (e: React.MouseEvent, bookingId: string, newStatus: Booking['status']) => {
+    e.stopPropagation();
+    setUpdatingId(bookingId);
+    try {
+      await updateBookingStatus(bookingId, newStatus);
+    } catch (err) {
+      console.error('Quick status update failed:', err);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   // Popular Services Data for Recharts
   const serviceStats = services.map((svc) => {
@@ -229,15 +257,43 @@ export const MerchantDashboard: React.FC = () => {
             </div>
           </div>
 
+          {/* Quick Search Box */}
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="ค้นหาชื่อลูกค้า, เบอร์โทรศัพท์, รหัสอ้างอิง..."
+                className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs focus:bg-white focus:outline-none focus:border-emerald-500 font-medium transition-all"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+
           {displayedBookings.length === 0 ? (
             <div className="p-12 text-center border-2 border-dashed border-border rounded-3xl bg-slate-50/50">
               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Calendar className="w-8 h-8 text-slate-400" />
               </div>
               <p className="text-sm text-slate-500 font-bold">
-                {filterMode === 'today' ? 'ยังไม่มีคิวจองสำหรับวันนี้' : 'ยังไม่มีรายการคิวจองในระบบ'}
+                {searchTerm
+                  ? 'ไม่พบรายการคิวจองที่ตรงกับคำค้นหา'
+                  : filterMode === 'today'
+                  ? 'ยังไม่มีคิวจองสำหรับวันนี้'
+                  : 'ยังไม่มีรายการคิวจองในระบบ'}
               </p>
-              <p className="text-xs text-slate-400 mt-2">เริ่มต้นโดยการเพิ่มคิว Walk-in ให้ลูกค้า</p>
+              <p className="text-xs text-slate-400 mt-2">
+                {searchTerm ? 'ลองค้นหาด้วยคำอื่น หรือกดล้างการค้นหา' : 'เริ่มต้นโดยการเพิ่มคิว Walk-in ให้ลูกค้า'}
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -255,12 +311,14 @@ export const MerchantDashboard: React.FC = () => {
                     </div>
 
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-extrabold text-sm text-foreground group-hover:text-primary transition-colors">
                           {booking.userName}
                         </span>
                         {booking.userPhone && (
-                          <span className="text-[11px] text-slate-400 font-mono bg-slate-100 px-2 py-0.5 rounded-md">{booking.userPhone}</span>
+                          <span className="text-[11px] font-mono text-slate-700 font-bold bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                            {booking.userPhone}
+                          </span>
                         )}
                       </div>
                       <p className="text-sm font-bold text-slate-600">{booking.serviceName}</p>
@@ -276,15 +334,51 @@ export const MerchantDashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-4 pt-4 sm:pt-0 border-t sm:border-t-0 border-border">
+                  <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 pt-4 sm:pt-0 border-t sm:border-t-0 border-border">
                     <div className="text-right flex flex-col items-end gap-1.5">
                       <p className="text-sm font-black text-foreground">
                         ฿{(booking?.finalPrice ?? booking?.price ?? 0).toLocaleString()}
                       </p>
                       {getStatusBadge(booking.status)}
                     </div>
-                    <button className="w-10 h-10 flex items-center justify-center text-slate-400 group-hover:text-primary hover:bg-primary/10 rounded-xl transition-all">
-                      <Eye className="w-5 h-5" />
+
+                    {/* Quick Action Button */}
+                    {booking.status === 'pending' && (
+                      <button
+                        type="button"
+                        disabled={updatingId === booking.id}
+                        onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'confirmed')}
+                        className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1 transition-all shadow-xs active:scale-95 disabled:opacity-50 shrink-0"
+                        title="กดยืนยันคิวทันที"
+                      >
+                        {updatingId === booking.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Check className="w-3.5 h-3.5" />
+                        )}
+                        <span className="hidden sm:inline">ยืนยัน</span>
+                      </button>
+                    )}
+
+                    {booking.status === 'confirmed' && (
+                      <button
+                        type="button"
+                        disabled={updatingId === booking.id}
+                        onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'checked_in')}
+                        className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1 transition-all shadow-xs active:scale-95 disabled:opacity-50 shrink-0"
+                        title="เช็คอินหน้าร้านทันที"
+                      >
+                        {updatingId === booking.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                        )}
+                        <span className="hidden sm:inline">เช็คอิน</span>
+                      </button>
+                    )}
+
+                    <button className="w-9 h-9 flex items-center justify-center text-slate-400 group-hover:text-primary hover:bg-primary/10 rounded-xl transition-all shrink-0">
+                      <Eye className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -305,8 +399,8 @@ export const MerchantDashboard: React.FC = () => {
 
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={serviceStats} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 'bold', fill: '#64748B' }} interval={0} axisLine={false} tickLine={false} />
+                <BarChart data={serviceStats} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 'bold', fill: '#64748B' }} interval={0} axisLine={false} tickLine={false} dy={8} />
                   <YAxis tick={{ fontSize: 11, fontWeight: 'bold', fill: '#64748B' }} axisLine={false} tickLine={false} />
                   <Tooltip
                     contentStyle={{ borderRadius: '16px', fontSize: '12px', fontWeight: 'bold', border: 'none', boxShadow: '0 10px 30px -5px rgba(0,0,0,0.1)' }}

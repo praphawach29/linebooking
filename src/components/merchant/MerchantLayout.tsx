@@ -97,17 +97,27 @@ export const MerchantLayout: React.FC = () => {
       ],
     },
     {
-      title: 'จัดการระบบร้านค้า',
+      title: 'ตั้งค่าหน้าร้าน & บริการ',
       items: [
-        { tab: 'shop_settings', icon: Store, label: 'ตั้งค่าข้อมูลร้านค้า & โลโก้' },
-        { tab: 'services', icon: Scissors, label: 'บริการ (Services)' },
+        { tab: 'shop_settings', icon: Store, label: 'ข้อมูลร้านค้า & โลโก้' },
+        { tab: 'services', icon: Scissors, label: 'บริการ & ส่วนเสริม' },
         { tab: 'staffs', icon: Users, label: activeTenant?.businessType === 'sports' ? 'สนาม/คอร์ท (Courts)' : 'ทีมช่าง (Staffs)' },
-        { tab: 'booking_flow', icon: Sparkles, label: 'ตั้งค่าขั้นตอนการจอง (Flow)' },
+      ],
+    },
+    {
+      title: 'การจอง & การชำระเงิน',
+      items: [
+        { tab: 'booking_flow', icon: Sparkles, label: 'ขั้นตอนการจอง (Flow)' },
         { tab: 'payments', icon: CreditCard, label: 'การชำระเงิน (QR Code)' },
         { tab: 'booking_settings', icon: Settings, label: 'ตั้งค่าการจองและยกเลิก' },
-        { tab: 'loyalty', icon: Gift, label: 'ระบบสมาชิก & ของรางวัล' },
+      ],
+    },
+    {
+      title: 'การตลาด & สมาชิก',
+      items: [
         { tab: 'line_settings', icon: MessageSquare, label: 'LINE OA Setup' },
-        { tab: 'analytics', icon: BarChart3, label: 'สถิติและรายงาน' },
+        { tab: 'loyalty', icon: Gift, label: 'ระบบสมาชิก & รางวัล' },
+        { tab: 'analytics', icon: BarChart3, label: 'สถิติ & รายงาน' },
         { tab: 'reviews', icon: Star, label: 'รีวิว & คะแนน' },
       ],
     },
@@ -240,14 +250,6 @@ export const MerchantLayout: React.FC = () => {
           >
             <Sparkles className="w-4 h-4" />
             <span>ต่ออายุ / อัปเกรดแพ็กเกจ</span>
-          </button>
-
-          <button
-            onClick={() => handleTabChange('onboarding')}
-            className="w-full bg-white/5 hover:bg-white/10 text-slate-300 font-bold py-2 px-3 rounded-xl border border-white/10 text-xs flex items-center justify-center gap-2 transition-all"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-primary" />
-            <span>เริ่มตั้งค่าระบบ (Wizard)</span>
           </button>
 
           <div className="flex items-center justify-between pt-1 px-1">

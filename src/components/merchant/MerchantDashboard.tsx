@@ -29,18 +29,20 @@ export const MerchantDashboard: React.FC = () => {
 
   const todayStr = getLocalDateString();
   const tenantBookings = bookings.filter((b) => !activeTenant || b.tenantId === activeTenant.id);
-  const todayBookings = tenantBookings.filter((b) => b.bookingDate === todayStr);
+  const todayBookings = tenantBookings.filter((b) => (b.bookingDate ? b.bookingDate.split('T')[0] : '') === todayStr);
 
   const displayedBookings = filterMode === 'today'
     ? todayBookings
     : [...tenantBookings].sort((a, b) => new Date(b.createdAt || b.bookingDate).getTime() - new Date(a.createdAt || a.bookingDate).getTime());
 
-  const confirmedCount = todayBookings.filter((b) => b.status === 'confirmed' || b.status === 'checked_in').length;
-  const pendingCount = todayBookings.filter((b) => b.status === 'pending').length;
+  const activeMetricsBookings = filterMode === 'today' ? todayBookings : tenantBookings;
+
+  const confirmedCount = activeMetricsBookings.filter((b) => b.status === 'confirmed' || b.status === 'checked_in').length;
+  const pendingCount = activeMetricsBookings.filter((b) => b.status === 'pending').length;
   
-  const todayRevenue = todayBookings
+  const displayedRevenue = activeMetricsBookings
     .filter((b) => b.status !== 'cancelled')
-    .reduce((sum, b) => sum + b.finalPrice, 0);
+    .reduce((sum, b) => sum + (b.finalPrice ?? b.price ?? 0), 0);
 
   // Popular Services Data for Recharts
   const serviceStats = services.map((svc) => {
@@ -104,13 +106,17 @@ export const MerchantDashboard: React.FC = () => {
         
         <div className="premium-card p-6 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-bold text-slate-500">คิวจองวันนี้ทั้งหมด</span>
+            <span className="text-sm font-bold text-slate-500">
+              {filterMode === 'today' ? 'คิวจองวันนี้ทั้งหมด' : 'คิวจองทั้งหมด'}
+            </span>
             <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl shadow-inner">
               <Calendar className="w-6 h-6" />
             </div>
           </div>
           <div>
-            <p className="text-3xl font-black text-foreground">{todayBookings.length} <span className="text-base font-bold text-slate-400">คิว</span></p>
+            <p className="text-3xl font-black text-foreground">
+              {activeMetricsBookings.length} <span className="text-base font-bold text-slate-400">คิว</span>
+            </p>
             <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-2 font-medium">
               <TrendingUp className="w-4 h-4 text-success" />
               <span className="text-success font-semibold">อัปเดตล่าสุด ณ ปัจจุบัน</span>
@@ -120,33 +126,43 @@ export const MerchantDashboard: React.FC = () => {
 
         <div className="premium-card p-6 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-bold text-slate-500">ยืนยันคิวแล้ว</span>
+            <span className="text-sm font-bold text-slate-500">
+              {filterMode === 'today' ? 'ยืนยันคิววันนี้แล้ว' : 'ยืนยันคิวแล้ว'}
+            </span>
             <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl shadow-inner">
               <CheckCircle2 className="w-6 h-6" />
             </div>
           </div>
           <div>
-            <p className="text-3xl font-black text-success">{confirmedCount} <span className="text-base font-bold text-slate-400">คิว</span></p>
+            <p className="text-3xl font-black text-success">
+              {confirmedCount} <span className="text-base font-bold text-slate-400">คิว</span>
+            </p>
             <p className="text-xs text-slate-500 mt-2 font-medium">พร้อมเข้ารับบริการตามนัด</p>
           </div>
         </div>
 
         <div className="premium-card p-6 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-bold text-slate-500">รอชำระมัดจำ</span>
+            <span className="text-sm font-bold text-slate-500">
+              {filterMode === 'today' ? 'รอชำระมัดจำวันนี้' : 'รอชำระมัดจำ'}
+            </span>
             <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl shadow-inner">
               <Clock className="w-6 h-6" />
             </div>
           </div>
           <div>
-            <p className="text-3xl font-black text-warning">{pendingCount} <span className="text-base font-bold text-slate-400">คิว</span></p>
+            <p className="text-3xl font-black text-warning">
+              {pendingCount} <span className="text-base font-bold text-slate-400">คิว</span>
+            </p>
             <p className="text-xs text-slate-500 mt-2 font-medium">รอสแกน PromptPay QR</p>
           </div>
         </div>
 
         <div className="premium-card p-6 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-bold text-slate-500">รายได้วันนี้ (โดยประมาณ)</span>
+            <span className="text-sm font-bold text-slate-500">
+              {filterMode === 'today' ? 'รายได้วันนี้ (โดยประมาณ)' : 'รายได้รวม (โดยประมาณ)'}
+            </span>
             <div className="p-3 bg-primary/10 text-primary rounded-2xl shadow-inner">
               <DollarSign className="w-6 h-6" />
             </div>
@@ -154,7 +170,7 @@ export const MerchantDashboard: React.FC = () => {
           <div>
             <p className="text-3xl font-black text-foreground">
               <span className="text-xl text-slate-400">฿</span>
-              {(todayRevenue ?? 0).toLocaleString()}
+              {(displayedRevenue ?? 0).toLocaleString()}
             </p>
             <p className="text-xs text-primary font-bold mt-2">
               รวมมัดจำออนไลน์ & หน้าร้าน

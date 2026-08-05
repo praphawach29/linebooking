@@ -174,6 +174,32 @@ const generateUUID = (): string => {
   });
 };
 
+const BOOKINGS_STORAGE_KEY = 'saas_local_bookings_v1';
+
+function getLocalStoredBookings(): Booking[] {
+  try {
+    const raw = localStorage.getItem(BOOKINGS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    // Ignore storage error
+  }
+  return [];
+}
+
+function saveLocalStoredBooking(booking: Booking) {
+  try {
+    const existing = getLocalStoredBookings();
+    const filtered = existing.filter((b) => b.id !== booking.id);
+    const updated = [booking, ...filtered];
+    localStorage.setItem(BOOKINGS_STORAGE_KEY, JSON.stringify(updated));
+  } catch (e) {
+    // Ignore storage error
+  }
+}
+
 const SaaSContext = createContext<SaaSContextType | undefined>(undefined);
 
 export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -387,7 +413,13 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setCourts(INITIAL_COURTS);
         }
         if (hoursData) setBusinessHours(camelizeKeys(hoursData) as BusinessHour[]);
-        if (bookingsData) setBookings(camelizeKeys(bookingsData) as Booking[]);
+        if (bookingsData) {
+          const remoteBookings = camelizeKeys(bookingsData) as Booking[];
+          const localBookings = getLocalStoredBookings();
+          const remoteIds = new Set(remoteBookings.map((b) => b.id));
+          const mergedBookings = [...remoteBookings, ...localBookings.filter((b) => !remoteIds.has(b.id))];
+          setBookings(mergedBookings);
+        }
         if (policiesData) setCancellationPolicies(camelizeKeys(policiesData) as CancellationPolicy[]);
         if (reviewsData) setReviews(camelizeKeys(reviewsData) as Review[]);
         if (rewardsData) setRewards(camelizeKeys(rewardsData) as Reward[]);
@@ -509,12 +541,15 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     const list = camelizeKeys(data || []) as Booking[];
+    const localBookings = getLocalStoredBookings();
+    const mergedList = [...list, ...localBookings.filter((b) => !list.some((l) => l.id === b.id))];
+
     // รวมเข้ากับ state เพื่อให้หน้าอื่น ๆ (เช่นแต้มสะสม) ใช้ข้อมูลชุดเดียวกัน
     setBookings((prev) => {
-      const ids = new Set(list.map((b) => b.id));
-      return [...list, ...prev.filter((b) => !ids.has(b.id))];
+      const ids = new Set(mergedList.map((b) => b.id));
+      return [...mergedList, ...prev.filter((b) => !ids.has(b.id))];
     });
-    return list;
+    return mergedList;
   };
 
   const fetchMembership = (userId: string) => {
@@ -736,6 +771,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const savedBooking = mapBookingApiResponse(response, service, localStaff, localCourt);
 
+      saveLocalStoredBooking(savedBooking);
       setBookings((prev) => [savedBooking, ...prev]);
       setError(null);
       return savedBooking;
@@ -785,6 +821,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         createdAt: new Date().toISOString(),
       };
 
+      saveLocalStoredBooking(fallbackBooking);
       setBookings((prev) => [fallbackBooking, ...prev]);
       setError(null);
       return fallbackBooking;

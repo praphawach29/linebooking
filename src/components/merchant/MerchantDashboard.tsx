@@ -130,78 +130,78 @@ export const MerchantDashboard: React.FC = () => {
       </div>
 
       {/* KPI Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-6">
         
-        <div className="premium-card p-6 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-bold text-slate-500">
+        <div className="premium-card p-4 sm:p-6 flex flex-col justify-between">
+          <div className="flex items-start justify-between mb-3 sm:mb-4 gap-2">
+            <span className="text-xs sm:text-sm font-bold text-slate-500 leading-tight">
               {filterMode === 'today' ? 'คิวจองวันนี้ทั้งหมด' : 'คิวจองทั้งหมด'}
             </span>
-            <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl shadow-inner">
-              <Calendar className="w-6 h-6" />
+            <div className="p-2 sm:p-3 bg-blue-50 text-blue-600 rounded-xl sm:rounded-2xl shadow-inner shrink-0">
+              <Calendar className="w-4 h-4 sm:w-6 sm:h-6" />
             </div>
           </div>
           <div>
-            <p className="text-3xl font-black text-foreground">
-              {activeMetricsBookings.length} <span className="text-base font-bold text-slate-400">คิว</span>
+            <p className="text-xl sm:text-3xl font-black text-foreground truncate">
+              {activeMetricsBookings.length} <span className="text-xs sm:text-base font-bold text-slate-400">คิว</span>
             </p>
-            <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-2 font-medium">
-              <TrendingUp className="w-4 h-4 text-success" />
-              <span className="text-success font-semibold">อัปเดตล่าสุด ณ ปัจจุบัน</span>
+            <p className="text-[10px] sm:text-xs text-slate-500 flex items-center gap-1 mt-1.5 sm:mt-2 font-medium leading-tight">
+              <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-success shrink-0" />
+              <span className="text-success font-semibold">อัปเดตล่าสุด</span>
             </p>
           </div>
         </div>
 
-        <div className="premium-card p-6 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-bold text-slate-500">
+        <div className="premium-card p-4 sm:p-6 flex flex-col justify-between">
+          <div className="flex items-start justify-between mb-3 sm:mb-4 gap-2">
+            <span className="text-xs sm:text-sm font-bold text-slate-500 leading-tight">
               {filterMode === 'today' ? 'ยืนยันคิววันนี้แล้ว' : 'ยืนยันคิวแล้ว'}
             </span>
-            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl shadow-inner">
-              <CheckCircle2 className="w-6 h-6" />
+            <div className="p-2 sm:p-3 bg-emerald-50 text-emerald-600 rounded-xl sm:rounded-2xl shadow-inner shrink-0">
+              <CheckCircle2 className="w-4 h-4 sm:w-6 sm:h-6" />
             </div>
           </div>
           <div>
-            <p className="text-3xl font-black text-success">
-              {confirmedCount} <span className="text-base font-bold text-slate-400">คิว</span>
+            <p className="text-xl sm:text-3xl font-black text-success truncate">
+              {confirmedCount} <span className="text-xs sm:text-base font-bold text-slate-400">คิว</span>
             </p>
-            <p className="text-xs text-slate-500 mt-2 font-medium">พร้อมเข้ารับบริการตามนัด</p>
+            <p className="text-[10px] sm:text-xs text-slate-500 mt-1.5 sm:mt-2 font-medium leading-tight">พร้อมรับบริการ</p>
           </div>
         </div>
 
-        <div className="premium-card p-6 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-bold text-slate-500">
+        <div className="premium-card p-4 sm:p-6 flex flex-col justify-between">
+          <div className="flex items-start justify-between mb-3 sm:mb-4 gap-2">
+            <span className="text-xs sm:text-sm font-bold text-slate-500 leading-tight">
               {filterMode === 'today' ? 'รอชำระมัดจำวันนี้' : 'รอชำระมัดจำ'}
             </span>
-            <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl shadow-inner">
-              <Clock className="w-6 h-6" />
+            <div className="p-2 sm:p-3 bg-amber-50 text-amber-600 rounded-xl sm:rounded-2xl shadow-inner shrink-0">
+              <Clock className="w-4 h-4 sm:w-6 sm:h-6" />
             </div>
           </div>
           <div>
-            <p className="text-3xl font-black text-warning">
-              {pendingCount} <span className="text-base font-bold text-slate-400">คิว</span>
+            <p className="text-xl sm:text-3xl font-black text-warning truncate">
+              {pendingCount} <span className="text-xs sm:text-base font-bold text-slate-400">คิว</span>
             </p>
-            <p className="text-xs text-slate-500 mt-2 font-medium">รอสแกน PromptPay QR</p>
+            <p className="text-[10px] sm:text-xs text-slate-500 mt-1.5 sm:mt-2 font-medium leading-tight">รอสแกน QR</p>
           </div>
         </div>
 
-        <div className="premium-card p-6 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-bold text-slate-500">
-              {filterMode === 'today' ? 'รายได้วันนี้ (โดยประมาณ)' : 'รายได้รวม (โดยประมาณ)'}
+        <div className="premium-card p-4 sm:p-6 flex flex-col justify-between">
+          <div className="flex items-start justify-between mb-3 sm:mb-4 gap-2">
+            <span className="text-xs sm:text-sm font-bold text-slate-500 leading-tight">
+              {filterMode === 'today' ? 'รายได้วันนี้ (ประมาณ)' : 'รายได้รวม (ประมาณ)'}
             </span>
-            <div className="p-3 bg-primary/10 text-primary rounded-2xl shadow-inner">
-              <DollarSign className="w-6 h-6" />
+            <div className="p-2 sm:p-3 bg-primary/10 text-primary rounded-xl sm:rounded-2xl shadow-inner shrink-0">
+              <DollarSign className="w-4 h-4 sm:w-6 sm:h-6" />
             </div>
           </div>
           <div>
-            <p className="text-3xl font-black text-foreground">
-              <span className="text-xl text-slate-400">฿</span>
+            <p className="text-xl sm:text-3xl font-black text-foreground truncate">
+              <span className="text-sm sm:text-xl text-slate-400">฿</span>
               {(displayedRevenue ?? 0).toLocaleString()}
             </p>
-            <p className="text-xs text-primary font-bold mt-2">
-              รวมมัดจำออนไลน์ & หน้าร้าน
+            <p className="text-[10px] sm:text-xs text-primary font-bold mt-1.5 sm:mt-2 leading-tight">
+              รวมมัดจำ & หน้าร้าน
             </p>
           </div>
         </div>

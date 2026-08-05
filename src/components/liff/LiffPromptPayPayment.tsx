@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Service, Staff, Court, Booking, SelectedAddon, PaymentMethod } from '../../types';
 import { useSaaS } from '../../context/SaaSContext';
 import { QrCode, Copy, Check, Sparkles, ShieldCheck, AlertCircle, Clock } from 'lucide-react';
+import { generatePromptPayPayload, promptPayQrImageUrl, formatPromptPayDisplay } from '../../utils/promptpay';
 
 interface LiffPromptPayPaymentProps {
   service: Service;
@@ -59,6 +60,16 @@ export const LiffPromptPayPayment: React.FC<LiffPromptPayPaymentProps> = ({
   const promptpayNo = activeTenant.settings.promptpayNumber || '081-234-5678';
   const promptpayName = activeTenant.settings.promptpayName || activeTenant.name;
 
+  const qrImageUrl = (() => {
+    try {
+      const payload = generatePromptPayPayload(promptpayNo, depositAmount);
+      return promptPayQrImageUrl(payload, 300);
+    } catch (e) {
+      console.warn('Failed to generate EMVCo PromptPay payload:', e);
+      return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(promptpayNo)}`;
+    }
+  })();
+
   useEffect(() => {
     const timer = setInterval(() => {
       setSecondsLeft((prev) => (prev > 0 ? prev - 1 : 0));
@@ -92,6 +103,7 @@ export const LiffPromptPayPayment: React.FC<LiffPromptPayPaymentProps> = ({
       courtId: court?.id,
       bookingDate: date,
       startTime: cleanStartTime,
+      bookingHours: bookingHours,
       selectedAddons,
       customerName,
       customerPhone,
@@ -133,7 +145,7 @@ export const LiffPromptPayPayment: React.FC<LiffPromptPayPaymentProps> = ({
         {/* QR Image Simulation */}
         <div className="relative inline-block bg-white p-3 border-2 border-[#113566]/20 rounded-2xl shadow-md relative z-10">
           <img
-            src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=00020101021229370016A000000677010111${promptpayNo}`}
+            src={qrImageUrl}
             alt="PromptPay QR Code"
             className="w-44 h-44 mx-auto object-contain"
           />
@@ -180,10 +192,15 @@ export const LiffPromptPayPayment: React.FC<LiffPromptPayPaymentProps> = ({
           </div>
         </div>
 
-        {/* Timer Alert */}
-        <div className="flex items-center justify-center gap-2 text-amber-800 bg-amber-50 py-2.5 px-3 rounded-2xl text-[12px] font-bold border border-amber-200/80 shadow-xs relative z-10">
-          <Clock className="w-4 h-4 text-amber-600 animate-spin-slow shrink-0" />
-          <span>กรุณาชำระเงินภายในเวลา: <strong className="font-mono text-amber-900 text-xs ml-1">{formatTimer(secondsLeft)}</strong> นาที</span>
+        {/* Timer Alert - 2 Distinct Lines */}
+        <div className="flex flex-col items-center justify-center gap-1 text-amber-900 bg-amber-50/90 py-3 px-4 rounded-2xl border border-amber-200/90 shadow-xs relative z-10 text-center">
+          <div className="flex items-center gap-1.5 text-[12px] font-extrabold text-amber-800">
+            <Clock className="w-4 h-4 text-amber-600 animate-spin-slow shrink-0" />
+            <span>กรุณาชำระเงินภายในเวลา</span>
+          </div>
+          <div className="text-base font-black font-mono text-amber-900 tracking-wider">
+            {formatTimer(secondsLeft)} <span className="text-xs font-bold text-amber-700 font-prompt">นาที</span>
+          </div>
         </div>
       </div>
 

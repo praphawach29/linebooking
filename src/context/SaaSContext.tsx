@@ -326,9 +326,8 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           supabase.from('staff_services').select('*'),
           supabase.from('courts').select('*'),
           supabase.from('business_hours').select('*'),
-          isAuthenticated
-            ? supabase.from('bookings').select('*').order('created_at', { ascending: false })
-            : supabase.from('public_busy_slots').select('*'),
+          // Always fetch from bookings (RLS policy now allows public SELECT since migration 0014)
+          supabase.from('bookings').select('*').order('created_at', { ascending: false }),
           supabase.from('cancellation_policies').select('*'),
           supabase.from('reviews').select('*'),
           supabase.from('rewards').select('*'),

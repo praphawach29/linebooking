@@ -472,9 +472,25 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       )
       .subscribe();
 
-    // Auto polling interval every 10 seconds for real-time dashboard updates (silent refresh)
+    // Lightweight polling: ONLY refresh bookings table to avoid re-rendering tenants/services/staffs
+    async function fetchBookingsOnly() {
+      try {
+        const { data: bookingsData } = await supabase.from('bookings').select('*');
+        if (bookingsData) {
+          const remoteBookings = camelizeKeys(bookingsData) as Booking[];
+          const localBookings = getLocalStoredBookings();
+          const remoteIds = new Set(remoteBookings.map((b) => b.id));
+          const mergedBookings = [...remoteBookings, ...localBookings.filter((b) => !remoteIds.has(b.id))];
+          setBookings(mergedBookings);
+        }
+      } catch (e) {
+        // Ignore background poll errors
+      }
+    }
+
+    // Auto polling interval every 10 seconds for real-time dashboard updates (lightweight)
     const pollInterval = setInterval(() => {
-      fetchData(true);
+      fetchBookingsOnly();
     }, 10000);
 
     // Re-fetch when user signs in (handles logout → login with different account)

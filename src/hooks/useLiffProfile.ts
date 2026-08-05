@@ -167,6 +167,11 @@ export function useLiffProfile(liffId?: string) {
     let isMounted = true;
     const targetLiffId = liffId || '2010969802-QiiDBSxa';
 
+    // If profile is already resolved and authorized, skip redundant init calls
+    if (cachedProfile && cachedProfile.authCheckedOnce && cachedProfile.lineUserId) {
+      return;
+    }
+
     getOrInitLiff(targetLiffId).then((data) => {
       if (isMounted) {
         setProfile(data);

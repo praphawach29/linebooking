@@ -10,14 +10,46 @@ export interface LiffProfileData {
   isLoggedIn: boolean;
   isInClient: boolean;
   isLoading: boolean;
+  isAuthorized: boolean;
+  authCheckedOnce: boolean;
   error?: string;
 }
 
-let cachedProfile: LiffProfileData | null = null;
+const STORAGE_KEY = 'line_liff_profile_v1';
+
+function getStoredProfile(): LiffProfileData | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && parsed.lineUserId) {
+        return {
+          ...parsed,
+          isLoading: false,
+          authCheckedOnce: true,
+          isAuthorized: Boolean(parsed.lineUserId && parsed.displayName && parsed.displayName !== 'ลูกค้า LINE User'),
+        };
+      }
+    }
+  } catch (e) {
+    // Ignore storage errors
+  }
+  return null;
+}
+
+function saveStoredProfile(data: LiffProfileData) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (e) {
+    // Ignore storage errors
+  }
+}
+
+let cachedProfile: LiffProfileData | null = getStoredProfile();
 let liffPromise: Promise<LiffProfileData> | null = null;
 
 async function getOrInitLiff(targetLiffId: string): Promise<LiffProfileData> {
-  if (cachedProfile && !cachedProfile.isLoading) {
+  if (cachedProfile && !cachedProfile.isLoading && cachedProfile.authCheckedOnce) {
     return cachedProfile;
   }
   if (liffPromise) {
@@ -45,6 +77,8 @@ async function getOrInitLiff(targetLiffId: string): Promise<LiffProfileData> {
           // Ignore if email scope is not enabled
         }
 
+        const isAuthorized = Boolean(userProfile.userId && userProfile.displayName);
+
         const data: LiffProfileData = {
           lineUserId: userProfile.userId,
           displayName: userProfile.displayName,
@@ -54,10 +88,18 @@ async function getOrInitLiff(targetLiffId: string): Promise<LiffProfileData> {
           isLoggedIn: true,
           isInClient,
           isLoading: false,
+          isAuthorized,
+          authCheckedOnce: true,
         };
         cachedProfile = data;
+        saveStoredProfile(data);
         return data;
       } else {
+        const stored = getStoredProfile();
+        if (stored && stored.lineUserId) {
+          cachedProfile = stored;
+          return stored;
+        }
         const data: LiffProfileData = {
           lineUserId: '',
           displayName: 'ลูกค้า LINE User',
@@ -65,12 +107,19 @@ async function getOrInitLiff(targetLiffId: string): Promise<LiffProfileData> {
           isLoggedIn: false,
           isInClient,
           isLoading: false,
+          isAuthorized: false,
+          authCheckedOnce: true,
         };
         cachedProfile = data;
         return data;
       }
     } catch (err: any) {
       console.error('LIFF Profile Init Error:', err);
+      const stored = getStoredProfile();
+      if (stored && stored.lineUserId) {
+        cachedProfile = stored;
+        return stored;
+      }
       const data: LiffProfileData = {
         lineUserId: '',
         displayName: 'ลูกค้า LINE User',
@@ -78,6 +127,8 @@ async function getOrInitLiff(targetLiffId: string): Promise<LiffProfileData> {
         isLoggedIn: false,
         isInClient: false,
         isLoading: false,
+        isAuthorized: false,
+        authCheckedOnce: true,
         error: err?.message || 'Failed to initialize LIFF',
       };
       cachedProfile = data;
@@ -95,13 +146,20 @@ export function useLiffProfile(liffId?: string) {
     if (cachedProfile) {
       return cachedProfile;
     }
+    const stored = getStoredProfile();
+    if (stored) {
+      cachedProfile = stored;
+      return stored;
+    }
     return {
       lineUserId: '',
       displayName: 'ลูกค้า LINE User',
       pictureUrl: '',
       isLoggedIn: false,
       isInClient: false,
-      isLoading: true,
+      isLoading: false,
+      isAuthorized: false,
+      authCheckedOnce: false,
     };
   });
 
@@ -129,9 +187,12 @@ export function useLiffProfile(liffId?: string) {
   const logout = () => {
     if (liff.isLoggedIn()) {
       liff.logout();
-      cachedProfile = null;
-      window.location.reload();
     }
+    cachedProfile = null;
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (e) {}
+    window.location.reload();
   };
 
   return { ...profile, login, logout };

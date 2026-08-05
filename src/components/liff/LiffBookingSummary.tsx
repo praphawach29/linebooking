@@ -442,15 +442,35 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
           )}
         </div>
 
-        {!liffProfile.isLoggedIn && !currentUser && (
-          <div className="bg-emerald-50 border-2 border-emerald-500/30 p-3.5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-xs">
+        {liffProfile.isLoggedIn || liffProfile.isAuthorized ? (
+          <div className="bg-emerald-50/90 border border-emerald-300 p-3 rounded-2xl flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              {liffProfile.pictureUrl ? (
+                <img src={liffProfile.pictureUrl} alt={liffProfile.displayName} className="w-8 h-8 rounded-full border border-emerald-400/60 object-cover shrink-0" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-[#06C755] text-white font-black text-xs flex items-center justify-center shrink-0">LINE</div>
+              )}
+              <div className="min-w-0">
+                <p className="font-extrabold text-[12px] text-emerald-900 flex items-center gap-1 truncate">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0 inline" />
+                  <span>ยืนยันสิทธิ์จองแล้ว ({liffProfile.displayName})</span>
+                </p>
+                <p className="text-[10px] text-emerald-700 font-medium truncate">บันทึกสิทธิ์เรียบร้อย พร้อมทำการจองได้ทันที</p>
+              </div>
+            </div>
+            <span className="text-[9px] font-black text-emerald-800 bg-white px-2 py-1 rounded-lg border border-emerald-200 shadow-xs shrink-0">
+              สิทธิ์ยืนยันแล้ว
+            </span>
+          </div>
+        ) : (
+          <div className="bg-amber-50 border border-amber-300 p-3.5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-xs">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-[#06C755] text-white flex items-center justify-center font-black text-xs shrink-0 shadow-md">
                 LINE
               </div>
               <div>
-                <p className="font-extrabold text-[12px] text-slate-900">เข้าสู่ระบบด้วย LINE เพื่อทำการจอง</p>
-                <p className="text-[10px] text-slate-500 font-medium">เพื่อเชื่อมต่อคิวจองกับ LINE OA ของร้านค้าและบันทึกลงระบบ</p>
+                <p className="font-extrabold text-[12px] text-amber-900">ยังไม่ได้ยืนยันสิทธิ์จองผ่าน LINE</p>
+                <p className="text-[10px] text-amber-700 font-medium">ไม่พบข้อมูลโปรไฟล์จาก LINE กรุณากดล็อกอินเพื่อรับสิทธิ์จอง</p>
               </div>
             </div>
             <button

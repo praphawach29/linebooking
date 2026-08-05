@@ -242,9 +242,9 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Initial Data Fetching from Supabase
   useEffect(() => {
-    async function fetchData() {
+    async function fetchData(isSilent = false) {
       try {
-        setIsLoading(true);
+        if (!isSilent) setIsLoading(true);
 
         // RLS หลัง migration 0007:
         //   - ผู้ที่ล็อกอินแล้ว (เจ้าของร้าน/แอดมิน) อ่านตารางจริงได้ → ได้ข้อมูลครบรวม LINE credentials
@@ -419,7 +419,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     // Initial fetch on mount
-    fetchData();
+    fetchData(false);
 
     // Subscribe to realtime database changes for tenants & bookings
     const channel = supabase
@@ -428,28 +428,28 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         'postgres_changes',
         { event: '*', schema: 'public', table: 'tenants' },
         () => {
-          fetchData();
+          fetchData(true);
         }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'bookings' },
         () => {
-          fetchData();
+          fetchData(true);
         }
       )
       .subscribe();
 
-    // Auto polling interval every 10 seconds for real-time dashboard updates
+    // Auto polling interval every 10 seconds for real-time dashboard updates (silent refresh)
     const pollInterval = setInterval(() => {
-      fetchData();
+      fetchData(true);
     }, 10000);
 
     // Re-fetch when user signs in (handles logout → login with different account)
     // Reset state when user signs out
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN') {
-        fetchData();
+        fetchData(false);
       } else if (event === 'SIGNED_OUT') {
         resetState();
       }

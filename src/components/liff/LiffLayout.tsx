@@ -162,7 +162,10 @@ export const LiffLayout: React.FC = () => {
   };
 
   const handleSelectCourt = (court: Court | null) => {
-    setSelectedCourt(court);
+    setSelectedCourt(
+      court ||
+      autoAssignResource(courts.filter((c) => c.serviceId === selectedService?.id || !c.serviceId))
+    );
     setCurrentStep('date_time_select');
   };
 

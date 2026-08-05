@@ -319,7 +319,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             ? supabase.from('tenants').select('*').order('created_at', { ascending: false })
             : isAuthenticated && userTenantId
             ? supabase.from('tenants').select('*').eq('id', userTenantId)
-            : supabase.from('tenants').select('*'),
+            : supabase.from('public_tenants').select('*'),
           supabase.from('services').select('*'),
           supabase.from('service_addons').select('*'),
           supabase.from('staff').select('*'),

@@ -59,7 +59,7 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
   }, [currentUser?.lineUserId]);
 
   // ผู้ที่ล็อกอินแล้ว (เจ้าของร้านเปิดดูหน้าลูกค้า) จะมี bookings ใน context อยู่แล้ว
-  const visibleBookings = myBookings.length > 0 ? myBookings : bookings;
+  const visibleBookings = (myBookings.length > 0 ? myBookings : bookings).filter(b => !activeTenant || b.tenantId === activeTenant.id);
   const [activeTab, setActiveTab] = useState<'upcoming' | 'completed' | 'cancelled'>('upcoming');
   const [selectedBookingForCancel, setSelectedBookingForCancel] = useState<Booking | null>(null);
   const [selectedBookingForQr, setSelectedBookingForQr] = useState<Booking | null>(null);
@@ -79,9 +79,9 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
     const startDate = new Date(`${booking.bookingDate}T${booking.startTime}:00`);
     const endDate = new Date(`${booking.bookingDate}T${booking.endTime}:00`);
     
-    const locationInfo = booking.courtName
-      ? `สนาม: ${booking.courtName}`
-      : `ช่างผู้ให้บริการ: ${booking.staffName || '-'}`;
+    const isCourt = activeTenant.settings?.enableCourtSelection || activeTenant.bookingFlowConfig?.steps?.requireResource;
+    const resourceLabel = activeTenant.settings?.resourceTerm || (isCourt ? 'สนาม' : 'ช่างผู้ให้บริการ');
+    const locationInfo = `${resourceLabel}: ${booking.courtName || booking.staffName || '-'}`;
     const icsUrl = generateICSFile({
       title: `${booking.serviceName} - ${activeTenant.name}`,
       description: `อ้างอิง: ${booking.refNo}\n${locationInfo}\nโทร: ${activeTenant.phone}`,
@@ -310,10 +310,10 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
 
                 <div className="flex items-center gap-2 col-span-2">
                   <User className="w-4 h-4 text-primary" />
-                  {b.courtName ? (
-                    <span>สนาม: <strong className="text-foreground font-black ml-1">{b.courtName}</strong></span>
+                  {activeTenant?.settings?.enableCourtSelection || activeTenant?.settings?.bookingFlowConfig?.steps?.requireResource ? (
+                    <span>{activeTenant?.settings?.resourceTerm || 'สนาม'}: <strong className="text-foreground font-black ml-1">{b.courtName || b.staffName || '-'}</strong></span>
                   ) : (
-                    <span>ช่างผู้ให้บริการ: <strong className="text-foreground font-black ml-1">{b.staffName || '-'}</strong></span>
+                    <span>ช่างผู้ให้บริการ: <strong className="text-foreground font-black ml-1">{b.staffName || b.courtName || '-'}</strong></span>
                   )}
                 </div>
               </div>
@@ -511,7 +511,7 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-1.5 shadow-inner text-center">
                 <p className="font-black text-foreground text-[15px]">{selectedBookingForReview.serviceName}</p>
                 <p className="text-slate-500 font-bold text-[11px]">
-                  พนักงาน: {selectedBookingForReview.staffName}
+                  {activeTenant?.settings?.resourceTerm || 'ผู้ให้บริการ'}: {selectedBookingForReview.courtName || selectedBookingForReview.staffName || '-'}
                 </p>
               </div>
 

@@ -426,9 +426,12 @@ export const MerchantCalendarView: React.FC = () => {
                         <span>บริการ: {bk.serviceName}</span>
                       </p>
 
-                      {bk.staffName && (
+                      {(bk.staffName || bk.courtName) && (
                         <p className="text-[11px] text-slate-500 font-medium">
-                          ผู้ดูแล/ช่าง: <span className="font-bold text-slate-700">{bk.staffName}</span>
+                          {activeTenant?.settings?.enableCourtSelection || activeTenant?.settings?.bookingFlowConfig?.steps?.requireResource
+                            ? `${activeTenant?.settings?.resourceTerm || 'สนาม'}: `
+                            : 'ผู้ดูแล/ช่าง: '}
+                          <span className="font-bold text-slate-700">{bk.courtName || bk.staffName}</span>
                         </p>
                       )}
                     </div>
@@ -628,7 +631,7 @@ export const MerchantCalendarView: React.FC = () => {
                   <td className="p-2.5 font-bold">{bk.userName}</td>
                   <td className="p-2.5 font-mono">{bk.userPhone || '-'}</td>
                   <td className="p-2.5">{bk.serviceName}</td>
-                  <td className="p-2.5 font-medium">{bk.staffName || 'ไม่ระบุ'}</td>
+                  <td className="p-2.5 font-medium">{bk.courtName || bk.staffName || 'ไม่ระบุ'}</td>
                   <td className="p-2.5 text-right font-bold">฿{(bk.totalPrice || 0).toLocaleString()}</td>
                   <td className="p-2.5 text-center font-bold">
                     {bk.status === 'confirmed' || bk.status === 'completed'

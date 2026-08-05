@@ -18,7 +18,7 @@ export const MerchantDashboard: React.FC = () => {
   const { activeTenant, bookings, services, setMerchantTab } = useSaaS();
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
-  const [filterMode, setFilterMode] = useState<'today' | 'all'>('today');
+  const [filterMode, setFilterMode] = useState<'today' | 'all'>('all');
 
   const getLocalDateString = (d: Date = new Date()) => {
     const year = d.getFullYear();
@@ -28,11 +28,12 @@ export const MerchantDashboard: React.FC = () => {
   };
 
   const todayStr = getLocalDateString();
-  const todayBookings = bookings.filter((b) => b.bookingDate === todayStr);
+  const tenantBookings = bookings.filter((b) => !activeTenant || b.tenantId === activeTenant.id);
+  const todayBookings = tenantBookings.filter((b) => b.bookingDate === todayStr);
 
   const displayedBookings = filterMode === 'today'
     ? todayBookings
-    : [...bookings].sort((a, b) => new Date(b.createdAt || b.bookingDate).getTime() - new Date(a.createdAt || a.bookingDate).getTime());
+    : [...tenantBookings].sort((a, b) => new Date(b.createdAt || b.bookingDate).getTime() - new Date(a.createdAt || a.bookingDate).getTime());
 
   const confirmedCount = todayBookings.filter((b) => b.status === 'confirmed' || b.status === 'checked_in').length;
   const pendingCount = todayBookings.filter((b) => b.status === 'pending').length;
@@ -43,7 +44,7 @@ export const MerchantDashboard: React.FC = () => {
 
   // Popular Services Data for Recharts
   const serviceStats = services.map((svc) => {
-    const svcBookings = bookings.filter((b) => b.serviceId === svc.id);
+    const svcBookings = tenantBookings.filter((b) => b.serviceId === svc.id);
     return {
       name: svc.name.length > 20 ? svc.name.slice(0, 18) + '...' : svc.name,
       fullName: svc.name,
@@ -198,7 +199,7 @@ export const MerchantDashboard: React.FC = () => {
                       : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  คิวทั้งหมด ({bookings.length})
+                  คิวทั้งหมด ({tenantBookings.length})
                 </button>
               </div>
 
@@ -248,10 +249,10 @@ export const MerchantDashboard: React.FC = () => {
                       </div>
                       <p className="text-sm font-bold text-slate-600">{booking.serviceName}</p>
                       <p className="text-[12px] text-slate-500 font-medium flex items-center gap-2 flex-wrap">
-                        {booking.courtName ? (
-                          <span>สนาม/คอร์ท: <strong className="text-emerald-700 font-extrabold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">{booking.courtName}</strong></span>
+                        {activeTenant?.settings?.enableCourtSelection || activeTenant?.settings?.bookingFlowConfig?.steps?.requireResource ? (
+                          <span>{activeTenant?.settings?.resourceTerm || 'สนาม'}: <strong className="text-foreground">{booking.courtName || booking.staffName || '-'}</strong></span>
                         ) : (
-                          <span>ช่าง: <strong className="text-slate-800">{booking.staffName || '-'}</strong></span>
+                          <span>ช่าง/พนักงาน: <strong className="text-foreground">{booking.staffName || booking.courtName || '-'}</strong></span>
                         )}
                         <span className="w-1 h-1 rounded-full bg-slate-300"></span>
                         <span>ช่องทาง: <strong className="text-slate-700">{booking.source === 'line_liff' ? 'LINE OA / LIFF' : booking.source}</strong></span>

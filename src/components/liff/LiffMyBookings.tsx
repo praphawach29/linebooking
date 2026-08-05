@@ -79,9 +79,12 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
     const startDate = new Date(`${booking.bookingDate}T${booking.startTime}:00`);
     const endDate = new Date(`${booking.bookingDate}T${booking.endTime}:00`);
     
+    const locationInfo = booking.courtName
+      ? `สนาม: ${booking.courtName}`
+      : `ช่างผู้ให้บริการ: ${booking.staffName || '-'}`;
     const icsUrl = generateICSFile({
       title: `${booking.serviceName} - ${activeTenant.name}`,
-      description: `อ้างอิง: ${booking.refNo}\nช่างผู้ให้บริการ: ${booking.staffName}\nโทร: ${activeTenant.phone}`,
+      description: `อ้างอิง: ${booking.refNo}\n${locationInfo}\nโทร: ${activeTenant.phone}`,
       location: activeTenant.address || activeTenant.name,
       startDate,
       endDate
@@ -307,7 +310,11 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
 
                 <div className="flex items-center gap-2 col-span-2">
                   <User className="w-4 h-4 text-primary" />
-                  <span>ช่างผู้ให้บริการ: <strong className="text-foreground font-black ml-1">{b.staffName}</strong></span>
+                  {b.courtName ? (
+                    <span>สนาม: <strong className="text-foreground font-black ml-1">{b.courtName}</strong></span>
+                  ) : (
+                    <span>ช่างผู้ให้บริการ: <strong className="text-foreground font-black ml-1">{b.staffName || '-'}</strong></span>
+                  )}
                 </div>
               </div>
 

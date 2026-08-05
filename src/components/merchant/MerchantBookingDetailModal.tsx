@@ -131,8 +131,10 @@ export const MerchantBookingDetailModal: React.FC<MerchantBookingDetailModalProp
             </div>
 
             <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/80 space-y-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase block">ช่างผู้ให้บริการ</span>
-              <p className="font-bold text-slate-900">{booking.staffName}</p>
+              <span className="text-[10px] font-bold text-slate-400 uppercase block">
+                {booking.courtName ? 'สนาม / คอร์ท' : 'ช่างผู้ให้บริการ'}
+              </span>
+              <p className="font-bold text-slate-900">{booking.courtName || booking.staffName || '-'}</p>
               <p className="text-[11px] text-emerald-600 font-medium">
                 ระยะเวลา {booking.serviceDuration} นาที
               </p>

@@ -337,17 +337,17 @@ export const MerchantDashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Right: Price, Status Badge, & Quick Action Buttons */}
-                  <div className="flex items-center justify-between sm:justify-end gap-3 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 shrink-0">
-                    {/* Price & Status Badge */}
-                    <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 sm:gap-1 text-left sm:text-right">
+                  {/* Right: Top-Right Status Badge & Price | Bottom-Right Action Buttons */}
+                  <div className="flex flex-row sm:flex-col justify-between items-center sm:items-end gap-2.5 sm:gap-3 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 min-w-[210px] shrink-0">
+                    {/* Top Right: Status Badge & Price */}
+                    <div className="flex items-center sm:items-end gap-2 sm:gap-1 flex-row sm:flex-col text-right">
+                      {getStatusBadge(booking.status)}
                       <p className="text-sm sm:text-base font-black text-slate-900">
                         ฿{(booking?.finalPrice ?? booking?.price ?? 0).toLocaleString()}
                       </p>
-                      {getStatusBadge(booking.status)}
                     </div>
 
-                    {/* Action Buttons Group */}
+                    {/* Bottom Right: Action Buttons Group (Quick Action + Eye Icon) */}
                     <div className="flex items-center gap-1.5">
                       {booking.status === 'pending' && (
                         <button

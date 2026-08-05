@@ -326,8 +326,11 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           supabase.from('staff_services').select('*'),
           supabase.from('courts').select('*'),
           supabase.from('business_hours').select('*'),
-          // Always fetch from bookings (RLS policy now allows public SELECT since migration 0014)
-          supabase.from('bookings').select('*').order('created_at', { ascending: false }),
+          // Fetch bookings: if merchant, filter by their tenant_id to ensure visibility
+          // even if RLS policies are inconsistent between migrations
+          isAuthenticated && userTenantId
+            ? supabase.from('bookings').select('*').eq('tenant_id', userTenantId).order('created_at', { ascending: false })
+            : supabase.from('bookings').select('*').order('created_at', { ascending: false }),
           supabase.from('cancellation_policies').select('*'),
           supabase.from('reviews').select('*'),
           supabase.from('rewards').select('*'),
@@ -477,7 +480,23 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Lightweight polling: ONLY refresh bookings table to avoid re-rendering tenants/services/staffs
     async function fetchBookingsOnly() {
       try {
-        const { data: bookingsData } = await supabase.from('bookings').select('*');
+        // Re-check session to get tenant context for proper filtering
+        const { data: sessionSnap } = await supabase.auth.getSession();
+        let tenantFilter: string | null = null;
+        if (sessionSnap.session?.user) {
+          const { data: uRows } = await supabase
+            .from('users')
+            .select('tenant_id')
+            .or(`id.eq.${sessionSnap.session.user.id},auth_user_id.eq.${sessionSnap.session.user.id}`)
+            .limit(1);
+          if (uRows && uRows[0]?.tenant_id) tenantFilter = uRows[0].tenant_id;
+        }
+
+        const query = tenantFilter
+          ? supabase.from('bookings').select('*').eq('tenant_id', tenantFilter)
+          : supabase.from('bookings').select('*');
+
+        const { data: bookingsData } = await query;
         if (bookingsData) {
           const remoteBookings = camelizeKeys(bookingsData) as Booking[];
           const localBookings = getLocalStoredBookings();

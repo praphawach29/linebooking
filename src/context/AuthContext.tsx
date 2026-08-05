@@ -116,6 +116,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             // 2a. No user row at all — create one
             const { error: userError } = await supabase.from('users').insert({
               id: data.user.id,
+              auth_user_id: data.user.id,   // ← สำคัญ: ทำให้ my_tenant_ids() หา tenant ได้
               tenant_id: tenantId,
               display_name: data.user.email?.split('@')[0] || 'เจ้าของร้าน',
               email: data.user.email || email,
@@ -227,6 +228,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Use authUserId directly as users.id to guarantee 1:1 mapping with auth.users
     const userPayload: Record<string, any> = {
       id: authUserId,
+      auth_user_id: authUserId,    // ← สำคัญ: ทำให้ my_tenant_ids() หา tenant ได้
       tenant_id: tenantId,
       display_name: displayName,
       email,

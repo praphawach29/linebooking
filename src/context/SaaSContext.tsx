@@ -347,6 +347,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (effectiveTenants.length > 0) {
           const urlParams = new URLSearchParams(window.location.search);
           const urlLiffId = urlParams.get('liffId');
+          const urlLiffClientId = urlParams.get('liffClientId');
           const pathParts = window.location.pathname.split('/').filter(Boolean);
           const pathTenantIdOrSlug = pathParts.length >= 2 && pathParts[0] === 'liff' ? pathParts[1] : null;
 
@@ -356,6 +357,8 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
           const matchedByLiffId = urlLiffId
             ? effectiveTenants.find((t) => t.liffId === urlLiffId)
+            : urlLiffClientId
+            ? effectiveTenants.find((t) => t.liffId && t.liffId.startsWith(urlLiffClientId))
             : null;
 
           const matchedByUser = userTenantId

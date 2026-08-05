@@ -301,10 +301,67 @@ export const MerchantDashboard: React.FC = () => {
                 <div
                   key={booking.id}
                   onClick={() => setSelectedBooking(booking)}
-                  className="p-4 sm:p-5 rounded-2xl border border-slate-200/80 hover:border-emerald-500/50 transition-all cursor-pointer bg-white shadow-sm hover:shadow-md group flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 sm:gap-4"
+                  className="relative p-4 pb-14 sm:pb-5 sm:pr-[210px] rounded-2xl border border-slate-200/80 hover:border-emerald-500/50 transition-all cursor-pointer bg-white shadow-sm hover:shadow-md group min-h-[100px]"
                 >
-                  {/* Left: Date Badge & Customer Details */}
-                  <div className="flex items-start gap-3.5 sm:gap-4 min-w-0 flex-1">
+                  {/* Status Badge — Top-Right Corner */}
+                  <div className="absolute top-4 right-4 flex flex-col items-end gap-1">
+                    {getStatusBadge(booking.status)}
+                    <p className="text-sm font-black text-slate-900">
+                      ฿{(booking?.finalPrice ?? booking?.price ?? 0).toLocaleString()}
+                    </p>
+                  </div>
+
+                  {/* Action Buttons — Bottom-Right Corner */}
+                  <div
+                    className="absolute bottom-3 right-3 flex items-center gap-1.5"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {booking.status === 'pending' && (
+                      <button
+                        type="button"
+                        disabled={updatingId === booking.id}
+                        onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'confirmed')}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 disabled:opacity-50 shrink-0"
+                        title="กดยืนยันคิว"
+                      >
+                        {updatingId === booking.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Check className="w-3.5 h-3.5" />
+                        )}
+                        <span>ยืนยันคิว</span>
+                      </button>
+                    )}
+
+                    {booking.status === 'confirmed' && (
+                      <button
+                        type="button"
+                        disabled={updatingId === booking.id}
+                        onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'checked_in')}
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 disabled:opacity-50 shrink-0"
+                        title="เช็คอินหน้าร้าน"
+                      >
+                        {updatingId === booking.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                        )}
+                        <span>เช็คอิน</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setSelectedBooking(booking); }}
+                      className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all border border-slate-200/80 hover:border-slate-300"
+                      title="ดูรายละเอียดคิว"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Main Content: Date Badge & Customer Details */}
+                  <div className="flex items-start gap-3.5 pr-[130px] sm:pr-0">
                     <div className="bg-slate-900 text-white px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl text-center flex-shrink-0 min-w-[85px] sm:min-w-[95px] shadow-xs">
                       <span className="text-[11px] font-bold text-slate-300 block mb-0.5">{booking.bookingDate}</span>
                       <span className="text-xs sm:text-sm font-black block text-emerald-400">{booking.startTime}</span>
@@ -334,63 +391,6 @@ export const MerchantDashboard: React.FC = () => {
                         <span className="w-1 h-1 rounded-full bg-slate-300"></span>
                         <span className="text-slate-400">ช่องทาง: <strong className="text-slate-600">{booking.source === 'line_liff' ? 'LINE OA / LIFF' : booking.source}</strong></span>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Right: Top-Right Status Badge & Price | Bottom-Right Action Buttons */}
-                  <div className="flex flex-row sm:flex-col justify-between items-center sm:items-end gap-2.5 sm:gap-3 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 min-w-[210px] shrink-0">
-                    {/* Top Right: Status Badge & Price */}
-                    <div className="flex items-center sm:items-end gap-2 sm:gap-1 flex-row sm:flex-col text-right">
-                      {getStatusBadge(booking.status)}
-                      <p className="text-sm sm:text-base font-black text-slate-900">
-                        ฿{(booking?.finalPrice ?? booking?.price ?? 0).toLocaleString()}
-                      </p>
-                    </div>
-
-                    {/* Bottom Right: Action Buttons Group (Quick Action + Eye Icon) */}
-                    <div className="flex items-center gap-1.5">
-                      {booking.status === 'pending' && (
-                        <button
-                          type="button"
-                          disabled={updatingId === booking.id}
-                          onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'confirmed')}
-                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-xs active:scale-95 disabled:opacity-50 shrink-0"
-                          title="กดยืนยันคิว"
-                        >
-                          {updatingId === booking.id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Check className="w-3.5 h-3.5" />
-                          )}
-                          <span>ยืนยันคิว</span>
-                        </button>
-                      )}
-
-                      {booking.status === 'confirmed' && (
-                        <button
-                          type="button"
-                          disabled={updatingId === booking.id}
-                          onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'checked_in')}
-                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-xs active:scale-95 disabled:opacity-50 shrink-0"
-                          title="เช็คอินหน้าร้าน"
-                        >
-                          {updatingId === booking.id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                          )}
-                          <span>เช็คอิน</span>
-                        </button>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => setSelectedBooking(booking)}
-                        className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all border border-slate-200/80 hover:border-slate-300"
-                        title="ดูรายละเอียดคิว"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
                     </div>
                   </div>
                 </div>

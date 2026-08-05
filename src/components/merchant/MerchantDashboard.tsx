@@ -296,119 +296,249 @@ export const MerchantDashboard: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {displayedBookings.map((booking) => (
-                <div
-                  key={booking.id}
-                  onClick={() => setSelectedBooking(booking)}
-                  className="p-4 sm:p-5 rounded-2xl border border-slate-200/80 hover:border-emerald-500/50 transition-all cursor-pointer bg-white shadow-sm hover:shadow-md group flex flex-col gap-3.5 sm:gap-4"
-                >
-                  {/* Top Header: Date/Time and Status/Price */}
-                  <div className="flex items-start justify-between gap-3">
-                    {/* Left: Date & Time */}
-                    <div className="flex flex-col">
-                      <span className="text-[11px] sm:text-xs font-bold text-slate-500 mb-1 flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5" /> 
-                        {booking.bookingDate}
-                      </span>
-                      <span className="text-sm sm:text-base font-black text-slate-800 flex items-center gap-1.5 leading-none">
-                        <Clock className="w-4 h-4 text-emerald-500" />
-                        {booking.startTime.substring(0, 5)} - {booking.endTime.substring(0, 5)} น.
-                      </span>
-                    </div>
-
-                    {/* Right: Badge & Price */}
-                    <div className="flex flex-col items-end gap-1">
-                      {getStatusBadge(booking.status)}
-                      <span className="text-sm sm:text-base font-black text-emerald-600 mt-0.5">
-                        ฿{(booking?.finalPrice ?? booking?.price ?? 0).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="h-px w-full bg-slate-100" />
-
-                  {/* Bottom Content: Customer Info & Actions */}
-                  <div className="flex items-end justify-between gap-3">
-                    
-                    {/* Left: Customer Info */}
-                    <div className="flex flex-col gap-1 min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-extrabold text-sm text-slate-900 group-hover:text-emerald-600 transition-colors truncate">
-                          {booking.userName}
+            <>
+              {/* Mobile/Tablet Card View */}
+              <div className="lg:hidden space-y-4">
+                {displayedBookings.map((booking) => (
+                  <div
+                    key={booking.id}
+                    onClick={() => setSelectedBooking(booking)}
+                    className="p-4 sm:p-5 rounded-2xl border border-slate-200/80 hover:border-emerald-500/50 transition-all cursor-pointer bg-white shadow-sm hover:shadow-md group flex flex-col gap-3.5 sm:gap-4"
+                  >
+                    {/* Top Header: Date/Time and Status/Price */}
+                    <div className="flex items-start justify-between gap-3">
+                      {/* Left: Date & Time */}
+                      <div className="flex flex-col">
+                        <span className="text-[11px] sm:text-xs font-bold text-slate-500 mb-1 flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5" /> 
+                          {booking.bookingDate}
                         </span>
-                        {booking.userPhone && (
-                          <span className="text-[11px] font-mono text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-200/60 shrink-0">
-                            {booking.userPhone}
-                          </span>
-                        )}
+                        <span className="text-sm sm:text-base font-black text-slate-800 flex items-center gap-1.5 leading-none">
+                          <Clock className="w-4 h-4 text-emerald-500" />
+                          {booking.startTime.substring(0, 5)} - {booking.endTime.substring(0, 5)} น.
+                        </span>
                       </div>
 
-                      <p className="text-xs sm:text-sm font-bold text-slate-700 truncate">
-                        {booking.serviceName}
-                      </p>
-
-                      <div className="text-[11px] sm:text-[12px] text-slate-500 flex items-center gap-2 flex-wrap mt-0.5">
-                        {activeTenant?.settings?.enableCourtSelection || activeTenant?.settings?.bookingFlowConfig?.steps?.requireResource ? (
-                          <span>{activeTenant?.settings?.resourceTerm || 'สนาม'}: <strong className="text-slate-800">{booking.courtName || booking.staffName || '-'}</strong></span>
-                        ) : (
-                          <span>ช่าง/พนักงาน: <strong className="text-slate-800">{booking.staffName || booking.courtName || '-'}</strong></span>
-                        )}
-                        <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                        <span className="text-slate-400">ช่องทาง: <strong className="text-slate-600">{booking.source === 'line_liff' ? 'LINE OA' : booking.source}</strong></span>
+                      {/* Right: Badge & Price */}
+                      <div className="flex flex-col items-end gap-1">
+                        {getStatusBadge(booking.status)}
+                        <span className="text-sm sm:text-base font-black text-emerald-600 mt-0.5">
+                          ฿{(booking?.finalPrice ?? booking?.price ?? 0).toLocaleString()}
+                        </span>
                       </div>
                     </div>
 
-                    {/* Right: Action Buttons */}
-                    <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                      {booking.status === 'pending' && (
+                    <div className="h-px w-full bg-slate-100" />
+
+                    {/* Bottom Content: Customer Info & Actions */}
+                    <div className="flex items-end justify-between gap-3">
+                      
+                      {/* Left: Customer Info */}
+                      <div className="flex flex-col gap-1 min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-extrabold text-sm text-slate-900 group-hover:text-emerald-600 transition-colors truncate">
+                            {booking.userName}
+                          </span>
+                          {booking.userPhone && (
+                            <span className="text-[11px] font-mono text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-200/60 shrink-0">
+                              {booking.userPhone}
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-xs sm:text-sm font-bold text-slate-700 truncate">
+                          {booking.serviceName}
+                        </p>
+
+                        <div className="text-[11px] sm:text-[12px] text-slate-500 flex items-center gap-2 flex-wrap mt-0.5">
+                          {activeTenant?.settings?.enableCourtSelection || activeTenant?.settings?.bookingFlowConfig?.steps?.requireResource ? (
+                            <span>{activeTenant?.settings?.resourceTerm || 'สนาม'}: <strong className="text-slate-800">{booking.courtName || booking.staffName || '-'}</strong></span>
+                          ) : (
+                            <span>ช่าง/พนักงาน: <strong className="text-slate-800">{booking.staffName || booking.courtName || '-'}</strong></span>
+                          )}
+                          <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                          <span className="text-slate-400">ช่องทาง: <strong className="text-slate-600">{booking.source === 'line_liff' ? 'LINE OA' : booking.source}</strong></span>
+                        </div>
+                      </div>
+
+                      {/* Right: Action Buttons */}
+                      <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                        {booking.status === 'pending' && (
+                          <button
+                            type="button"
+                            disabled={updatingId === booking.id}
+                            onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'confirmed')}
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 disabled:opacity-50 shrink-0"
+                            title="กดยืนยันคิว"
+                          >
+                            {updatingId === booking.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Check className="w-3.5 h-3.5" />
+                            )}
+                            <span className="hidden sm:inline">ยืนยันคิว</span>
+                            <span className="sm:hidden">ยืนยัน</span>
+                          </button>
+                        )}
+
+                        {booking.status === 'confirmed' && (
+                          <button
+                            type="button"
+                            disabled={updatingId === booking.id}
+                            onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'checked_in')}
+                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 disabled:opacity-50 shrink-0"
+                            title="เช็คอินหน้าร้าน"
+                          >
+                            {updatingId === booking.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                            )}
+                            <span>เช็คอิน</span>
+                          </button>
+                        )}
+
                         <button
                           type="button"
-                          disabled={updatingId === booking.id}
-                          onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'confirmed')}
-                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 disabled:opacity-50 shrink-0"
-                          title="กดยืนยันคิว"
+                          onClick={(e) => { e.stopPropagation(); setSelectedBooking(booking); }}
+                          className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all border border-slate-200/80 hover:border-slate-300 shrink-0"
+                          title="ดูรายละเอียดคิว"
                         >
-                          {updatingId === booking.id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Check className="w-3.5 h-3.5" />
-                          )}
-                          <span className="hidden sm:inline">ยืนยันคิว</span>
-                          <span className="sm:hidden">ยืนยัน</span>
+                          <Eye className="w-4 h-4" />
                         </button>
-                      )}
-
-                      {booking.status === 'confirmed' && (
-                        <button
-                          type="button"
-                          disabled={updatingId === booking.id}
-                          onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'checked_in')}
-                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 disabled:opacity-50 shrink-0"
-                          title="เช็คอินหน้าร้าน"
-                        >
-                          {updatingId === booking.id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                          )}
-                          <span>เช็คอิน</span>
-                        </button>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); setSelectedBooking(booking); }}
-                        className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all border border-slate-200/80 hover:border-slate-300 shrink-0"
-                        title="ดูรายละเอียดคิว"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
+                      </div>
                     </div>
                   </div>
+                ))}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden lg:block bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[800px]">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <th className="px-5 py-4 w-40">วันเวลา</th>
+                        <th className="px-5 py-4">ลูกค้า</th>
+                        <th className="px-5 py-4">บริการ</th>
+                        <th className="px-5 py-4 text-center w-32">ยอดชำระ</th>
+                        <th className="px-5 py-4 text-center w-36">สถานะ</th>
+                        <th className="px-5 py-4 text-right w-32">จัดการ</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {displayedBookings.map((booking) => (
+                        <tr key={booking.id} className="hover:bg-slate-50/80 transition-colors cursor-pointer group" onClick={() => setSelectedBooking(booking)}>
+                          {/* 1. Date & Time */}
+                          <td className="px-5 py-4 align-top">
+                            <div className="flex flex-col">
+                              <span className="text-[11px] font-bold text-slate-500 mb-1 flex items-center gap-1.5">
+                                <Calendar className="w-3.5 h-3.5" /> 
+                                {booking.bookingDate}
+                              </span>
+                              <span className="text-sm font-black text-slate-800 flex items-center gap-1.5 leading-none">
+                                <Clock className="w-4 h-4 text-emerald-500" />
+                                {booking.startTime.substring(0, 5)} - {booking.endTime.substring(0, 5)} น.
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* 2. Customer */}
+                          <td className="px-5 py-4 align-top">
+                            <div className="flex flex-col gap-1.5">
+                              <span className="font-extrabold text-sm text-slate-900 group-hover:text-emerald-600 transition-colors">
+                                {booking.userName}
+                              </span>
+                              {booking.userPhone && (
+                                <span className="text-[11px] font-mono text-slate-600 bg-white px-1.5 py-0.5 rounded-md border border-slate-200/80 inline-block w-fit">
+                                  {booking.userPhone}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* 3. Service */}
+                          <td className="px-5 py-4 align-top">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-sm font-bold text-slate-700">
+                                {booking.serviceName}
+                              </span>
+                              <div className="text-[11px] text-slate-500 flex items-center gap-2">
+                                {activeTenant?.settings?.enableCourtSelection || activeTenant?.settings?.bookingFlowConfig?.steps?.requireResource ? (
+                                  <span>{activeTenant?.settings?.resourceTerm || 'สนาม'}: <strong className="text-slate-800">{booking.courtName || booking.staffName || '-'}</strong></span>
+                                ) : (
+                                  <span>พนักงาน: <strong className="text-slate-800">{booking.staffName || booking.courtName || '-'}</strong></span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* 4. Price */}
+                          <td className="px-5 py-4 align-top text-center">
+                            <span className="text-sm font-black text-emerald-600">
+                              ฿{(booking?.finalPrice ?? booking?.price ?? 0).toLocaleString()}
+                            </span>
+                          </td>
+
+                          {/* 5. Status */}
+                          <td className="px-5 py-4 align-top text-center">
+                            <div className="flex justify-center">
+                              {getStatusBadge(booking.status)}
+                            </div>
+                          </td>
+
+                          {/* 6. Action */}
+                          <td className="px-5 py-4 align-top text-right">
+                            <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                              {booking.status === 'pending' && (
+                                <button
+                                  type="button"
+                                  disabled={updatingId === booking.id}
+                                  onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'confirmed')}
+                                  className="p-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg transition-all border border-emerald-200/50 hover:border-transparent shadow-sm active:scale-95 disabled:opacity-50"
+                                  title="กดยืนยันคิว"
+                                >
+                                  {updatingId === booking.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Check className="w-4 h-4" />
+                                  )}
+                                </button>
+                              )}
+        
+                              {booking.status === 'confirmed' && (
+                                <button
+                                  type="button"
+                                  disabled={updatingId === booking.id}
+                                  onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'checked_in')}
+                                  className="p-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition-all border border-blue-200/50 hover:border-transparent shadow-sm active:scale-95 disabled:opacity-50"
+                                  title="เช็คอินหน้าร้าน"
+                                >
+                                  {updatingId === booking.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <CheckCircle2 className="w-4 h-4" />
+                                  )}
+                                </button>
+                              )}
+        
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setSelectedBooking(booking); }}
+                                className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all border border-slate-200/80 hover:border-slate-300"
+                                title="ดูรายละเอียดคิว"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              ))}
-            </div>
+              </div>
+            </>
           )}
         </div>
 

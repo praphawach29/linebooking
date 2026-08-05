@@ -151,10 +151,10 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
   const startTimeForPricing = time.includes(' - ') ? time.split(' - ')[0].trim() : time;
   const calculated = calculateServicePrice(service, startTimeForPricing, date);
   const courtExtra = court?.extraPricePerHour || 0;
-  // baseServicePrice = pricePerHour * bookingHours
   const pricePerHour = calculated.finalPrice || service.price || 0;
-  const baseServicePrice = pricePerHour * bookingHours;
-  const totalPrice = Math.max(0, baseServicePrice + addonsTotalPrice + (courtExtra * bookingHours));
+  const effectiveUnitPricePerHour = Math.max(0, pricePerHour + courtExtra);
+  const baseServicePrice = effectiveUnitPricePerHour * bookingHours;
+  const totalPrice = Math.max(0, baseServicePrice + addonsTotalPrice);
   // Duration = service base duration per hour * hours + addon extra
   const baseDurationPerHour = service.durationMinutes || 60;
   const totalDurationMinutes = (baseDurationPerHour * bookingHours) + addonsExtraDuration;
@@ -188,6 +188,13 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
   };
 
   const handleSubmit = () => {
+    if (!liffProfile.isLoggedIn && !currentUser) {
+      setValidationError('กรุณาเข้าสู่ระบบด้วย LINE ก่อนทำการจอง เพื่อรับการแจ้งเตือนคิวและบันทึกคิวลงระบบ');
+      liffProfile.login();
+      setShowSummaryModal(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     if (!customerName?.trim() || !customerPhone?.trim()) {
       setValidationError('กรุณากรอกชื่อ-นามสกุล และเบอร์โทรศัพท์ติดต่อให้ครบถ้วน');
       setShowSummaryModal(false);
@@ -445,6 +452,27 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
             </span>
           )}
         </div>
+
+        {!liffProfile.isLoggedIn && !currentUser && (
+          <div className="bg-emerald-50 border-2 border-emerald-500/30 p-3.5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[#06C755] text-white flex items-center justify-center font-black text-xs shrink-0 shadow-md">
+                LINE
+              </div>
+              <div>
+                <p className="font-extrabold text-[12px] text-slate-900">เข้าสู่ระบบด้วย LINE เพื่อทำการจอง</p>
+                <p className="text-[10px] text-slate-500 font-medium">เพื่อเชื่อมต่อคิวจองกับ LINE OA ของร้านค้าและบันทึกลงระบบ</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => liffProfile.login()}
+              className="w-full sm:w-auto px-3.5 py-2 bg-[#06C755] hover:bg-[#05b34c] text-white font-bold text-[11px] rounded-xl shadow-md flex items-center justify-center gap-1.5 shrink-0 transition-all active:scale-95"
+            >
+              💬 เข้าสู่ระบบด้วย LINE
+            </button>
+          </div>
+        )}
 
         {validationError && (
           <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-2xl p-3.5">

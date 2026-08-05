@@ -53,7 +53,9 @@ export const LiffPromptPayPayment: React.FC<LiffPromptPayPaymentProps> = ({
   })();
 
   const addonsTotalPrice = selectedAddons.reduce((sum, a) => sum + a.price, 0);
-  const totalPrice = (service.price * bookingHours) + addonsTotalPrice;
+  const courtExtra = court?.extraPricePerHour || 0;
+  const unitPricePerHour = Math.max(0, service.price + courtExtra);
+  const totalPrice = (unitPricePerHour * bookingHours) + addonsTotalPrice;
 
   const depositPct = activeTenant.settings.depositPercentage ?? 50;
   const depositAmount = (totalPrice * depositPct) / 100;

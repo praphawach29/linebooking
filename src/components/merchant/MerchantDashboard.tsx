@@ -334,52 +334,60 @@ export const MerchantDashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 pt-4 sm:pt-0 border-t sm:border-t-0 border-border">
-                    <div className="text-right flex flex-col items-end gap-1.5">
-                      <p className="text-sm font-black text-foreground">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 min-w-[210px] shrink-0">
+                    {/* Price & Status Badge */}
+                    <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-1 text-right">
+                      <p className="text-base font-black text-slate-900">
                         ฿{(booking?.finalPrice ?? booking?.price ?? 0).toLocaleString()}
                       </p>
                       {getStatusBadge(booking.status)}
                     </div>
 
-                    {/* Quick Action Button */}
-                    {booking.status === 'pending' && (
+                    {/* Action Buttons Group */}
+                    <div className="flex items-center gap-1.5 self-end sm:self-center">
+                      {booking.status === 'pending' && (
+                        <button
+                          type="button"
+                          disabled={updatingId === booking.id}
+                          onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'confirmed')}
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-xs active:scale-95 disabled:opacity-50 shrink-0"
+                          title="กดยืนยันคิว"
+                        >
+                          {updatingId === booking.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Check className="w-3.5 h-3.5" />
+                          )}
+                          <span>ยืนยันคิว</span>
+                        </button>
+                      )}
+
+                      {booking.status === 'confirmed' && (
+                        <button
+                          type="button"
+                          disabled={updatingId === booking.id}
+                          onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'checked_in')}
+                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-xs active:scale-95 disabled:opacity-50 shrink-0"
+                          title="เช็คอินหน้าร้าน"
+                        >
+                          {updatingId === booking.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          )}
+                          <span>เช็คอิน</span>
+                        </button>
+                      )}
+
                       <button
                         type="button"
-                        disabled={updatingId === booking.id}
-                        onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'confirmed')}
-                        className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1 transition-all shadow-xs active:scale-95 disabled:opacity-50 shrink-0"
-                        title="กดยืนยันคิวทันที"
+                        onClick={() => setSelectedBooking(booking)}
+                        className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all border border-slate-200/80 hover:border-slate-300"
+                        title="ดูรายละเอียดคิว"
                       >
-                        {updatingId === booking.id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Check className="w-3.5 h-3.5" />
-                        )}
-                        <span className="hidden sm:inline">ยืนยัน</span>
+                        <Eye className="w-4 h-4" />
                       </button>
-                    )}
-
-                    {booking.status === 'confirmed' && (
-                      <button
-                        type="button"
-                        disabled={updatingId === booking.id}
-                        onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'checked_in')}
-                        className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1 transition-all shadow-xs active:scale-95 disabled:opacity-50 shrink-0"
-                        title="เช็คอินหน้าร้านทันที"
-                      >
-                        {updatingId === booking.id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                        )}
-                        <span className="hidden sm:inline">เช็คอิน</span>
-                      </button>
-                    )}
-
-                    <button className="w-9 h-9 flex items-center justify-center text-slate-400 group-hover:text-primary hover:bg-primary/10 rounded-xl transition-all shrink-0">
-                      <Eye className="w-4 h-4" />
-                    </button>
+                    </div>
                   </div>
                 </div>
               ))}

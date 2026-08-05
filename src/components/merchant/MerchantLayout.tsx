@@ -20,7 +20,8 @@ import {
   ShieldAlert,
   ShieldCheck,
   Store,
-  Gift
+  Gift,
+  Crown,
 } from 'lucide-react';
 import { MerchantDashboard } from './MerchantDashboard';
 import { MerchantCalendarView } from './MerchantCalendarView';
@@ -59,6 +60,11 @@ export const MerchantLayout: React.FC = () => {
   const quotaInfo = activeTenant ? getTenantQuotaInfo(activeTenant, bookings, staffs, courts) : null;
 
   const handleTabChange = (tab: string) => {
+    if (tab === 'subscription') {
+      setIsSubscriptionModalOpen(true);
+      setIsMobileMenuOpen(false);
+      return;
+    }
     setMerchantTab(tab);
     setIsMobileMenuOpen(false);
   };
@@ -119,6 +125,12 @@ export const MerchantLayout: React.FC = () => {
         { tab: 'loyalty', icon: Gift, label: 'ระบบสมาชิก & รางวัล' },
         { tab: 'analytics', icon: BarChart3, label: 'สถิติ & รายงาน' },
         { tab: 'reviews', icon: Star, label: 'รีวิว & คะแนน' },
+      ],
+    },
+    {
+      title: 'แพ็กเกจ & บัญชี',
+      items: [
+        { tab: 'subscription', icon: Crown, label: 'ต่ออายุ / อัปเกรดแพ็กเกจ' },
       ],
     },
   ];
@@ -244,13 +256,7 @@ export const MerchantLayout: React.FC = () => {
             </Link>
           )}
 
-          <button
-            onClick={() => setIsSubscriptionModalOpen(true)}
-            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-extrabold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-500/20 active:scale-95"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>ต่ออายุ / อัปเกรดแพ็กเกจ</span>
-          </button>
+
 
           <div className="flex items-center justify-between pt-1 px-1">
             <div className="min-w-0 flex-1">

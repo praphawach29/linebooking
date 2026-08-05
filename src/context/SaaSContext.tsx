@@ -127,7 +127,7 @@ interface SaaSContextType {
     bookingId: string,
     status: BookingStatus,
     reason?: string
-  ) => void;
+  ) => Promise<void>;
   
   // Management CRUD
   saveService: (service: Partial<Service>) => void;
@@ -157,7 +157,7 @@ interface SaaSContextType {
   // Loyalty & Reward Actions
   fetchMembership: (userId: string) => Membership | undefined;
   redeemReward: (rewardId: string, userId: string) => boolean;
-  completeBooking: (bookingId: string) => void;
+  completeBooking: (bookingId: string) => Promise<void>;
   saveReward: (reward: Partial<Reward>) => void;
   deleteReward: (rewardId: string) => void;
   adjustCustomerPoints: (userId: string, pointsDelta: number, reason: string) => void;
@@ -649,13 +649,12 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return true;
   };
 
-  const completeBooking = (bookingId: string) => {
+  const completeBooking = async (bookingId: string) => {
     if (!activeTenant) return;
     const booking = bookings.find(b => b.id === bookingId);
     if (!booking) return;
 
-    updateBookingStatus(bookingId, 'completed');
-    // Simplified loyalty calculation for now...
+    await updateBookingStatus(bookingId, 'completed');
   };
 
   const switchTenant = (tenantId: string) => {
@@ -960,25 +959,43 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateBookingStatus = (bookingId: string, status: BookingStatus, reason?: string) => {
-    setBookings((prev) =>
-      prev.map((b) => {
-        if (b.id === bookingId) {
-          const updated: Booking = {
-            ...b,
-            status,
-            cancellationReason: reason || b.cancellationReason,
-            cancelledAt: status === 'cancelled' ? new Date().toISOString() : b.cancelledAt,
-            checkedInAt: status === 'checked_in' ? new Date().toISOString() : b.checkedInAt,
-            completedAt: status === 'completed' ? new Date().toISOString() : b.completedAt,
-            paymentStatus:
-              status === 'cancelled' && b.paymentStatus === 'paid' ? 'refunded' : b.paymentStatus,
-          };
-          return updated;
-        }
-        return b;
+  const updateBookingStatus = async (bookingId: string, status: BookingStatus, reason?: string) => {
+    const existing = bookings.find((b) => b.id === bookingId);
+    if (!existing) return;
+
+    const now = new Date().toISOString();
+    const updated: Booking = {
+      ...existing,
+      status,
+      cancellationReason: status === 'cancelled' ? reason || existing.cancellationReason : existing.cancellationReason,
+      cancelledAt: status === 'cancelled' ? now : existing.cancelledAt,
+      checkedInAt: status === 'checked_in' ? now : existing.checkedInAt,
+      completedAt: status === 'completed' ? now : existing.completedAt,
+      paymentStatus:
+        status === 'cancelled' && existing.paymentStatus === 'paid' ? 'refunded' : existing.paymentStatus,
+    };
+
+    setBookings((prev) => prev.map((b) => (b.id === bookingId ? updated : b)));
+
+    const { error: updateError } = await supabase
+      .from('bookings')
+      .update({
+        status: updated.status,
+        cancellation_reason: updated.cancellationReason || null,
+        cancelled_at: updated.cancelledAt || null,
+        checked_in_at: updated.checkedInAt || null,
+        completed_at: updated.completedAt || null,
+        payment_status: updated.paymentStatus,
       })
-    );
+      .eq('id', bookingId);
+
+    if (updateError) {
+      setBookings((prev) => prev.map((b) => (b.id === bookingId ? existing : b)));
+      setError(updateError.message || 'Failed to update booking status');
+      throw updateError;
+    }
+
+    setError(null);
   };
 
   const saveService = async (serviceData: Partial<Service>) => {

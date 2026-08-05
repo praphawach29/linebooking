@@ -14,6 +14,7 @@ import {
   XCircle,
   AlertCircle,
   Scissors,
+  Loader2,
 } from 'lucide-react';
 
 interface MerchantBookingDetailModalProps {
@@ -28,20 +29,48 @@ export const MerchantBookingDetailModal: React.FC<MerchantBookingDetailModalProp
   const { updateBookingStatus, completeBooking } = useSaaS();
   const [cancelReason, setCancelReason] = useState('');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [targetStatus, setTargetStatus] = useState<BookingStatus | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const handleStatusChange = (newStatus: BookingStatus) => {
+  const handleStatusChange = async (newStatus: BookingStatus) => {
     if (newStatus === 'cancelled') {
       setShowCancelDialog(true);
-    } else if (newStatus === 'completed') {
-      completeBooking(booking.id);
-    } else {
-      updateBookingStatus(booking.id, newStatus);
+      return;
+    }
+
+    setIsUpdating(true);
+    setTargetStatus(newStatus);
+    setErrorMsg(null);
+
+    try {
+      if (newStatus === 'completed') {
+        await completeBooking(booking.id);
+      } else {
+        await updateBookingStatus(booking.id, newStatus);
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'เกิดข้อผิดพลาดในการบันทึกสถานะ');
+    } finally {
+      setIsUpdating(false);
+      setTargetStatus(null);
     }
   };
 
-  const handleConfirmCancel = () => {
-    updateBookingStatus(booking.id, 'cancelled', cancelReason || 'ร้านค้ายกเลิกคิว');
-    setShowCancelDialog(false);
+  const handleConfirmCancel = async () => {
+    setIsUpdating(true);
+    setTargetStatus('cancelled');
+    setErrorMsg(null);
+
+    try {
+      await updateBookingStatus(booking.id, 'cancelled', cancelReason || 'ร้านค้ายกเลิกคิว');
+      setShowCancelDialog(false);
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'เกิดข้อผิดพลาดในการยกเลิกคิว');
+    } finally {
+      setIsUpdating(false);
+      setTargetStatus(null);
+    }
   };
 
   return (
@@ -61,7 +90,8 @@ export const MerchantBookingDetailModal: React.FC<MerchantBookingDetailModalProp
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors"
+            disabled={isUpdating}
+            className="p-1.5 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors disabled:opacity-50"
           >
             <X className="w-5 h-5" />
           </button>
@@ -69,6 +99,22 @@ export const MerchantBookingDetailModal: React.FC<MerchantBookingDetailModalProp
 
         {/* Modal Body */}
         <div className="p-5 overflow-y-auto space-y-4 flex-1">
+
+          {/* Error Banner */}
+          {errorMsg && (
+            <div className="bg-red-50 text-red-700 border border-red-200 p-3 rounded-2xl flex items-center justify-between font-medium">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+              <button
+                onClick={() => setErrorMsg(null)}
+                className="text-red-400 hover:text-red-600 font-bold ml-2"
+              >
+                ✕
+              </button>
+            </div>
+          )}
           
           {/* Status Switcher Strip */}
           <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/80 space-y-2">
@@ -78,46 +124,78 @@ export const MerchantBookingDetailModal: React.FC<MerchantBookingDetailModalProp
             <div className="flex gap-1.5 flex-wrap">
               <button
                 onClick={() => handleStatusChange('confirmed')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
+                disabled={isUpdating}
+                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 disabled:opacity-60 ${
                   booking.status === 'confirmed'
                     ? 'bg-emerald-600 text-white shadow-xs'
                     : 'bg-white text-slate-700 border border-slate-200 hover:border-emerald-500'
                 }`}
               >
-                ยืนยันคิวแล้ว
+                {isUpdating && targetStatus === 'confirmed' ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>กำลังบันทึก...</span>
+                  </>
+                ) : (
+                  'ยืนยันคิวแล้ว'
+                )}
               </button>
 
               <button
                 onClick={() => handleStatusChange('checked_in')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
+                disabled={isUpdating}
+                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 disabled:opacity-60 ${
                   booking.status === 'checked_in'
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'bg-white text-slate-700 border border-slate-200 hover:border-blue-500'
                 }`}
               >
-                เช็คอินหน้าร้าน
+                {isUpdating && targetStatus === 'checked_in' ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>กำลังบันทึก...</span>
+                  </>
+                ) : (
+                  'เช็คอินหน้าร้าน'
+                )}
               </button>
 
               <button
                 onClick={() => handleStatusChange('completed')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
+                disabled={isUpdating}
+                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 disabled:opacity-60 ${
                   booking.status === 'completed'
                     ? 'bg-slate-800 text-white shadow-xs'
                     : 'bg-white text-slate-700 border border-slate-200 hover:border-slate-800'
                 }`}
               >
-                เสร็จสิ้นบริการ
+                {isUpdating && targetStatus === 'completed' ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>กำลังบันทึก...</span>
+                  </>
+                ) : (
+                  'เสร็จสิ้นบริการ'
+                )}
               </button>
 
               <button
                 onClick={() => handleStatusChange('cancelled')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
+                disabled={isUpdating}
+                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 disabled:opacity-60 ${
                   booking.status === 'cancelled'
                     ? 'bg-red-600 text-white shadow-xs'
                     : 'bg-white text-red-600 border border-red-200 hover:bg-red-50'
                 }`}
               >
-                ยกเลิกคิว
+                {isUpdating && targetStatus === 'cancelled' ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>กำลังบันทึก...</span>
+                  </>
+                ) : (
+                  'ยกเลิกคิว'
+                )}
               </button>
             </div>
           </div>
@@ -217,15 +295,24 @@ export const MerchantBookingDetailModal: React.FC<MerchantBookingDetailModalProp
             <div className="flex gap-2">
               <button
                 onClick={() => setShowCancelDialog(false)}
-                className="flex-1 py-1.5 bg-slate-200 text-slate-700 font-bold rounded-xl"
+                disabled={isUpdating}
+                className="flex-1 py-1.5 bg-slate-200 text-slate-700 font-bold rounded-xl disabled:opacity-50"
               >
                 ย้อนกลับ
               </button>
               <button
                 onClick={handleConfirmCancel}
-                className="flex-1 py-1.5 bg-red-600 text-white font-bold rounded-xl"
+                disabled={isUpdating}
+                className="flex-1 py-1.5 bg-red-600 text-white font-bold rounded-xl disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
-                ยืนยันการยกเลิก
+                {isUpdating ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>กำลังยกเลิก...</span>
+                  </>
+                ) : (
+                  'ยืนยันการยกเลิก'
+                )}
               </button>
             </div>
           </div>

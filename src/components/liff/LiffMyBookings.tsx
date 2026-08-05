@@ -201,7 +201,7 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking, li
   };
 
   return (
-    <div className="bg-slate-50 min-h-screen pb-32">
+    <div className="bg-slate-50 min-h-full pb-4">
       <div className="flex items-center justify-between mt-2 px-4">
         <h2 className="text-lg font-black text-foreground">การจองคิวของฉัน</h2>
         <button
@@ -214,7 +214,7 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking, li
       </div>
 
       {/* Tabs */}
-      <div className="flex bg-slate-100/80 p-1.5 m-4 rounded-2xl text-[13px] font-black shadow-inner border border-slate-200/50">
+      <div className="flex bg-slate-100/80 p-1.5 mx-4 mt-3 mb-3 rounded-2xl text-[13px] font-black shadow-inner border border-slate-200/50">
         <button
           onClick={() => setActiveTab('upcoming')}
           className={`flex-1 py-2 rounded-xl transition-all duration-300 ${
@@ -250,7 +250,7 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking, li
       </div>
 
       {/* Booking List */}
-      <div className="space-y-4 px-4">
+      <div className="space-y-3 px-4 pb-2">
         {(isLoading || isLoadingMine) ? (
           <div className="flex flex-col gap-4">
             {[1, 2, 3].map((n) => (
@@ -274,7 +274,7 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking, li
           filteredBookings.map((b) => (
             <div
               key={b.id}
-              className="premium-card p-5 space-y-4 relative overflow-hidden transition-all duration-300 hover:shadow-lg group"
+              className="premium-card p-4 space-y-3 relative overflow-hidden transition-all duration-300 hover:shadow-lg group"
             >
               <div className={`absolute left-0 top-0 bottom-0 w-1 ${
                 b.status === 'confirmed' ? 'bg-success' :
@@ -283,7 +283,7 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking, li
                 b.status === 'cancelled' ? 'bg-danger' : 'bg-slate-300'
               }`}></div>
 
-              <div className="flex items-start justify-between pb-3 border-b border-border/60">
+              <div className="flex items-start justify-between pb-2.5 border-b border-border/60">
                 <div>
                   <span className="text-[10px] font-mono font-black text-slate-400 block mb-1">
                     #{b.refNo}
@@ -297,7 +297,7 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking, li
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 text-slate-600 text-[13px] font-medium">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-slate-600 text-[13px] font-medium">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-primary" />
                   <span className="font-bold">{formatDateThai(b.bookingDate)}</span>
@@ -340,11 +340,11 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking, li
               )}
 
               {(b.status === 'confirmed' || b.status === 'pending' || b.status === 'checked_in') && (
-                <div className="pt-4 border-t border-slate-100 space-y-2 mt-2">
+                <div className="pt-3 border-t border-slate-100 space-y-2 mt-1">
                   <button
                     type="button"
                     onClick={() => setSelectedBookingForQr(b)}
-                    className="w-full bg-[#113566] hover:bg-[#0b2447] text-white font-black py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md text-[13px]"
+                    className="w-full bg-[#113566] hover:bg-[#0b2447] text-white font-black py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md text-[13px]"
                   >
                     <QrCode className="w-5 h-5 text-[#60a5fa]" />
                     <span>แสดง QR Code เช็คอินหน้าร้าน</span>
@@ -353,7 +353,7 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking, li
                   <button
                     type="button"
                     onClick={() => handleDownloadCalendar(b)}
-                    className="w-full bg-white hover:bg-slate-50 text-slate-700 font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm border border-slate-200 text-[13px]"
+                    className="w-full bg-white hover:bg-slate-50 text-slate-700 font-bold py-2 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm border border-slate-200 text-[13px]"
                   >
                     <Calendar className="w-4 h-4 text-primary" />
                     <span>{downloadedIcsFor === b.id ? 'บันทึกแล้ว' : 'เพิ่มลงปฏิทิน (Calendar)'}</span>
@@ -364,7 +364,7 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking, li
                       <button
                         type="button"
                         onClick={() => setSelectedBookingForCancel(b)}
-                        className="text-danger-dark bg-danger/5 hover:bg-danger/10 px-3 py-2.5 rounded-xl text-[11px] font-black transition-colors flex items-center justify-center gap-1 border border-danger/20 flex-1"
+                        className="text-danger-dark bg-danger/5 hover:bg-danger/10 px-3 py-2 rounded-xl text-[11px] font-black transition-colors flex items-center justify-center gap-1 border border-danger/20 flex-1"
                       >
                         <XCircle className="w-4 h-4" />
                         <span>ยกเลิกคิว</span>
@@ -374,7 +374,7 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking, li
                     <button
                       type="button"
                       onClick={onNewBooking}
-                      className="text-primary-dark bg-primary/5 hover:bg-primary/10 px-3 py-2.5 rounded-xl text-[11px] font-black transition-colors flex items-center justify-center gap-1 border border-primary/20 flex-1"
+                      className="text-primary-dark bg-primary/5 hover:bg-primary/10 px-3 py-2 rounded-xl text-[11px] font-black transition-colors flex items-center justify-center gap-1 border border-primary/20 flex-1"
                     >
                       <RefreshCw className="w-4 h-4" />
                       <span>เลื่อนคิว</span>
@@ -384,7 +384,7 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking, li
               )}
 
               {b.status === 'completed' && !reviews.some(r => r.bookingId === b.id) && (
-                <div className="pt-4 border-t border-slate-100 space-y-2 mt-2">
+                <div className="pt-3 border-t border-slate-100 space-y-2 mt-1">
                   <button
                     type="button"
                     onClick={() => setSelectedBookingForReview(b)}

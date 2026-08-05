@@ -785,15 +785,22 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }): Promise<Booking | null> => {
     if (!activeTenant) return null;
 
-    const service = services.find((item) => item.id === data.serviceId);
-    if (!service) return null;
+    const service = services.find(
+      (item) => item.id === data.serviceId && (!item.tenantId || item.tenantId === activeTenant.id)
+    );
+    if (!service) {
+      setError('Selected service does not belong to the current shop. Please choose a service again.');
+      return null;
+    }
 
     const cleanStartTime = data.startTime.includes(' - ')
       ? data.startTime.split(' - ')[0].trim()
       : data.startTime.trim();
 
-    const localStaff = staffs.find((item) => item.id === data.staffId) || staffs[0];
-    const localCourt = courts.find((item) => item.id === data.courtId);
+    const tenantStaffs = staffs.filter((item) => item.tenantId === activeTenant.id);
+    const tenantCourts = courts.filter((item) => item.tenantId === activeTenant.id);
+    const localStaff = tenantStaffs.find((item) => item.id === data.staffId) || tenantStaffs[0];
+    const localCourt = tenantCourts.find((item) => item.id === data.courtId);
 
     try {
       const phone = data.customerPhone?.replace(/[\s-]/g, '') || undefined;

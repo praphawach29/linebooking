@@ -278,7 +278,7 @@ export const LiffLayout: React.FC = () => {
         </div>
 
         {/* LIFF Main Scrollable Body */}
-        <div className="flex-1 overflow-y-auto bg-slate-50 pb-24 scrollbar-none">
+        <div className="flex-1 overflow-y-auto bg-slate-50 pb-3 scrollbar-none">
           {currentStep === 'home' && (
             <LiffHome liffProfile={liffProfile} onSelectService={handleSelectService} />
           )}

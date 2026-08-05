@@ -301,71 +301,66 @@ export const MerchantDashboard: React.FC = () => {
                 <div
                   key={booking.id}
                   onClick={() => setSelectedBooking(booking)}
-                  className="p-4 sm:p-5 rounded-2xl border border-slate-200/80 hover:border-emerald-500/50 transition-all cursor-pointer bg-white shadow-sm hover:shadow-md group flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4"
+                  className="p-4 sm:p-5 rounded-2xl border border-slate-200/80 hover:border-emerald-500/50 transition-all cursor-pointer bg-white shadow-sm hover:shadow-md group flex flex-col gap-3.5 sm:gap-4"
                 >
-                  {/* Top Section (Mobile) / Left Section (Desktop) */}
-                  <div className="flex items-start justify-between gap-3 min-w-0 w-full sm:w-auto sm:flex-1">
-                    
-                    <div className="flex items-start gap-3 sm:gap-4 min-w-0 flex-1">
-                      {/* Date Badge */}
-                      <div className="bg-slate-900 text-white px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl text-center flex-shrink-0 min-w-[75px] sm:min-w-[95px] shadow-xs">
-                        <span className="text-[10px] sm:text-[11px] font-bold text-slate-300 block mb-0.5">{booking.bookingDate}</span>
-                        <span className="text-sm sm:text-sm font-black block text-emerald-400 leading-tight">{booking.startTime}</span>
-                        <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium">ถึง {booking.endTime}</span>
-                      </div>
-
-                      {/* Customer Info */}
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                          <span className="font-extrabold text-sm text-slate-900 group-hover:text-emerald-600 transition-colors truncate max-w-full">
-                            {booking.userName}
-                          </span>
-                          {booking.userPhone && (
-                            <span className="text-[10px] sm:text-[11px] font-mono text-slate-700 font-bold bg-slate-100 px-1.5 sm:px-2 py-0.5 rounded-md border border-slate-200/80 shrink-0">
-                              {booking.userPhone}
-                            </span>
-                          )}
-                        </div>
-
-                        <p className="text-xs sm:text-sm font-bold text-slate-600 truncate max-w-full">
-                          {booking.serviceName}
-                        </p>
-
-                        <div className="text-[10px] sm:text-[12px] text-slate-500 font-medium flex items-center gap-1.5 sm:gap-2 flex-wrap mt-0.5">
-                          {activeTenant?.settings?.enableCourtSelection || activeTenant?.settings?.bookingFlowConfig?.steps?.requireResource ? (
-                            <span>{activeTenant?.settings?.resourceTerm || 'สนาม'}: <strong className="text-slate-800">{booking.courtName || booking.staffName || '-'}</strong></span>
-                          ) : (
-                            <span>ช่าง/พนักงาน: <strong className="text-slate-800">{booking.staffName || booking.courtName || '-'}</strong></span>
-                          )}
-                          <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                          <span className="text-slate-400">ช่องทาง: <strong className="text-slate-600">{booking.source === 'line_liff' ? 'LINE OA' : booking.source}</strong></span>
-                        </div>
-                      </div>
+                  {/* Top Header: Date/Time and Status/Price */}
+                  <div className="flex items-start justify-between gap-3">
+                    {/* Left: Date & Time */}
+                    <div className="flex flex-col">
+                      <span className="text-[11px] sm:text-xs font-bold text-slate-500 mb-1 flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5" /> 
+                        {booking.bookingDate}
+                      </span>
+                      <span className="text-sm sm:text-base font-black text-slate-800 flex items-center gap-1.5 leading-none">
+                        <Clock className="w-4 h-4 text-emerald-500" />
+                        {booking.startTime.substring(0, 5)} - {booking.endTime.substring(0, 5)} น.
+                      </span>
                     </div>
 
-                    {/* Mobile-only Badge & Price (Top Right) */}
-                    <div className="flex flex-col items-end gap-1 shrink-0 sm:hidden">
+                    {/* Right: Badge & Price */}
+                    <div className="flex flex-col items-end gap-1">
                       {getStatusBadge(booking.status)}
-                      <p className="text-sm font-black text-slate-900 mt-0.5">
+                      <span className="text-sm sm:text-base font-black text-emerald-600 mt-0.5">
                         ฿{(booking?.finalPrice ?? booking?.price ?? 0).toLocaleString()}
-                      </p>
+                      </span>
                     </div>
-
                   </div>
 
-                  {/* Bottom Section (Mobile) / Right Section (Desktop) */}
-                  <div className="flex items-center justify-end sm:flex-col sm:items-end gap-3 sm:gap-2.5 shrink-0 pt-2.5 border-t border-slate-50 sm:pt-0 sm:border-none sm:min-w-[140px]">
+                  <div className="h-px w-full bg-slate-100" />
+
+                  {/* Bottom Content: Customer Info & Actions */}
+                  <div className="flex items-end justify-between gap-3">
                     
-                    {/* Desktop-only Badge & Price */}
-                    <div className="hidden sm:flex flex-col items-end gap-1 text-right">
-                      {getStatusBadge(booking.status)}
-                      <p className="text-base font-black text-slate-900 mt-0.5">
-                        ฿{(booking?.finalPrice ?? booking?.price ?? 0).toLocaleString()}
+                    {/* Left: Customer Info */}
+                    <div className="flex flex-col gap-1 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-extrabold text-sm text-slate-900 group-hover:text-emerald-600 transition-colors truncate">
+                          {booking.userName}
+                        </span>
+                        {booking.userPhone && (
+                          <span className="text-[11px] font-mono text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-200/60 shrink-0">
+                            {booking.userPhone}
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-xs sm:text-sm font-bold text-slate-700 truncate">
+                        {booking.serviceName}
                       </p>
+
+                      <div className="text-[11px] sm:text-[12px] text-slate-500 flex items-center gap-2 flex-wrap mt-0.5">
+                        {activeTenant?.settings?.enableCourtSelection || activeTenant?.settings?.bookingFlowConfig?.steps?.requireResource ? (
+                          <span>{activeTenant?.settings?.resourceTerm || 'สนาม'}: <strong className="text-slate-800">{booking.courtName || booking.staffName || '-'}</strong></span>
+                        ) : (
+                          <span>ช่าง/พนักงาน: <strong className="text-slate-800">{booking.staffName || booking.courtName || '-'}</strong></span>
+                        )}
+                        <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                        <span className="text-slate-400">ช่องทาง: <strong className="text-slate-600">{booking.source === 'line_liff' ? 'LINE OA' : booking.source}</strong></span>
+                      </div>
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    {/* Right: Action Buttons */}
+                    <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                       {booking.status === 'pending' && (
                         <button
                           type="button"
@@ -379,7 +374,8 @@ export const MerchantDashboard: React.FC = () => {
                           ) : (
                             <Check className="w-3.5 h-3.5" />
                           )}
-                          <span>ยืนยันคิว</span>
+                          <span className="hidden sm:inline">ยืนยันคิว</span>
+                          <span className="sm:hidden">ยืนยัน</span>
                         </button>
                       )}
 

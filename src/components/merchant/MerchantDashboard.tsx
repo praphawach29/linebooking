@@ -301,50 +301,54 @@ export const MerchantDashboard: React.FC = () => {
                 <div
                   key={booking.id}
                   onClick={() => setSelectedBooking(booking)}
-                  className="p-4 sm:p-5 rounded-2xl border border-border hover:border-primary/50 transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4 group bg-white shadow-sm hover:shadow-md"
+                  className="p-4 sm:p-5 rounded-2xl border border-slate-200/80 hover:border-emerald-500/50 transition-all cursor-pointer bg-white shadow-sm hover:shadow-md group flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 sm:gap-4"
                 >
-                  <div className="flex items-start gap-4">
-                    <div className="bg-foreground text-white px-4 py-3 rounded-xl text-center flex-shrink-0 min-w-[90px] shadow-sm">
-                      <span className="text-xs font-bold text-slate-300 block mb-0.5">{booking.bookingDate}</span>
-                      <span className="text-sm font-black block">{booking.startTime}</span>
+                  {/* Left: Date Badge & Customer Details */}
+                  <div className="flex items-start gap-3.5 sm:gap-4 min-w-0 flex-1">
+                    <div className="bg-slate-900 text-white px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl text-center flex-shrink-0 min-w-[85px] sm:min-w-[95px] shadow-xs">
+                      <span className="text-[11px] font-bold text-slate-300 block mb-0.5">{booking.bookingDate}</span>
+                      <span className="text-xs sm:text-sm font-black block text-emerald-400">{booking.startTime}</span>
                       <span className="text-[10px] text-slate-400 font-medium">ถึง {booking.endTime}</span>
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-extrabold text-sm text-foreground group-hover:text-primary transition-colors">
+                        <span className="font-extrabold text-xs sm:text-sm text-slate-900 group-hover:text-emerald-600 transition-colors truncate">
                           {booking.userName}
                         </span>
                         {booking.userPhone && (
-                          <span className="text-[11px] font-mono text-slate-700 font-bold bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                          <span className="text-[10px] sm:text-[11px] font-mono text-slate-700 font-bold bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/80">
                             {booking.userPhone}
                           </span>
                         )}
                       </div>
-                      <p className="text-sm font-bold text-slate-600">{booking.serviceName}</p>
-                      <p className="text-[12px] text-slate-500 font-medium flex items-center gap-2 flex-wrap">
+
+                      <p className="text-xs sm:text-sm font-bold text-slate-600 truncate">{booking.serviceName}</p>
+
+                      <div className="text-[11px] sm:text-[12px] text-slate-500 font-medium flex items-center gap-2 flex-wrap">
                         {activeTenant?.settings?.enableCourtSelection || activeTenant?.settings?.bookingFlowConfig?.steps?.requireResource ? (
-                          <span>{activeTenant?.settings?.resourceTerm || 'สนาม'}: <strong className="text-foreground">{booking.courtName || booking.staffName || '-'}</strong></span>
+                          <span>{activeTenant?.settings?.resourceTerm || 'สนาม'}: <strong className="text-slate-800">{booking.courtName || booking.staffName || '-'}</strong></span>
                         ) : (
-                          <span>ช่าง/พนักงาน: <strong className="text-foreground">{booking.staffName || booking.courtName || '-'}</strong></span>
+                          <span>ช่าง/พนักงาน: <strong className="text-slate-800">{booking.staffName || booking.courtName || '-'}</strong></span>
                         )}
                         <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                        <span>ช่องทาง: <strong className="text-slate-700">{booking.source === 'line_liff' ? 'LINE OA / LIFF' : booking.source}</strong></span>
-                      </p>
+                        <span className="text-slate-400">ช่องทาง: <strong className="text-slate-600">{booking.source === 'line_liff' ? 'LINE OA / LIFF' : booking.source}</strong></span>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 min-w-[210px] shrink-0">
+                  {/* Right: Price, Status Badge, & Quick Action Buttons */}
+                  <div className="flex items-center justify-between sm:justify-end gap-3 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 shrink-0">
                     {/* Price & Status Badge */}
-                    <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-1 text-right">
-                      <p className="text-base font-black text-slate-900">
+                    <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 sm:gap-1 text-left sm:text-right">
+                      <p className="text-sm sm:text-base font-black text-slate-900">
                         ฿{(booking?.finalPrice ?? booking?.price ?? 0).toLocaleString()}
                       </p>
                       {getStatusBadge(booking.status)}
                     </div>
 
                     {/* Action Buttons Group */}
-                    <div className="flex items-center gap-1.5 self-end sm:self-center">
+                    <div className="flex items-center gap-1.5">
                       {booking.status === 'pending' && (
                         <button
                           type="button"
@@ -382,7 +386,7 @@ export const MerchantDashboard: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setSelectedBooking(booking)}
-                        className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all border border-slate-200/80 hover:border-slate-300"
+                        className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all border border-slate-200/80 hover:border-slate-300"
                         title="ดูรายละเอียดคิว"
                       >
                         <Eye className="w-4 h-4" />

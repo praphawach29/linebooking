@@ -22,6 +22,8 @@ import {
   Store,
   Gift,
   Crown,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { MerchantDashboard } from './MerchantDashboard';
 import { MerchantCalendarView } from './MerchantCalendarView';
@@ -46,6 +48,7 @@ export const MerchantLayout: React.FC = () => {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Redirect platform_admin away from /merchant → /admin
   useEffect(() => {
@@ -74,20 +77,26 @@ export const MerchantLayout: React.FC = () => {
     return (
       <button
         onClick={() => handleTabChange(tab)}
-        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all group text-left ${
+        title={isCollapsed ? label : undefined}
+        className={`w-full flex items-center ${
+          isCollapsed ? 'justify-center px-2' : 'justify-between px-3'
+        } py-2.5 rounded-xl text-xs font-bold transition-all group text-left relative ${
           isActive
             ? 'bg-primary text-white shadow-lg shadow-primary/25'
             : 'text-slate-300 hover:text-white hover:bg-white/5'
         }`}
       >
-        <div className="flex items-center gap-3">
-          <Icon className={`w-4 h-4 shrink-0 transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
-          <span className="truncate">{label}</span>
+        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
+          <Icon className={`w-4.5 h-4.5 shrink-0 transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
+          {!isCollapsed && <span className="truncate">{label}</span>}
         </div>
-        {badge !== undefined && badge > 0 && (
+        {!isCollapsed && badge !== undefined && badge > 0 && (
           <span className={`text-[10px] font-black px-2 py-0.5 rounded-full min-w-[20px] text-center ${isActive ? 'bg-white text-emerald-700' : 'bg-primary/20 text-blue-300'}`}>
             {badge > 99 ? '99+' : badge}
           </span>
+        )}
+        {isCollapsed && badge !== undefined && badge > 0 && (
+          <span className="w-2 h-2 rounded-full bg-emerald-400 absolute right-2 top-2"></span>
         )}
       </button>
     );
@@ -177,13 +186,13 @@ export const MerchantLayout: React.FC = () => {
       {/* Sidebar Navigation */}
       <aside
         className={`
-          fixed md:sticky top-0 left-0 h-screen z-50 md:z-30
-          w-[285px] md:w-[260px] shrink-0 bg-merchant-sidebar flex flex-col justify-between
-          transition-transform duration-300 ease-in-out border-r border-white/10
-          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+          fixed md:sticky top-0 left-0 h-screen z-50 md:z-30 shrink-0 bg-merchant-sidebar flex flex-col justify-between
+          transition-all duration-300 ease-in-out border-r border-white/10
+          ${isMobileMenuOpen ? 'translate-x-0 w-[285px]' : '-translate-x-full md:translate-x-0'}
+          ${isCollapsed ? 'md:w-[76px]' : 'md:w-[260px]'}
         `}
       >
-        <div className="p-5 space-y-6 overflow-y-auto no-scrollbar">
+        <div className="p-4 sm:p-5 space-y-6 overflow-y-auto no-scrollbar">
           {/* Brand & Active Tenant Header */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -191,33 +200,47 @@ export const MerchantLayout: React.FC = () => {
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary to-emerald-400 flex items-center justify-center shadow-lg shadow-primary/25 shrink-0">
                   <Sparkles className="w-5 h-5 text-white" />
                 </div>
-                <div>
-                  <h1 className="font-extrabold text-sm tracking-tight text-white leading-tight">LINE OA Booking</h1>
-                  <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Merchant Admin</p>
-                </div>
+                {!isCollapsed && (
+                  <div>
+                    <h1 className="font-extrabold text-sm tracking-tight text-white leading-tight">LINE OA Booking</h1>
+                    <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Merchant Admin</p>
+                  </div>
+                )}
               </div>
+
+              {/* Tablet & Desktop Collapse Toggle */}
+              <button
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="hidden md:flex text-slate-400 hover:text-white p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+                title={isCollapsed ? 'ขยายเมนู' : 'ย่อเมนู'}
+              >
+                {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+              </button>
+
               <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-400 hover:text-white p-1">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Active Tenant Card */}
-            <div className="bg-white/5 p-3 rounded-2xl border border-white/10 flex items-center gap-3 backdrop-blur-md shadow-inner">
+            <div className={`bg-white/5 rounded-2xl border border-white/10 flex items-center backdrop-blur-md shadow-inner ${isCollapsed ? 'p-2 justify-center' : 'p-3 gap-3'}`}>
               <div className="w-9 h-9 rounded-xl overflow-hidden border border-white/10 shrink-0 bg-slate-800 shadow-sm">
                 <img src={activeTenant.logoUrl} alt={activeTenant.name} className="w-full h-full object-cover" />
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-1">
-                  <h2 className="font-bold text-xs text-white truncate">{activeTenant.name}</h2>
-                  <span className="text-[9px] text-primary bg-primary/10 px-1.5 py-0.2 rounded font-bold uppercase tracking-wider shrink-0">
-                    {activeTenant.plan}
-                  </span>
+              {!isCollapsed && (
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-1">
+                    <h2 className="font-bold text-xs text-white truncate">{activeTenant.name}</h2>
+                    <span className="text-[9px] text-primary bg-primary/10 px-1.5 py-0.2 rounded font-bold uppercase tracking-wider shrink-0">
+                      {activeTenant.plan}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-success font-semibold flex items-center gap-1 mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>
+                    ร้านเปิดให้บริการ
+                  </p>
                 </div>
-                <p className="text-[10px] text-success font-semibold flex items-center gap-1 mt-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>
-                  ร้านเปิดให้บริการ
-                </p>
-              </div>
+              )}
             </div>
           </div>
 
@@ -225,9 +248,11 @@ export const MerchantLayout: React.FC = () => {
           <nav className="space-y-5">
             {navGroups.map((group, idx) => (
               <div key={idx}>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-3 mb-2">
-                  {group.title}
-                </p>
+                {!isCollapsed && (
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-3 mb-2">
+                    {group.title}
+                  </p>
+                )}
                 <div className="space-y-1">
                   {group.items.map((item) => (
                     <NavItem
@@ -245,24 +270,29 @@ export const MerchantLayout: React.FC = () => {
         </div>
 
         {/* Sidebar Footer */}
-        <div className="p-4 space-y-2 border-t border-white/5 bg-merchant-sidebar">
+        <div className={`p-4 space-y-2 border-t border-white/5 bg-merchant-sidebar ${isCollapsed ? 'flex flex-col items-center justify-center p-3' : ''}`}>
           {authUser?.role === 'platform_admin' && (
             <Link
               to="/admin"
-              className="w-full bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2"
+              className={`w-full bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${isCollapsed ? 'p-2 justify-center' : ''}`}
+              title="Super Admin"
             >
-              <ShieldCheck className="w-4 h-4" />
-              <span>Super Admin</span>
+              <ShieldCheck className="w-4 h-4 shrink-0" />
+              {!isCollapsed && <span>Super Admin</span>}
             </Link>
           )}
 
-
-
-          <div className="flex items-center justify-between pt-1 px-1">
-            <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-bold text-white truncate">{authUser?.email || 'merchant'}</p>
-              <p className="text-[10px] text-slate-500 font-medium truncate">{activeTenant.name}</p>
-            </div>
+          <div className={`flex items-center ${isCollapsed ? 'flex-col gap-2 pt-1' : 'justify-between pt-1 px-1'}`}>
+            {!isCollapsed ? (
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-bold text-white truncate">{authUser?.email || 'merchant'}</p>
+                <p className="text-[10px] text-slate-500 font-medium truncate">{activeTenant.name}</p>
+              </div>
+            ) : (
+              <div className="w-7 h-7 rounded-full bg-slate-800 border border-white/20 flex items-center justify-center text-[10px] font-bold text-white uppercase" title={authUser?.email || 'merchant'}>
+                {(authUser?.email || 'M')[0]}
+              </div>
+            )}
             <button
               onClick={() => signOut()}
               title="ออกจากระบบ"

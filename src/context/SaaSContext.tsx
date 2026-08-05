@@ -861,16 +861,41 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
 
       saveLocalStoredBooking(fallbackBooking);
-      
+
       // Save directly into Supabase PostgreSQL bookings table
+      // Step 1: Resolve a valid user_id by upserting LINE user into users table
       try {
-        await supabase.from('bookings').upsert({
+        let resolvedUserId: string | null = null;
+
+        // Try to get line user id from stored profile
+        const lineProfileRaw = (() => {
+          try { return localStorage.getItem('line_liff_profile_v1'); } catch { return null; }
+        })();
+        const lineProfile = lineProfileRaw ? (() => { try { return JSON.parse(lineProfileRaw); } catch { return null; } })() : null;
+        const lineUserId = lineProfile?.lineUserId || null;
+
+        if (lineUserId) {
+          // Upsert the LINE user into users table first (no FK violation)
+          const { data: upsertedUser } = await supabase
+            .from('users')
+            .upsert({
+              line_user_id: lineUserId,
+              display_name: fallbackBooking.userName || 'ลูกค้า LINE',
+              role: 'customer',
+            }, { onConflict: 'line_user_id' })
+            .select('id')
+            .single();
+          resolvedUserId = upsertedUser?.id ?? null;
+        }
+
+        // Step 2: Insert booking with resolved user_id (or null to avoid FK violation)
+        const { error: bookingError } = await supabase.from('bookings').upsert({
           id: fallbackBooking.id,
           ref_no: fallbackBooking.refNo,
           tenant_id: fallbackBooking.tenantId,
-          user_id: fallbackBooking.userId,
+          user_id: resolvedUserId,
           user_name: fallbackBooking.userName,
-          user_phone: fallbackBooking.userPhone,
+          user_phone: fallbackBooking.userPhone || null,
           service_id: fallbackBooking.serviceId,
           service_name: fallbackBooking.serviceName,
           service_duration: fallbackBooking.serviceDuration,
@@ -888,11 +913,14 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           final_price: fallbackBooking.finalPrice,
           deposit_amount: fallbackBooking.depositAmount,
           payment_status: fallbackBooking.paymentStatus,
-          payment_method: fallbackBooking.paymentMethod,
-          source: fallbackBooking.source,
-          notes: fallbackBooking.notes,
+          payment_method: fallbackBooking.paymentMethod || null,
+          source: fallbackBooking.source || 'line_liff',
+          notes: fallbackBooking.notes || null,
           created_at: fallbackBooking.createdAt,
         });
+        if (bookingError) {
+          console.error('Supabase booking upsert error:', bookingError.message, bookingError.details);
+        }
       } catch (dbErr) {
         console.warn('Supabase fallback upsert warning:', dbErr);
       }

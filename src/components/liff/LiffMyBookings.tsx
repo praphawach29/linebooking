@@ -24,11 +24,11 @@ import { SkeletonCard } from '../common/SkeletonCard';
 
 interface LiffMyBookingsProps {
   onNewBooking: () => void;
+  lineUserId?: string;
 }
 
-export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) => {
+export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking, lineUserId }) => {
   const {
-    bookings,
     cancellationPolicies,
     updateBookingStatus,
     activeTenant,
@@ -46,7 +46,7 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
   useEffect(() => {
     let cancelled = false;
     setIsLoadingMine(true);
-    fetchMyBookings()
+    fetchMyBookings(lineUserId)
       .then((list) => {
         if (!cancelled) setMyBookings(list);
       })
@@ -56,10 +56,10 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
     return () => {
       cancelled = true;
     };
-  }, [currentUser?.lineUserId]);
+  }, [currentUser?.lineUserId, lineUserId]);
 
-  // ผู้ที่ล็อกอินแล้ว (เจ้าของร้านเปิดดูหน้าลูกค้า) จะมี bookings ใน context อยู่แล้ว
-  const visibleBookings = (myBookings.length > 0 ? myBookings : bookings).filter(b => !activeTenant || b.tenantId === activeTenant.id);
+  // Always render the customer-specific RPC result, even when it returns zero rows.
+  const visibleBookings = (isLoadingMine ? [] : myBookings).filter(b => !activeTenant || b.tenantId === activeTenant.id);
   const [activeTab, setActiveTab] = useState<'upcoming' | 'completed' | 'cancelled'>('upcoming');
   const [selectedBookingForCancel, setSelectedBookingForCancel] = useState<Booking | null>(null);
   const [selectedBookingForQr, setSelectedBookingForQr] = useState<Booking | null>(null);
@@ -563,3 +563,4 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking }) 
       </div>
     );
 };
+

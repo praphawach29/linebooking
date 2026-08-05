@@ -602,14 +602,15 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     const list = camelizeKeys(data || []) as Booking[];
-    const mergedList = [...list, ...localBookings.filter((b) => !list.some((l) => l.id === b.id))];
 
-    // รวมเข้ากับ state เพื่อให้หน้าอื่น ๆ (เช่นแต้มสะสม) ใช้ข้อมูลชุดเดียวกัน
+    // A successful RPC response is the source of truth for the customer's queue.
+    // Do not merge browser-local fallback records here; each device can have stale
+    // localStorage and would otherwise show a different booking count.
     setBookings((prev) => {
-      const ids = new Set(mergedList.map((b) => b.id));
-      return [...mergedList, ...prev.filter((b) => !ids.has(b.id))];
+      const ids = new Set(list.map((b) => b.id));
+      return [...list, ...prev.filter((b) => !ids.has(b.id))];
     });
-    return mergedList;
+    return list;
   };
 
   const fetchMembership = (userId: string) => {
@@ -1547,3 +1548,4 @@ export const useSaaS = () => {
   }
   return context;
 };
+

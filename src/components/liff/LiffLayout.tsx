@@ -357,7 +357,7 @@ export const LiffLayout: React.FC = () => {
           )}
 
           {currentStep === 'my_bookings' && (
-            <LiffMyBookings onNewBooking={() => handleTabChange('home')} />
+            <LiffMyBookings onNewBooking={() => handleTabChange('home')} lineUserId={liffProfile.lineUserId} />
           )}
 
           {currentStep === 'notifications' && <LiffNotifications />}
@@ -433,3 +433,4 @@ export const LiffLayout: React.FC = () => {
     </div>
   );
 };
+

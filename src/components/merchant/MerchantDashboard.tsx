@@ -301,96 +301,113 @@ export const MerchantDashboard: React.FC = () => {
                 <div
                   key={booking.id}
                   onClick={() => setSelectedBooking(booking)}
-                  className="relative p-4 pb-14 sm:pb-5 sm:pr-[210px] rounded-2xl border border-slate-200/80 hover:border-emerald-500/50 transition-all cursor-pointer bg-white shadow-sm hover:shadow-md group min-h-[100px]"
+                  className="p-4 sm:p-5 rounded-2xl border border-slate-200/80 hover:border-emerald-500/50 transition-all cursor-pointer bg-white shadow-sm hover:shadow-md group flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4"
                 >
-                  {/* Status Badge — Top-Right Corner */}
-                  <div className="absolute top-4 right-4 flex flex-col items-end gap-1">
-                    {getStatusBadge(booking.status)}
-                    <p className="text-sm font-black text-slate-900">
-                      ฿{(booking?.finalPrice ?? booking?.price ?? 0).toLocaleString()}
-                    </p>
-                  </div>
+                  {/* Top Section (Mobile) / Left Section (Desktop) */}
+                  <div className="flex items-start justify-between gap-3 min-w-0 w-full sm:w-auto sm:flex-1">
+                    
+                    <div className="flex items-start gap-3 sm:gap-4 min-w-0 flex-1">
+                      {/* Date Badge */}
+                      <div className="bg-slate-900 text-white px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl text-center flex-shrink-0 min-w-[75px] sm:min-w-[95px] shadow-xs">
+                        <span className="text-[10px] sm:text-[11px] font-bold text-slate-300 block mb-0.5">{booking.bookingDate}</span>
+                        <span className="text-sm sm:text-sm font-black block text-emerald-400 leading-tight">{booking.startTime}</span>
+                        <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium">ถึง {booking.endTime}</span>
+                      </div>
 
-                  {/* Action Buttons — Bottom-Right Corner */}
-                  <div
-                    className="absolute bottom-3 right-3 flex items-center gap-1.5"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {booking.status === 'pending' && (
-                      <button
-                        type="button"
-                        disabled={updatingId === booking.id}
-                        onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'confirmed')}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 disabled:opacity-50 shrink-0"
-                        title="กดยืนยันคิว"
-                      >
-                        {updatingId === booking.id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Check className="w-3.5 h-3.5" />
-                        )}
-                        <span>ยืนยันคิว</span>
-                      </button>
-                    )}
+                      {/* Customer Info */}
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                          <span className="font-extrabold text-sm text-slate-900 group-hover:text-emerald-600 transition-colors truncate max-w-full">
+                            {booking.userName}
+                          </span>
+                          {booking.userPhone && (
+                            <span className="text-[10px] sm:text-[11px] font-mono text-slate-700 font-bold bg-slate-100 px-1.5 sm:px-2 py-0.5 rounded-md border border-slate-200/80 shrink-0">
+                              {booking.userPhone}
+                            </span>
+                          )}
+                        </div>
 
-                    {booking.status === 'confirmed' && (
-                      <button
-                        type="button"
-                        disabled={updatingId === booking.id}
-                        onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'checked_in')}
-                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 disabled:opacity-50 shrink-0"
-                        title="เช็คอินหน้าร้าน"
-                      >
-                        {updatingId === booking.id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                        )}
-                        <span>เช็คอิน</span>
-                      </button>
-                    )}
+                        <p className="text-xs sm:text-sm font-bold text-slate-600 truncate max-w-full">
+                          {booking.serviceName}
+                        </p>
 
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); setSelectedBooking(booking); }}
-                      className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all border border-slate-200/80 hover:border-slate-300"
-                      title="ดูรายละเอียดคิว"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  {/* Main Content: Date Badge & Customer Details */}
-                  <div className="flex items-start gap-3.5 pr-[130px] sm:pr-0">
-                    <div className="bg-slate-900 text-white px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl text-center flex-shrink-0 min-w-[85px] sm:min-w-[95px] shadow-xs">
-                      <span className="text-[11px] font-bold text-slate-300 block mb-0.5">{booking.bookingDate}</span>
-                      <span className="text-xs sm:text-sm font-black block text-emerald-400">{booking.startTime}</span>
-                      <span className="text-[10px] text-slate-400 font-medium">ถึง {booking.endTime}</span>
+                        <div className="text-[10px] sm:text-[12px] text-slate-500 font-medium flex items-center gap-1.5 sm:gap-2 flex-wrap mt-0.5">
+                          {activeTenant?.settings?.enableCourtSelection || activeTenant?.settings?.bookingFlowConfig?.steps?.requireResource ? (
+                            <span>{activeTenant?.settings?.resourceTerm || 'สนาม'}: <strong className="text-slate-800">{booking.courtName || booking.staffName || '-'}</strong></span>
+                          ) : (
+                            <span>ช่าง/พนักงาน: <strong className="text-slate-800">{booking.staffName || booking.courtName || '-'}</strong></span>
+                          )}
+                          <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                          <span className="text-slate-400">ช่องทาง: <strong className="text-slate-600">{booking.source === 'line_liff' ? 'LINE OA' : booking.source}</strong></span>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="space-y-1 min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-extrabold text-xs sm:text-sm text-slate-900 group-hover:text-emerald-600 transition-colors truncate">
-                          {booking.userName}
-                        </span>
-                        {booking.userPhone && (
-                          <span className="text-[10px] sm:text-[11px] font-mono text-slate-700 font-bold bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/80">
-                            {booking.userPhone}
-                          </span>
-                        )}
-                      </div>
+                    {/* Mobile-only Badge & Price (Top Right) */}
+                    <div className="flex flex-col items-end gap-1 shrink-0 sm:hidden">
+                      {getStatusBadge(booking.status)}
+                      <p className="text-sm font-black text-slate-900 mt-0.5">
+                        ฿{(booking?.finalPrice ?? booking?.price ?? 0).toLocaleString()}
+                      </p>
+                    </div>
 
-                      <p className="text-xs sm:text-sm font-bold text-slate-600 truncate">{booking.serviceName}</p>
+                  </div>
 
-                      <div className="text-[11px] sm:text-[12px] text-slate-500 font-medium flex items-center gap-2 flex-wrap">
-                        {activeTenant?.settings?.enableCourtSelection || activeTenant?.settings?.bookingFlowConfig?.steps?.requireResource ? (
-                          <span>{activeTenant?.settings?.resourceTerm || 'สนาม'}: <strong className="text-slate-800">{booking.courtName || booking.staffName || '-'}</strong></span>
-                        ) : (
-                          <span>ช่าง/พนักงาน: <strong className="text-slate-800">{booking.staffName || booking.courtName || '-'}</strong></span>
-                        )}
-                        <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                        <span className="text-slate-400">ช่องทาง: <strong className="text-slate-600">{booking.source === 'line_liff' ? 'LINE OA / LIFF' : booking.source}</strong></span>
-                      </div>
+                  {/* Bottom Section (Mobile) / Right Section (Desktop) */}
+                  <div className="flex items-center justify-end sm:flex-col sm:items-end gap-3 sm:gap-2.5 shrink-0 pt-2.5 border-t border-slate-50 sm:pt-0 sm:border-none sm:min-w-[140px]">
+                    
+                    {/* Desktop-only Badge & Price */}
+                    <div className="hidden sm:flex flex-col items-end gap-1 text-right">
+                      {getStatusBadge(booking.status)}
+                      <p className="text-base font-black text-slate-900 mt-0.5">
+                        ฿{(booking?.finalPrice ?? booking?.price ?? 0).toLocaleString()}
+                      </p>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      {booking.status === 'pending' && (
+                        <button
+                          type="button"
+                          disabled={updatingId === booking.id}
+                          onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'confirmed')}
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 disabled:opacity-50 shrink-0"
+                          title="กดยืนยันคิว"
+                        >
+                          {updatingId === booking.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Check className="w-3.5 h-3.5" />
+                          )}
+                          <span>ยืนยันคิว</span>
+                        </button>
+                      )}
+
+                      {booking.status === 'confirmed' && (
+                        <button
+                          type="button"
+                          disabled={updatingId === booking.id}
+                          onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'checked_in')}
+                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 disabled:opacity-50 shrink-0"
+                          title="เช็คอินหน้าร้าน"
+                        >
+                          {updatingId === booking.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          )}
+                          <span>เช็คอิน</span>
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setSelectedBooking(booking); }}
+                        className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all border border-slate-200/80 hover:border-slate-300 shrink-0"
+                        title="ดูรายละเอียดคิว"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 </div>

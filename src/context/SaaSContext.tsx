@@ -822,6 +822,42 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
 
       saveLocalStoredBooking(fallbackBooking);
+      
+      // Save directly into Supabase PostgreSQL bookings table
+      try {
+        await supabase.from('bookings').upsert({
+          id: fallbackBooking.id,
+          ref_no: fallbackBooking.refNo,
+          tenant_id: fallbackBooking.tenantId,
+          user_id: fallbackBooking.userId,
+          user_name: fallbackBooking.userName,
+          user_phone: fallbackBooking.userPhone,
+          service_id: fallbackBooking.serviceId,
+          service_name: fallbackBooking.serviceName,
+          service_duration: fallbackBooking.serviceDuration,
+          service_price: fallbackBooking.servicePrice,
+          staff_id: fallbackBooking.staffId || null,
+          staff_name: fallbackBooking.staffName || null,
+          court_id: fallbackBooking.courtId || null,
+          court_name: fallbackBooking.courtName || null,
+          booking_date: fallbackBooking.bookingDate,
+          start_time: fallbackBooking.startTime,
+          end_time: fallbackBooking.endTime,
+          status: fallbackBooking.status,
+          price: fallbackBooking.price,
+          discount_amount: fallbackBooking.discountAmount,
+          final_price: fallbackBooking.finalPrice,
+          deposit_amount: fallbackBooking.depositAmount,
+          payment_status: fallbackBooking.paymentStatus,
+          payment_method: fallbackBooking.paymentMethod,
+          source: fallbackBooking.source,
+          notes: fallbackBooking.notes,
+          created_at: fallbackBooking.createdAt,
+        });
+      } catch (dbErr) {
+        console.warn('Supabase fallback upsert warning:', dbErr);
+      }
+
       setBookings((prev) => [fallbackBooking, ...prev]);
       setError(null);
       return fallbackBooking;

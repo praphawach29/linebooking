@@ -85,15 +85,15 @@ export const generateBookingConfirmationFlexMessage = (booking: Booking, tenant:
                     flex: 0,
                     weight: 'bold'
                   },
-                  {
-                    type: 'text',
-                    text: booking.serviceName,
-                    size: 'sm',
-                    color: '#111111',
-                    align: 'end',
-                    weight: 'bold',
-                    wrap: true
-                  }
+                    {
+                      type: 'text',
+                      text: booking.courtName ? `${booking.serviceName}\n(สนาม: ${booking.courtName})` : booking.serviceName,
+                      size: 'sm',
+                      color: '#111111',
+                      align: 'end',
+                      weight: 'bold',
+                      wrap: true
+                    }
                 ]
               },
               {

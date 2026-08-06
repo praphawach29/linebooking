@@ -68,11 +68,12 @@ export const MerchantDashboard: React.FC = () => {
     .filter((b) => b.status !== 'cancelled')
     .reduce((sum, b) => sum + (b.finalPrice ?? b.price ?? 0), 0);
 
-  const handleQuickStatusUpdate = async (e: React.MouseEvent, bookingId: string, newStatus: Booking['status']) => {
+  const handleQuickStatusUpdate = async (e: React.MouseEvent, booking: Booking, newStatus: Booking['status']) => {
     e.stopPropagation();
-    setUpdatingId(bookingId);
+    setUpdatingId(booking.id);
     try {
-      await updateBookingStatus(bookingId, newStatus);
+      const paymentStatusUpdate = (newStatus === 'confirmed' && booking.paymentStatus !== 'paid') ? 'paid' : undefined;
+      await updateBookingStatus(booking.id, newStatus, paymentStatusUpdate);
     } catch (err) {
       console.error('Quick status update failed:', err);
     } finally {
@@ -375,9 +376,9 @@ export const MerchantDashboard: React.FC = () => {
                           <button
                             type="button"
                             disabled={updatingId === booking.id}
-                            onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'confirmed')}
+                            onClick={(e) => handleQuickStatusUpdate(e, booking, 'confirmed')}
                             className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 disabled:opacity-50 shrink-0"
-                            title="กดยืนยันคิว"
+                            title="ยืนยันการจอง"
                           >
                             {updatingId === booking.id ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -393,9 +394,9 @@ export const MerchantDashboard: React.FC = () => {
                           <button
                             type="button"
                             disabled={updatingId === booking.id}
-                            onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'checked_in')}
+                            onClick={(e) => handleQuickStatusUpdate(e, booking, 'checked_in')}
                             className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 disabled:opacity-50 shrink-0"
-                            title="เช็คอินหน้าร้าน"
+                            title="เช็คอินเข้าใช้บริการ"
                           >
                             {updatingId === booking.id ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -502,9 +503,9 @@ export const MerchantDashboard: React.FC = () => {
                                 <button
                                   type="button"
                                   disabled={updatingId === booking.id}
-                                  onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'confirmed')}
+                                  onClick={(e) => handleQuickStatusUpdate(e, booking, 'confirmed')}
                                   className="p-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg transition-all border border-emerald-200/50 hover:border-transparent shadow-sm active:scale-95 disabled:opacity-50"
-                                  title="กดยืนยันคิว"
+                                  title="ยืนยันการจอง"
                                 >
                                   {updatingId === booking.id ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />

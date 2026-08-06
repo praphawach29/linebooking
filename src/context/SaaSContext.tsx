@@ -879,8 +879,14 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return null;
     }
 
+    // Try to get line user id from stored profile
+    const lineProfileRaw = (() => {
+      try { return localStorage.getItem('line_liff_profile_v1'); } catch { return null; }
+    })();
+    const lineProfile = lineProfileRaw ? (() => { try { return JSON.parse(lineProfileRaw); } catch { return null; } })() : null;
+
     // Check booking limit if source is line_liff
-    if (data.source === 'line_liff' && lineProfile && activeTenant.settings.bookingLimit?.enabled) {
+    if (data.source === 'line_liff' && lineProfile?.userId && activeTenant.settings.bookingLimit?.enabled) {
       const limitConfig = activeTenant.settings.bookingLimit;
       const now = new Date();
       let periodStart: Date;
@@ -899,7 +905,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       const userBookingsInPeriod = bookings.filter(b => 
-        b.customerId === lineProfile.userId &&
+        b.userId === lineProfile.lineUserId &&
         b.tenantId === activeTenant.id &&
         b.status !== 'cancelled' &&
         new Date(b.createdAt) >= periodStart &&

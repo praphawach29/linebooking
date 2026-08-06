@@ -109,41 +109,43 @@ export const LiffServiceDetail: React.FC<LiffServiceDetailProps> = ({
       </div>
 
       {/* Available Staff Members */}
-      <div className="premium-card p-5 space-y-4">
-        <h3 className="text-[13px] font-black text-foreground flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-primary" />
-          {qualifiedStaffs.length > 0 ? `ผู้ให้บริการที่รองรับ (${qualifiedStaffs.length} คน)` : 'ยังไม่มีผู้ให้บริการ'}
-        </h3>
-        <div className="space-y-3">
-          {qualifiedStaffs.map((staff) => (
-            <div
-              key={staff.id}
-              className="flex items-center gap-3 p-3 bg-white hover:bg-slate-50 transition-colors rounded-2xl border border-slate-100 shadow-sm"
-            >
-              <img
-                src={staff.avatarUrl}
-                alt={staff.name}
-                className="w-12 h-12 rounded-full object-cover border-2 border-primary/10 shadow-sm"
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-0.5">
-                  <p className="text-[13px] font-extrabold text-foreground truncate">
-                    {staff.name}
-                  </p>
-                  <span className="text-[10px] font-black text-amber-700 flex items-center gap-1 bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-200">
-                    <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                    {staff.rating}
-                  </span>
+      {qualifiedStaffs.length > 0 && (
+        <div className="premium-card p-5 space-y-4">
+          <h3 className="text-[13px] font-black text-foreground flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-primary" />
+            ผู้ให้บริการ ({qualifiedStaffs.length} คน)
+          </h3>
+          <div className="space-y-3">
+            {qualifiedStaffs.map((staff) => (
+              <div
+                key={staff.id}
+                className="flex items-center gap-3 p-3 bg-white hover:bg-slate-50 transition-colors rounded-2xl border border-slate-100 shadow-sm"
+              >
+                <img
+                  src={staff.avatarUrl}
+                  alt={staff.name}
+                  className="w-12 h-12 rounded-full object-cover border-2 border-primary/10 shadow-sm"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <p className="text-[13px] font-extrabold text-foreground truncate">
+                      {staff.name}
+                    </p>
+                    <span className="text-[10px] font-black text-amber-700 flex items-center gap-1 bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-200">
+                      <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                      {staff.rating}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-medium line-clamp-1">{staff.bio}</p>
                 </div>
-                <p className="text-[11px] text-slate-500 font-medium line-clamp-1">{staff.bio}</p>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Sticky Bottom Action Bar */}
-      <div className="sticky bottom-[64px] left-0 right-0 bg-white/96 backdrop-blur-md rounded-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.10)] border border-slate-200 z-30 p-3.5 flex flex-col gap-2">
+      <div className="sticky bottom-0 left-0 right-0 bg-white/96 backdrop-blur-md rounded-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.10)] border border-slate-200 z-30 p-3.5 flex flex-col gap-2">
         <div className="flex items-center justify-between px-1">
           <div>
             <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">ราคาเริ่มต้น</p>
@@ -158,7 +160,7 @@ export const LiffServiceDetail: React.FC<LiffServiceDetailProps> = ({
           onClick={onStartBooking}
           className="w-full btn-primary py-3.5 px-6 text-[14px] shadow-premium flex items-center justify-between group rounded-2xl"
         >
-          <span>ถัดไป: เลือกช่างและเวลา</span>
+          <span>ถัดไป: ดำเนินการจอง</span>
           <div className="w-7 h-7 bg-white/20 rounded-full flex items-center justify-center group-hover:translate-x-1 transition-transform">
               <ChevronRight className="w-4 h-4 text-white" />
           </div>

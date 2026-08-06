@@ -13,9 +13,11 @@ import {
   Search,
   Check,
   Loader2,
+  BarChart2,
+  LayoutList,
 } from 'lucide-react';
 import { MerchantBookingDetailModal } from './MerchantBookingDetailModal';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+
 
 export const MerchantDashboard: React.FC = () => {
   const { activeTenant, bookings, services, setMerchantTab, updateBookingStatus } = useSaaS();
@@ -418,19 +420,19 @@ export const MerchantDashboard: React.FC = () => {
                   <table className="w-full text-left border-collapse min-w-[800px]">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                        <th className="px-5 py-4 w-40">วันเวลา</th>
-                        <th className="px-5 py-4">ลูกค้า</th>
-                        <th className="px-5 py-4">บริการ</th>
-                        <th className="px-5 py-4 text-center w-32">ยอดชำระ</th>
-                        <th className="px-5 py-4 text-center w-36">สถานะ</th>
-                        <th className="px-5 py-4 text-right w-32">จัดการ</th>
+                        <th className="px-5 py-4 w-40 whitespace-nowrap">วันเวลา</th>
+                        <th className="px-5 py-4 min-w-[150px]">ลูกค้า</th>
+                        <th className="px-5 py-4 min-w-[150px]">บริการ</th>
+                        <th className="px-5 py-4 text-center w-32 whitespace-nowrap">ยอดชำระ</th>
+                        <th className="px-5 py-4 text-center w-36 whitespace-nowrap">สถานะ</th>
+                        <th className="px-5 py-4 text-right w-32 whitespace-nowrap">จัดการ</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {displayedBookings.map((booking) => (
                         <tr key={booking.id} className="hover:bg-slate-50/80 transition-colors cursor-pointer group" onClick={() => setSelectedBooking(booking)}>
                           {/* 1. Date & Time */}
-                          <td className="px-5 py-4 align-top">
+                          <td className="px-5 py-4 align-top whitespace-nowrap">
                             <div className="flex flex-col">
                               <span className="text-[11px] font-bold text-slate-500 mb-1 flex items-center gap-1.5">
                                 <Calendar className="w-3.5 h-3.5" /> 
@@ -545,37 +547,52 @@ export const MerchantDashboard: React.FC = () => {
         {/* Top Services Chart (1 col) */}
         <div className="premium-card p-6 flex flex-col justify-between">
           <div>
-            <h3 className="text-lg font-extrabold text-foreground mb-1">
-              บริการยอดนิยม
-            </h3>
-            <p className="text-xs text-slate-500 mb-6 font-medium">
-              สถิติการถูกจองแยกตามหมวดหมู่บริการ
+            <div className="flex items-center gap-3 mb-1">
+              <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl shadow-inner shrink-0">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <h3 className="text-lg font-extrabold text-foreground">
+                บริการยอดนิยม
+              </h3>
+            </div>
+            <p className="text-xs text-slate-500 mb-6 font-medium mt-1">
+              บริการที่ถูกจองเยอะที่สุดในระบบ
             </p>
 
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={serviceStats} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
-                  <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 'bold', fill: '#64748B' }} interval={0} axisLine={false} tickLine={false} dy={8} />
-                  <YAxis tick={{ fontSize: 11, fontWeight: 'bold', fill: '#64748B' }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{ borderRadius: '16px', fontSize: '12px', fontWeight: 'bold', border: 'none', boxShadow: '0 10px 30px -5px rgba(0,0,0,0.1)' }}
-                    formatter={(val: any) => [`${val} คิว`, 'จำนวนจอง']}
-                    cursor={{fill: '#F1F5F9'}}
-                  />
-                  <Bar dataKey="count" radius={[6, 6, 6, 6]} barSize={32}>
-                    {serviceStats.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="space-y-4">
+              {serviceStats.length > 0 ? (
+                serviceStats.sort((a, b) => b.count - a.count).slice(0, 5).map((stat, idx) => {
+                  const maxCount = Math.max(...serviceStats.map(s => s.count));
+                  const percentage = maxCount > 0 ? (stat.count / maxCount) * 100 : 0;
+                  
+                  return (
+                    <div key={idx} className="flex flex-col gap-1.5 group">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-bold text-slate-700 truncate pr-2 group-hover:text-indigo-600 transition-colors">{stat.name}</span>
+                        <span className="font-extrabold text-slate-900">{stat.count} <span className="text-[10px] text-slate-400 font-medium">คิว</span></span>
+                      </div>
+                      <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                        <div 
+                          className="h-full rounded-full transition-all duration-1000 ease-out" 
+                          style={{ width: `${percentage}%`, backgroundColor: stat.color || '#4f46e5' }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+                  <BarChart2 className="w-8 h-8 mb-2 opacity-20" />
+                  <p className="text-xs font-medium">ยังไม่มีข้อมูลสถิติ</p>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="pt-4 border-t border-border text-sm text-slate-500 space-y-1 mt-4">
-            <div className="flex justify-between font-bold text-slate-700 bg-slate-50 p-3 rounded-xl">
-              <span>บริการในระบบทั้งหมด</span>
-              <span className="text-primary">{services.length} บริการ</span>
+          <div className="pt-4 border-t border-border text-sm text-slate-500 space-y-1 mt-6">
+            <div className="flex justify-between items-center font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer p-3.5 rounded-xl border border-slate-100 shadow-sm">
+              <span className="flex items-center gap-2 text-[13px]"><LayoutList className="w-4 h-4 text-slate-400"/> บริการทั้งหมดที่มี</span>
+              <span className="bg-white px-2 py-1 rounded-md shadow-sm text-primary border border-slate-100 text-xs">{services.length} บริการ</span>
             </div>
           </div>
         </div>

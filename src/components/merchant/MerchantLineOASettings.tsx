@@ -22,6 +22,7 @@ export const MerchantLineOASettings: React.FC = () => {
 
   const [channelId, setChannelId] = useState(activeTenant.lineChannelId || '');
   const [channelSecret, setChannelSecret] = useState(activeTenant.lineChannelSecret || '');
+  const [channelAccessToken, setChannelAccessToken] = useState(activeTenant.lineChannelAccessToken || '');
   const [liffId, setLiffId] = useState(activeTenant.liffId || '');
 
   // Reminder Notification Settings
@@ -83,6 +84,7 @@ export const MerchantLineOASettings: React.FC = () => {
       {
         lineChannelId: channelId,
         lineChannelSecret: channelSecret,
+        lineChannelAccessToken: channelAccessToken,
         liffId,
       }
     );
@@ -101,7 +103,7 @@ export const MerchantLineOASettings: React.FC = () => {
           </div>
           <div>
             <p className="font-extrabold text-sm">บันทึกการตั้งค่าเรียบร้อยแล้ว!</p>
-            <p className="text-[11px] text-emerald-100 font-medium">ข้อมูล LINE Channel ID, Secret และ LIFF App ID ถูกบันทึกแล้ว</p>
+            <p className="text-[11px] text-emerald-100 font-medium">ข้อมูล LINE Channel ID, Secret, Access Token และ LIFF App ID ถูกบันทึกแล้ว</p>
           </div>
         </div>
       )}
@@ -599,6 +601,18 @@ export const MerchantLineOASettings: React.FC = () => {
               value={channelSecret}
               onChange={(e) => setChannelSecret(e.target.value)}
               className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
+            />
+          </div>
+
+          <div>
+            <label className="block font-bold text-slate-700 mb-1">LINE Channel Access Token (Long-lived) *</label>
+            <textarea
+              required
+              rows={3}
+              value={channelAccessToken}
+              onChange={(e) => setChannelAccessToken(e.target.value)}
+              placeholder="eyJhbGciOiJIUzI1NiJ9..."
+              className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono text-xs"
             />
           </div>
 

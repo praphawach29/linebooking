@@ -14,8 +14,8 @@ export const sendLineBookingConfirmation = async (
   // Assuming the user logged in via LIFF has their LINE user ID saved in booking.userId
   const to = lineUserId || booking.userId;
   
-  if (!to || to === 'guest' || to.startsWith('usr-')) {
-    console.warn('Cannot send LINE confirmation: missing valid LINE user ID');
+  if (!to || !to.startsWith('U') || to.length !== 33) {
+    console.warn('Cannot send LINE confirmation: missing valid LINE user ID', { to });
     return { success: false, message: 'Missing valid LINE user ID' };
   }
 

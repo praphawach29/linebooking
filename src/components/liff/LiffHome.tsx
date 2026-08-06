@@ -324,8 +324,19 @@ export const LiffHome: React.FC<LiffHomeProps> = ({ onSelectService, liffProfile
 
                     {/* Pricing Badge Top Right */}
                     <div className="absolute top-3 right-3 bg-emerald-500 text-white text-[12px] font-black px-3 py-1 rounded-xl shadow-lg flex items-center gap-1">
-                      <span>฿{(service.price ?? 1200).toLocaleString()}</span>
-                      <span className="text-[10px] font-medium opacity-90">/รอบ</span>
+                      {(() => {
+                        const serviceCourts = courts?.filter((c) => c.serviceId === service.id && c.isActive);
+                        const minPrice = serviceCourts && serviceCourts.length > 0 
+                          ? Math.min(...serviceCourts.map(c => Math.max(0, service.price + (c.extraPricePerHour || 0)))) 
+                          : service.price;
+                        return (
+                          <>
+                            <span className="text-[10px] font-medium opacity-90 mr-0.5">เริ่มต้น</span>
+                            <span>฿{(minPrice ?? 1200).toLocaleString()}</span>
+                            <span className="text-[10px] font-medium opacity-90">/ชม.</span>
+                          </>
+                        );
+                      })()}
                     </div>
 
                     {/* Service Name Title */}

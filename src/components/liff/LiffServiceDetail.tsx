@@ -12,11 +12,17 @@ export const LiffServiceDetail: React.FC<LiffServiceDetailProps> = ({
   service,
   onStartBooking,
 }) => {
-  const { activeTenant, staffs } = useSaaS();
+  const { activeTenant, staffs, courts } = useSaaS();
+
+  // Calculate minimum price among active courts for this service
+  const serviceCourts = courts.filter((c) => c.serviceId === service.id && c.isActive);
+  const minPrice = serviceCourts.length > 0 
+    ? Math.min(...serviceCourts.map(c => Math.max(0, service.price + (c.extraPricePerHour || 0)))) 
+    : service.price;
 
   const qualifiedStaffs = staffs.filter((s) => s.serviceIds.includes(service.id));
-  const depositPct = activeTenant.settings.depositPercentage ?? 50;
-  const depositAmount = (service.price * depositPct) / 100;
+  const depositPct = activeTenant?.settings?.depositPercentage ?? 50;
+  const depositAmount = (minPrice * depositPct) / 100;
 
   return (
     <div className="p-4 space-y-4 pb-28">
@@ -61,11 +67,11 @@ export const LiffServiceDetail: React.FC<LiffServiceDetailProps> = ({
 
         <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
           <div>
-            <span className="text-[11px] text-slate-400 font-bold">ราคาค่าบริการ</span>
-            <p className="text-2xl font-black text-primary drop-shadow-sm">
-              <span className="text-sm text-primary/70 mr-1">฿</span>
-              {(service.price ?? 0).toLocaleString()}
-            </p>
+              <span className="text-[11px] text-slate-400 font-bold">ราคาเริ่มต้น</span>
+              <p className="text-2xl font-black text-primary drop-shadow-sm">
+                <span className="text-sm text-primary/70 mr-1">฿</span>
+                {minPrice.toLocaleString()}
+              </p>
           </div>
           {depositPct > 0 && (
             <div className="text-right bg-warning/10 border border-warning/20 px-3 py-2 rounded-2xl shadow-inner">
@@ -140,8 +146,8 @@ export const LiffServiceDetail: React.FC<LiffServiceDetailProps> = ({
       <div className="sticky bottom-[64px] left-0 right-0 bg-white/96 backdrop-blur-md rounded-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.10)] border border-slate-200 z-30 p-3.5 flex flex-col gap-2">
         <div className="flex items-center justify-between px-1">
           <div>
-            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">ราคาค่าบริการ</p>
-            <p className="text-[13px] font-black text-slate-900">เริ่มต้น ฿{service.price.toLocaleString()}</p>
+            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">ราคาเริ่มต้น</p>
+            <p className="text-[13px] font-black text-slate-900">฿{minPrice.toLocaleString()}</p>
           </div>
           <div className="text-right">
             <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">มัดจำออนไลน์ ({depositPct}%)</p>

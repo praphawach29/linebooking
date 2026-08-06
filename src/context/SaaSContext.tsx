@@ -784,11 +784,22 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const startTime = `${hourStr}:00`;
       const endTime = `${endHourStr}:00`;
 
-      // Check if this time slot is already booked (for this court if specified, else any)
-      const isBooked = activeDateBookings.some((b) =>
-        b.startTime === startTime &&
-        (courtId ? b.courtId === courtId : true)
-      );
+        const isBooked = activeDateBookings.some((b) => {
+          if (courtId && b.courtId !== courtId) return false;
+          
+          const parseTime = (t: string) => {
+            const parts = t.split(':');
+            return parseInt(parts[0], 10) + parseInt(parts[1] || '0', 10) / 60;
+          };
+          
+          const slotStart = parseTime(startTime);
+          const slotEnd = parseTime(endTime);
+          
+          const bStart = parseTime(b.startTime);
+          const bEnd = b.endTime ? parseTime(b.endTime) : (bStart + (b.bookingHours || 1));
+          
+          return slotStart < bEnd && bStart < slotEnd;
+        });
 
       const isAdvanceValid = isSlotAvailable(dateStr, startTime);
       const isAvailable = !isBooked && isAdvanceValid;

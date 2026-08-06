@@ -72,12 +72,17 @@ export interface Tenant {
     depositPercentage?: number;
     autoConfirm?: boolean;
     bufferMinutesDefault?: number;
-    maxAdvanceBookingDays?: number;
-    minLeadTimeHours?: number;
+    maxAdvanceBookingDays?: number; // legacy, but we'll use it as the value
+    maxAdvanceBookingUnit?: 'hours' | 'days'; // new field
     currency?: string;
     lineReminderEnabled?: boolean;
     lineReminderHoursBefore?: number;
     lineBookingConfirmationEnabled?: boolean;
+    bookingLimit?: {
+      enabled: boolean;
+      amount: number;
+      period: 'day' | 'week' | 'month';
+    };
     bookingFlowMode?: BookingFlowMode;
     enableStaffSelection?: boolean;
     enableCourtSelection?: boolean;

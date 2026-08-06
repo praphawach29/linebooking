@@ -717,6 +717,32 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const startHour = parseHour(schedule.startTime);
     const endHour = parseHour(schedule.endTime);
 
+    // Enforce advance booking limit and block past times
+    const maxAdvanceBooking = activeTenant.settings.maxAdvanceBookingDays ?? 60;
+    const maxAdvanceUnit = activeTenant.settings.maxAdvanceBookingUnit ?? 'days';
+    const now = new Date();
+    
+    const isSlotAvailable = (slotDateStr: string, timeStr: string) => {
+      const slotTime = new Date(`${slotDateStr}T${timeStr}:00`);
+      
+      // 1. Block past times
+      if (slotTime < now) return false;
+
+      // 2. Enforce max advance booking
+      if (maxAdvanceBooking > 0) {
+        if (maxAdvanceUnit === 'hours') {
+          const maxAllowedTime = new Date(now.getTime() + maxAdvanceBooking * 60 * 60 * 1000);
+          if (slotTime > maxAllowedTime) return false;
+        } else {
+          // days
+          const diffTime = slotTime.getTime() - now.getTime();
+          const diffDays = diffTime / (1000 * 60 * 60 * 24);
+          if (diffDays > maxAdvanceBooking) return false;
+        }
+      }
+      return true;
+    };
+
     try {
       const response = await getAvailableSlotsFromApi(
         activeTenant.id,
@@ -728,13 +754,17 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const h = parseHour(slot.startTime);
             return h >= startHour && h < endHour;
           })
-          .map((slot) => ({
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-            isAvailable: slot.available,
-            reason: slot.available ? undefined : 'BOOKED',
-            price: service?.price ?? 1200,
-          }));
+          .map((slot) => {
+            const isAdvanceValid = isSlotAvailable(dateStr, slot.startTime);
+            const isAvailable = slot.available && isAdvanceValid;
+            return {
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              isAvailable,
+              reason: !slot.available ? 'BOOKED' : !isAdvanceValid ? 'LEAD_TIME' : undefined,
+              price: service?.price ?? 1200,
+            };
+          });
       }
     } catch (e) {
       // Ignore API errors and generate dynamic slots locally
@@ -760,11 +790,14 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         (courtId ? b.courtId === courtId : true)
       );
 
+      const isAdvanceValid = isSlotAvailable(dateStr, startTime);
+      const isAvailable = !isBooked && isAdvanceValid;
+
       generatedSlots.push({
         startTime,
         endTime,
-        isAvailable: !isBooked,
-        reason: isBooked ? 'BOOKED' : undefined,
+        isAvailable,
+        reason: isBooked ? 'BOOKED' : !isAdvanceValid ? 'LEAD_TIME' : undefined,
         price: service?.price ?? 1200,
       });
     }
@@ -796,6 +829,40 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!service) {
       setError('Selected service does not belong to the current shop. Please choose a service again.');
       return null;
+    }
+
+    // Check booking limit if source is line_liff
+    if (data.source === 'line_liff' && lineProfile && activeTenant.settings.bookingLimit?.enabled) {
+      const limitConfig = activeTenant.settings.bookingLimit;
+      const now = new Date();
+      let periodStart: Date;
+      let periodEnd: Date;
+
+      if (limitConfig.period === 'day') {
+        periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        periodEnd = new Date(periodStart.getTime() + 24 * 60 * 60 * 1000);
+      } else if (limitConfig.period === 'week') {
+        const day = now.getDay() || 7; // 1-7 (Monday-Sunday)
+        periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1);
+        periodEnd = new Date(periodStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+      } else {
+        periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      }
+
+      const userBookingsInPeriod = bookings.filter(b => 
+        b.customerId === lineProfile.userId &&
+        b.tenantId === activeTenant.id &&
+        b.status !== 'cancelled' &&
+        new Date(b.createdAt) >= periodStart &&
+        new Date(b.createdAt) < periodEnd
+      );
+
+      if (userBookingsInPeriod.length >= limitConfig.amount) {
+        let periodText = limitConfig.period === 'day' ? 'วัน' : limitConfig.period === 'week' ? 'สัปดาห์' : 'เดือน';
+        setError(`คุณใช้งานสิทธิ์การจองครบกำหนดแล้ว (${limitConfig.amount} ครั้งต่อ${periodText})`);
+        return null;
+      }
     }
 
     const cleanStartTime = data.startTime.includes(' - ')

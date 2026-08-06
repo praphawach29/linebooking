@@ -105,17 +105,22 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
   const totalPrice = (selectedHours > 0 ? totalServicePrice : pricePerHour) + addonsTotal;
   const totalDurationMinutes = (service.durationMinutes * (selectedHours || 1)) + addonsExtraDuration;
 
-  // Generate 14-day date strip
-  const dateStrip = Array.from({ length: 14 }).map((_, i) => {
+  const maxAdvanceBookingDays = activeTenant.settings.maxAdvanceBookingDays ?? 60;
+  const stripLength = Math.max(14, maxAdvanceBookingDays + 1);
+
+  // Generate date strip
+  const dateStrip = Array.from({ length: stripLength }).map((_, i) => {
     const d = new Date();
     d.setDate(d.getDate() + i);
     const dateStr = d.toISOString().split('T')[0];
+    const isTooFar = i > maxAdvanceBookingDays;
     return {
       dateStr,
       dayName: dayNamesThai[d.getDay()],
       dayNumber: d.getDate(),
       monthName: shortMonthNamesThai[d.getMonth()],
       fullThai: `${d.getDate()} ${monthNamesThai[d.getMonth()]} ${d.getFullYear() + 543}`,
+      isTooFar
     };
   });
 
@@ -246,7 +251,7 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
     return `(${firstStart} - ${lastEnd} น.)`;
   };
 
-  const renderSlotButton = (slot: { startTime: string; isAvailable: boolean }) => {
+  const renderSlotButton = (slot: { startTime: string; isAvailable: boolean; reason?: string }) => {
     const hour = toHour(slot.startTime);
     const state = getSlotState(hour, slot.isAvailable);
     const isInRange = state === 'solo' || state === 'range-start' || state === 'range-mid' || state === 'range-end';
@@ -286,7 +291,7 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
           isInRange ? 'text-white/90' :
           wouldExtend ? 'text-emerald-600' : 'text-emerald-600'
         }`}>
-          {state === 'unavailable' ? 'เต็ม' : isInRange ? '✓' : 'ว่าง'}
+          {state === 'unavailable' ? (slot.reason === 'LEAD_TIME' ? 'ปิดรับจอง' : 'เต็ม') : isInRange ? '✓' : 'ว่าง'}
         </span>
       </button>
     );
@@ -396,16 +401,18 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
               return (
                 <button
                   key={item.dateStr}
+                  disabled={item.isTooFar}
                   onClick={() => { setActiveDate(item.dateStr); handleClearSelection(); }}
                   className={`flex-shrink-0 flex flex-col items-center justify-center w-16 py-3 rounded-2xl border transition-all duration-300 snap-start ${
+                    item.isTooFar ? 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed opacity-60' :
                     isSelected
                       ? 'bg-primary text-white border-primary shadow-[0_4px_12px_rgba(79,70,229,0.3)] ring-2 ring-primary/20 scale-[1.05]'
                       : 'bg-white text-slate-700 border-border hover:border-primary/30 shadow-sm'
                   }`}
                 >
-                  <span className={`text-[11px] font-black ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>{item.dayName}</span>
-                  <span className="text-xl font-black my-0.5">{item.dayNumber}</span>
-                  <span className={`text-[10px] font-bold ${isSelected ? 'text-white' : 'text-slate-500'}`}>{item.monthName}</span>
+                  <span className={`text-[11px] font-black ${item.isTooFar ? 'text-slate-300' : isSelected ? 'text-white/80' : 'text-slate-400'}`}>{item.dayName}</span>
+                  <span className={`text-xl font-black my-0.5 ${item.isTooFar ? 'text-slate-300' : ''}`}>{item.dayNumber}</span>
+                  <span className={`text-[10px] font-bold ${item.isTooFar ? 'text-slate-300' : isSelected ? 'text-white' : 'text-slate-500'}`}>{item.monthName}</span>
                 </button>
               );
             })}
@@ -440,14 +447,23 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
               const isSelected = activeDate === dateKey;
               const isToday = today.getFullYear() === calendarYear && today.getMonth() === calendarMonth && today.getDate() === dayNum;
               const cellDate = new Date(calendarYear, calendarMonth, dayNum);
-              const isPast = cellDate < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+              const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+              const isPast = cellDate < todayDateOnly;
+              
+              // Check maxAdvanceBookingDays
+              const diffTime = cellDate.getTime() - todayDateOnly.getTime();
+              const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+              const isTooFar = diffDays > maxAdvanceBookingDays;
+              
+              const isDisabled = isPast || isTooFar;
+              
               return (
                 <button
                   key={dateKey}
-                  disabled={isPast}
+                  disabled={isDisabled}
                   onClick={() => { setActiveDate(dateKey); handleClearSelection(); }}
                   className={`h-10 w-full rounded-xl flex flex-col items-center justify-center font-bold text-[13px] transition-all duration-300 ${
-                    isPast ? 'text-slate-300 cursor-not-allowed bg-slate-50/50'
+                    isDisabled ? 'text-slate-300 cursor-not-allowed bg-slate-50/50'
                     : isSelected ? 'bg-primary text-white font-black shadow-md shadow-primary/30 ring-2 ring-primary/20 scale-110'
                     : isToday ? 'bg-primary/10 text-primary border border-primary/20'
                     : 'hover:bg-slate-100 text-slate-700 hover:scale-105'

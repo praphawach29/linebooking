@@ -3,7 +3,6 @@ import { Booking } from '../../types';
 import { useSaaS } from '../../context/SaaSContext';
 import { LiffDateTimePicker } from './LiffDateTimePicker';
 import { X, Calendar as CalendarIcon, Clock } from 'lucide-react';
-import { formatDateThai } from '../../utils/dateFormatter';
 
 interface LiffRescheduleModalProps {
   booking: Booking;
@@ -17,6 +16,15 @@ export const LiffRescheduleModal: React.FC<LiffRescheduleModalProps> = ({ bookin
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const formatDateThai = (dStr: string) => {
+    const d = new Date(dStr);
+    const months = [
+      'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+      'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+    ];
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
+  };
 
   const service = services.find(s => s.id === booking.serviceId);
   const staff = staffs.find(s => s.id === booking.staffId) || null;

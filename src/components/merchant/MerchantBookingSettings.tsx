@@ -161,6 +161,55 @@ export const MerchantBookingSettings: React.FC = () => {
                 />
               </div>
             </div>
+
+            {/* Booking Limit Section */}
+            <div className="pt-6 border-t border-slate-100 space-y-4 mt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-slate-800 font-bold">
+                  <CalendarDays className="w-5 h-5 text-indigo-500" />
+                  จำกัดจำนวนการจองต่อลูกค้า
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={bookingLimitEnabled}
+                    onChange={(e) => setBookingLimitEnabled(e.target.checked)}
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+              
+              {bookingLimitEnabled && (
+                <div className="flex gap-4 items-end bg-slate-50 p-4 rounded-xl">
+                  <div className="flex-1">
+                    <label className="block text-sm font-bold text-slate-700 mb-1">
+                      จองได้สูงสุด (ครั้ง)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                      value={bookingLimitAmount}
+                      onChange={(e) => setBookingLimitAmount(Number(e.target.value))}
+                    />
+                  </div>
+                  <div className="w-1/3">
+                    <label className="block text-sm font-bold text-slate-700 mb-1">ต่อ</label>
+                    <select
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                      value={bookingLimitPeriod}
+                      onChange={(e) => setBookingLimitPeriod(e.target.value as 'day' | 'week' | 'month' | 'year')}
+                    >
+                      <option value="day">วัน</option>
+                      <option value="week">สัปดาห์</option>
+                      <option value="month">เดือน</option>
+                      <option value="year">ปี</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

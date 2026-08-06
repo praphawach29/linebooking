@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
 import { PaymentMethod } from '../../types';
-import { PlusCircle, User, Phone, Calendar, Clock, CheckCircle2 } from 'lucide-react';
+import { PlusCircle, User, Phone, Calendar, Clock, CheckCircle2, ShieldAlert, Loader2 } from 'lucide-react';
 import { ThaiDatePicker } from '../common/ThaiDatePicker';
 
 export const MerchantWalkinBookingModal: React.FC = () => {
@@ -13,6 +13,7 @@ export const MerchantWalkinBookingModal: React.FC = () => {
     memberships,
     createBooking,
     setMerchantTab,
+    getAvailableSlots,
   } = useSaaS();
 
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
@@ -23,12 +24,41 @@ export const MerchantWalkinBookingModal: React.FC = () => {
   const [bookingDate, setBookingDate] = useState(
     new Date().toISOString().split('T')[0]
   );
-  const [startTime, setStartTime] = useState('11:00');
+  const [startTime, setStartTime] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [notes, setNotes] = useState('');
   const [successMsg, setSuccessMsg] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [isBlockMode, setIsBlockMode] = useState(false);
+  const [slots, setSlots] = useState<Awaited<ReturnType<typeof getAvailableSlots>>>([]);
+  const [isSlotsLoading, setIsSlotsLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!selectedServiceId || !bookingDate) {
+      setSlots([]);
+      return;
+    }
+    
+    setIsSlotsLoading(true);
+    setStartTime(''); // reset selected time when date/service changes
+    
+    getAvailableSlots(bookingDate, selectedServiceId, selectedStaffId || undefined)
+      .then((res) => {
+        if (!cancelled) setSlots(res);
+      })
+      .catch((err) => {
+        console.error('Failed to load slots', err);
+        if (!cancelled) setSlots([]);
+      })
+      .finally(() => {
+        if (!cancelled) setIsSlotsLoading(false);
+      });
+      
+    return () => { cancelled = true; };
+  }, [bookingDate, selectedServiceId, selectedStaffId]);
 
   const customerOptions = memberships
     .filter((membership) => membership.tenantId === activeTenant?.id)
@@ -49,21 +79,23 @@ export const MerchantWalkinBookingModal: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCustomerId || !customerName || !selectedServiceId) return;
+    if (!selectedServiceId || !startTime) return;
+    if (!isBlockMode && (!selectedCustomerId || !customerName)) return;
 
     setSubmitError(null);
     setIsSubmitting(true);
+    
     const created = await createBooking({
-        customerId: selectedCustomerId,
+        customerId: isBlockMode ? 'BLOCK' : selectedCustomerId,
         serviceId: selectedServiceId,
         staffId: selectedStaffId || undefined,
         bookingDate,
         startTime,
-        notes,
-        paymentMethod,
-        source: 'walk_in',
-        customerName,
-        customerPhone: customerPhone || undefined,
+        notes: isBlockMode ? notes : notes,
+        paymentMethod: isBlockMode ? 'cash' : paymentMethod, // doesn't matter for block
+        source: isBlockMode ? 'merchant_block' : 'walk_in',
+        customerName: isBlockMode ? 'งดรับจอง (Blocked)' : customerName,
+        customerPhone: isBlockMode ? undefined : (customerPhone || undefined),
       });
     setIsSubmitting(false);
 
@@ -95,13 +127,38 @@ export const MerchantWalkinBookingModal: React.FC = () => {
       {successMsg ? (
         <div className="bg-emerald-50 border border-emerald-200 p-8 rounded-2xl text-center space-y-2 my-8">
           <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
-          <h3 className="text-sm font-bold text-slate-900">บันทึกการจอง Walk-in สำเร็จ!</h3>
+          <h3 className="text-sm font-bold text-slate-900">บันทึก{isBlockMode ? 'การบล็อกเวลา' : 'การจอง Walk-in'}สำเร็จ!</h3>
           <p className="text-xs text-slate-500">กำลังนำคุณไปยังตารางคิวจอง...</p>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="space-y-6 text-xs">
+
+          {/* Mode Toggle */}
+          <div className="flex bg-slate-100 p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setIsBlockMode(false)}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-bold transition-all ${
+                !isBlockMode ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <User className="w-4 h-4" />
+              ลูกค้า Walk-in / โทรจอง
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsBlockMode(true)}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-bold transition-all ${
+                isBlockMode ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <ShieldAlert className="w-4 h-4" />
+              บล็อกเวลา / งดรับจอง
+            </button>
+          </div>
           
           {/* Customer Details */}
+          {!isBlockMode && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
             <div className="sm:col-span-2">
               <label className="block font-bold text-slate-700 mb-1">
@@ -162,6 +219,7 @@ export const MerchantWalkinBookingModal: React.FC = () => {
               />
             </div>
           </div>
+          )}
 
           {/* Service & Staff Select */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -211,21 +269,51 @@ export const MerchantWalkinBookingModal: React.FC = () => {
               />
             </div>
 
-            <div>
-              <label className="block font-bold text-slate-700 mb-1 flex items-center gap-1">
+            <div className="sm:col-span-2">
+              <label className="block font-bold text-slate-700 mb-2 flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5 text-slate-400" />
-                เวลารอบ *
+                เลือกรอบเวลา *
               </label>
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="w-full p-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
-              />
+              
+              {isSlotsLoading ? (
+                <div className="flex items-center justify-center p-8 bg-slate-50 rounded-xl border border-slate-100">
+                  <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
+                </div>
+              ) : slots.length === 0 ? (
+                <div className="text-center p-8 bg-slate-50 rounded-xl border border-slate-100">
+                  <p className="text-slate-500 font-medium">ไม่มีรอบเวลาว่างในวันที่เลือก</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+                  {slots.map((slot) => {
+                    const isSelected = startTime === slot.startTime;
+                    return (
+                      <button
+                        key={slot.startTime}
+                        type="button"
+                        disabled={!slot.isAvailable}
+                        onClick={() => setStartTime(slot.startTime)}
+                        className={`py-2 px-1 rounded-lg text-center font-mono font-medium transition-all ${
+                          !slot.isAvailable 
+                            ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed opacity-60'
+                            : isSelected
+                            ? isBlockMode 
+                                ? 'bg-rose-100 text-rose-700 border-rose-300 ring-1 ring-rose-500'
+                                : 'bg-emerald-100 text-emerald-800 border-emerald-300 ring-1 ring-emerald-500'
+                            : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:text-emerald-600'
+                        } border`}
+                      >
+                        {slot.startTime}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
           {/* Payment Method */}
+          {!isBlockMode && (
           <div>
             <label className="block font-bold text-slate-700 mb-1">วิธีการชำระเงิน</label>
             <div className="flex gap-3">
@@ -250,6 +338,7 @@ export const MerchantWalkinBookingModal: React.FC = () => {
               </label>
             </div>
           </div>
+          )}
 
           <div>
             <label className="block font-bold text-slate-700 mb-1">บันทึกเพิ่มเติม (Optional)</label>
@@ -270,10 +359,19 @@ export const MerchantWalkinBookingModal: React.FC = () => {
             )}
             <button
               type="submit"
-              disabled={isSubmitting || customerOptions.length === 0}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-2xl shadow-md transition-colors text-xs"
+              disabled={isSubmitting || (!isBlockMode && customerOptions.length === 0) || !startTime}
+              className={`w-full text-white font-bold py-3 px-4 rounded-2xl shadow-md transition-colors text-xs ${
+                isBlockMode 
+                  ? 'bg-rose-600 hover:bg-rose-700' 
+                  : 'bg-emerald-600 hover:bg-emerald-700'
+              }`}
             >
-              {isSubmitting ? 'กำลังบันทึก...' : 'บันทึกรายการจอง Walk-in'}
+              {isSubmitting 
+                ? 'กำลังบันทึก...' 
+                : isBlockMode 
+                  ? 'ยืนยันงดรับจอง (Block Slot)' 
+                  : 'บันทึกรายการจอง Walk-in'
+              }
             </button>
           </div>
 

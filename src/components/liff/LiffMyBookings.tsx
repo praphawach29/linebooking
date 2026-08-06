@@ -21,6 +21,7 @@ import {
   Star,
 } from 'lucide-react';
 import { SkeletonCard } from '../common/SkeletonCard';
+import { LiffRescheduleModal } from './LiffRescheduleModal';
 
 interface LiffMyBookingsProps {
   onNewBooking: () => void;
@@ -41,6 +42,7 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking, li
 
   const [myBookings, setMyBookings] = useState<Booking[]>([]);
   const [isLoadingMine, setIsLoadingMine] = useState(true);
+  const [selectedBookingForReschedule, setSelectedBookingForReschedule] = useState<Booking | null>(null);
 
   // ตาราง bookings อ่านสาธารณะไม่ได้แล้ว (RLS) — ต้องดึงคิวของตัวเองผ่าน RPC
   useEffect(() => {
@@ -373,7 +375,7 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking, li
 
                     <button
                       type="button"
-                      onClick={onNewBooking}
+                      onClick={() => setSelectedBookingForReschedule(b)}
                       className="text-primary-dark bg-primary/5 hover:bg-primary/10 px-3 py-2 rounded-xl text-[11px] font-black transition-colors flex items-center justify-center gap-1 border border-primary/20 flex-1"
                     >
                       <RefreshCw className="w-4 h-4" />
@@ -560,7 +562,17 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking, li
             </div>
           </div>
         )}
+
+      {selectedBookingForReschedule && (
+        <LiffRescheduleModal
+          booking={selectedBookingForReschedule}
+          onClose={() => setSelectedBookingForReschedule(null)}
+          onSuccess={() => {
+            setSelectedBookingForReschedule(null);
+            // Will re-fetch automatically via the context listeners or you could force refresh
+          }}
+        />
+      )}
       </div>
     );
 };
-

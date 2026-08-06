@@ -128,6 +128,12 @@ interface SaaSContextType {
     status: BookingStatus,
     reason?: string
   ) => Promise<void>;
+  rescheduleBooking: (
+    bookingId: string,
+    newDate: string,
+    newStartTime: string,
+    newEndTime: string
+  ) => Promise<void>;
   
   // Management CRUD
   saveService: (service: Partial<Service>) => void;
@@ -998,6 +1004,35 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setError(null);
   };
 
+  const rescheduleBooking = async (bookingId: string, newDate: string, newStartTime: string, newEndTime: string) => {
+    const existing = bookings.find((b) => b.id === bookingId);
+    if (!existing) return;
+
+    const updated: Booking = {
+      ...existing,
+      bookingDate: newDate,
+      startTime: newStartTime,
+      endTime: newEndTime,
+    };
+
+    setBookings((prev) => prev.map((b) => (b.id === bookingId ? updated : b)));
+
+    const { error: updateError } = await supabase
+      .from('bookings')
+      .update({
+        booking_date: newDate,
+        start_time: newStartTime,
+        end_time: newEndTime,
+      })
+      .eq('id', bookingId);
+
+    if (updateError) {
+      setBookings((prev) => prev.map((b) => (b.id === bookingId ? existing : b)));
+      setError(updateError.message || 'Failed to reschedule booking');
+      throw updateError;
+    }
+  };
+
   const saveService = async (serviceData: Partial<Service>) => {
     if (!activeTenant) return;
     const isUUID = serviceData.id && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(serviceData.id);
@@ -1534,6 +1569,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         getAvailableSlots,
         createBooking,
         updateBookingStatus,
+        rescheduleBooking,
         saveService,
         deleteService,
         saveServiceAddon,

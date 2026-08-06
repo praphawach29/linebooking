@@ -15,7 +15,9 @@ import {
   AlertCircle,
   Scissors,
   Loader2,
+  RefreshCw,
 } from 'lucide-react';
+import { LiffRescheduleModal } from '../liff/LiffRescheduleModal';
 
 interface MerchantBookingDetailModalProps {
   booking: Booking;
@@ -29,6 +31,7 @@ export const MerchantBookingDetailModal: React.FC<MerchantBookingDetailModalProp
   const { updateBookingStatus, completeBooking } = useSaaS();
   const [cancelReason, setCancelReason] = useState('');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [targetStatus, setTargetStatus] = useState<BookingStatus | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -198,6 +201,18 @@ export const MerchantBookingDetailModal: React.FC<MerchantBookingDetailModalProp
                 )}
               </button>
             </div>
+            
+            {/* Action Group 2: Modifying booking */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowRescheduleModal(true)}
+                disabled={isUpdating || booking.status === 'cancelled' || booking.status === 'completed'}
+                className="flex-1 py-2 rounded-xl font-bold transition-all flex items-center justify-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className="w-4 h-4" />
+                เลื่อนคิว
+              </button>
+            </div>
           </div>
 
           {/* Service & Customer Details */}
@@ -317,6 +332,17 @@ export const MerchantBookingDetailModal: React.FC<MerchantBookingDetailModalProp
             </div>
           </div>
         )}
+
+      {showRescheduleModal && (
+        <LiffRescheduleModal
+          booking={booking}
+          onClose={() => setShowRescheduleModal(false)}
+          onSuccess={() => {
+            setShowRescheduleModal(false);
+            onClose(); // Close details modal to refresh data
+          }}
+        />
+      )}
 
       </div>
     </div>

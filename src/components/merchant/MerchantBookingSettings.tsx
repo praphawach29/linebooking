@@ -12,6 +12,10 @@ export const MerchantBookingSettings: React.FC = () => {
   const [minLeadTimeHours, setMinLeadTimeHours] = useState(activeTenant.settings.minLeadTimeHours ?? 0);
   const [googleMapUrl, setGoogleMapUrl] = useState(activeTenant.settings.googleMapUrl || '');
   
+  // LINE Settings
+  const [lineChannelAccessToken, setLineChannelAccessToken] = useState(activeTenant.lineChannelAccessToken || '');
+  const [lineBookingConfirmationEnabled, setLineBookingConfirmationEnabled] = useState(activeTenant.settings.lineBookingConfirmationEnabled ?? false);
+  
   // Booking Limit State
   const [bookingLimitEnabled, setBookingLimitEnabled] = useState(activeTenant.settings.bookingLimit?.enabled ?? false);
   const [bookingLimitAmount, setBookingLimitAmount] = useState(activeTenant.settings.bookingLimit?.amount ?? 1);
@@ -57,7 +61,10 @@ export const MerchantBookingSettings: React.FC = () => {
         enabled: bookingLimitEnabled,
         amount: Number(bookingLimitAmount),
         period: bookingLimitPeriod
-      }
+      },
+      lineBookingConfirmationEnabled,
+    }, {
+      lineChannelAccessToken,
     });
     updateCancellationPolicies(policies);
     
@@ -100,6 +107,45 @@ export const MerchantBookingSettings: React.FC = () => {
                 />
                 <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
               </label>
+            </div>
+
+            {/* LINE Message Settings */}
+            <div className="pt-6 border-t border-slate-100">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2 text-slate-800 font-bold">
+                  <span className="w-8 h-8 rounded-lg bg-green-100 text-green-600 flex items-center justify-center">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  </span>
+                  แจ้งเตือนผ่าน LINE
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={lineBookingConfirmationEnabled}
+                    onChange={(e) => setLineBookingConfirmationEnabled(e.target.checked)}
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+              
+              {lineBookingConfirmationEnabled && (
+                <div className="space-y-4 bg-slate-50 p-4 rounded-xl">
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">Channel Access Token</label>
+                    <input
+                      type="text"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+                      value={lineChannelAccessToken}
+                      onChange={(e) => setLineChannelAccessToken(e.target.value)}
+                      placeholder="กรอก Channel Access Token (Long-lived) จาก LINE Developers"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">ใช้สำหรับส่งข้อความยืนยันการจองคิวไปยังลูกค้าอัตโนมัติ (Flex Message)</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="pt-4 border-t border-slate-100 space-y-4">

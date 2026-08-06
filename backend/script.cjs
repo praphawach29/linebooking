@@ -1,0 +1,1 @@
+const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); prisma.booking.findMany({ select: { id: true, ref_no: true, staff_name: true, court_name: true } }).then(b => { console.log(b); prisma.$disconnect(); });

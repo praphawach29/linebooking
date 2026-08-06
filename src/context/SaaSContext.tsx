@@ -10,6 +10,7 @@ import {
   createMerchantBookingWithSession,
 } from '../lib/booking-client';
 import { mapBookingApiResponse } from '../lib/booking-mapper';
+import { sendLineBookingConfirmation } from '../utils/lineMessaging';
 import {
   Tenant,
   Service,
@@ -837,6 +838,21 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return generatedSlots;
   };
 
+    const handleLineBookingConfirmation = async (booking: Booking, tenant: Tenant) => {
+      const result = await sendLineBookingConfirmation(booking, tenant);
+      if (result.success) {
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        let newCount = tenant.settings.linePushMessageCount || 0;
+        if (tenant.settings.linePushMessageMonth !== currentMonth) {
+          newCount = 0;
+        }
+        updateTenantSettings({
+          linePushMessageCount: newCount + 1,
+          linePushMessageMonth: currentMonth
+        });
+      }
+    };
+
   const createBooking = async (data: {
     serviceId: string;
     staffId?: string;
@@ -946,6 +962,10 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       saveLocalStoredBooking(savedBooking);
       setBookings((prev) => [savedBooking, ...prev]);
       setError(null);
+      
+      // Trigger LINE message asynchronously
+      handleLineBookingConfirmation(savedBooking, activeTenant).catch(console.error);
+      
       return savedBooking;
     } catch (err: unknown) {
       console.warn('Booking API returned error, proceeding with resilient booking creation:', err);
@@ -1060,6 +1080,10 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       setBookings((prev) => [fallbackBooking, ...prev]);
       setError(null);
+      
+      // Trigger LINE message asynchronously
+      handleLineBookingConfirmation(fallbackBooking, activeTenant).catch(console.error);
+      
       return fallbackBooking;
     }
   };
@@ -1098,6 +1122,11 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setBookings((prev) => prev.map((b) => (b.id === bookingId ? existing : b)));
       setError(updateError.message || 'Failed to update booking status');
       throw updateError;
+    }
+
+    // If status changed to confirmed, send confirmation message
+    if (status === 'confirmed' && existing.status !== 'confirmed') {
+      handleLineBookingConfirmation(updated, activeTenant).catch(console.error);
     }
 
     setError(null);

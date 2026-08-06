@@ -69,15 +69,18 @@ export interface Tenant {
   settings: {
     promptpayNumber?: string;
     promptpayName?: string;
-    depositPercentage?: number;
     autoConfirm?: boolean;
-    bufferMinutesDefault?: number;
-    maxAdvanceBookingDays?: number; // legacy, but we'll use it as the value
-    maxAdvanceBookingUnit?: 'hours' | 'days'; // new field
+    maxAdvanceBookingDays?: number;
+    maxAdvanceBookingUnit?: 'days' | 'hours';
+    minLeadTimeHours?: number;
+    depositPercentage?: number;
+    googleMapUrl?: string;
     currency?: string;
     lineReminderEnabled?: boolean;
     lineReminderHoursBefore?: number;
     lineBookingConfirmationEnabled?: boolean;
+    linePushMessageCount?: number;
+    linePushMessageMonth?: string;
     bookingLimit?: {
       enabled: boolean;
       amount: number;

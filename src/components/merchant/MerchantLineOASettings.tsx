@@ -35,6 +35,12 @@ export const MerchantLineOASettings: React.FC = () => {
     activeTenant.settings.lineBookingConfirmationEnabled ?? true
   );
 
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const isCurrentMonth = activeTenant.settings.linePushMessageMonth === currentMonth;
+  const pushCount = isCurrentMonth ? (activeTenant.settings.linePushMessageCount || 0) : 0;
+  const pushLimit = 300;
+  const pushPercentage = Math.min(100, Math.round((pushCount / pushLimit) * 100));
+
   // LINE Broadcast State
   const [broadcastTarget, setBroadcastTarget] = useState<'all' | 'active' | 'vip'>('all');
   const [broadcastTitle, setBroadcastTitle] = useState('🔥 โปรโมชันพิเศษส่วนลด 20% ทุกบริการเมื่อจองผ่าน LINE!');
@@ -139,6 +145,37 @@ export const MerchantLineOASettings: React.FC = () => {
         </div>
 
         <div className="space-y-3.5">
+          {/* Push Message Usage Limit */}
+          <div className="p-4 bg-white border border-emerald-100 rounded-2xl shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-emerald-100 text-emerald-600 rounded-lg">
+                  <Send className="w-3.5 h-3.5" />
+                </div>
+                <h3 className="font-bold text-slate-800 text-xs">โควต้าส่งข้อความ (Push Message Limit)</h3>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-1 bg-slate-100 text-slate-600 rounded-lg">รีเซ็ตทุกสิ้นเดือน</span>
+            </div>
+            
+            <div>
+              <div className="flex justify-between text-[11px] mb-1.5 font-bold">
+                <span className="text-slate-600">ใช้งานแล้ว {pushCount} ข้อความ</span>
+                <span className={pushCount >= pushLimit ? 'text-rose-500' : 'text-emerald-600'}>
+                  {pushLimit - pushCount} ข้อความคงเหลือ
+                </span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                <div 
+                  className={`h-2 rounded-full ${pushCount >= pushLimit ? 'bg-rose-500' : 'bg-emerald-500'}`} 
+                  style={{ width: `${pushPercentage}%` }}
+                ></div>
+              </div>
+              <p className="text-[10px] text-slate-500 mt-2">
+                * แพ็กเกจฟรีของ LINE อนุญาตให้ส่งข้อความแบบ Push ได้สูงสุด 300 ข้อความ/เดือน
+              </p>
+            </div>
+          </div>
+
           {/* 24-Hour Reminder Toggle */}
           <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between gap-4">
             <div className="space-y-0.5">

@@ -838,8 +838,18 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return generatedSlots;
   };
 
-    const handleLineBookingConfirmation = async (booking: Booking, tenant: Tenant) => {
-      const result = await sendLineBookingConfirmation(booking, tenant);
+    const handleLineBookingConfirmation = async (booking: Booking, tenant: Tenant, providedLineUserId?: string) => {
+      let recipientId = providedLineUserId;
+      if (!recipientId && booking.userId && booking.userId !== 'guest') {
+        try {
+          const { data } = await supabase.from('users').select('line_user_id').eq('id', booking.userId).single();
+          if (data?.line_user_id) recipientId = data.line_user_id;
+        } catch (err) {
+          console.warn('Could not fetch line_user_id for confirmation:', err);
+        }
+      }
+
+      const result = await sendLineBookingConfirmation(booking, tenant, recipientId);
       if (result.success) {
         const currentMonth = new Date().toISOString().slice(0, 7);
         let newCount = tenant.settings.linePushMessageCount || 0;
@@ -970,7 +980,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setError(null);
       
       // Trigger LINE message asynchronously
-      handleLineBookingConfirmation(savedBooking, activeTenant).catch(console.error);
+      handleLineBookingConfirmation(savedBooking, activeTenant, lineProfile?.lineUserId).catch(console.error);
       
       return savedBooking;
     } catch (err: unknown) {
@@ -1088,7 +1098,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setError(null);
       
       // Trigger LINE message asynchronously
-      handleLineBookingConfirmation(fallbackBooking, activeTenant).catch(console.error);
+      handleLineBookingConfirmation(fallbackBooking, activeTenant, lineProfile?.lineUserId).catch(console.error);
       
       return fallbackBooking;
     }

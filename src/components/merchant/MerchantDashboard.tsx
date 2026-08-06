@@ -18,6 +18,12 @@ import {
 } from 'lucide-react';
 import { MerchantBookingDetailModal } from './MerchantBookingDetailModal';
 
+const formatThaiDate = (dateStr: string) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr;
+  return date.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+};
 
 export const MerchantDashboard: React.FC = () => {
   const { activeTenant, bookings, services, setMerchantTab, updateBookingStatus } = useSaaS();
@@ -313,7 +319,7 @@ export const MerchantDashboard: React.FC = () => {
                       <div className="flex flex-col">
                         <span className="text-[11px] sm:text-xs font-bold text-slate-500 mb-1 flex items-center gap-1.5">
                           <Calendar className="w-3.5 h-3.5" /> 
-                          {booking.bookingDate}
+                          {formatThaiDate(booking.bookingDate)}
                         </span>
                         <span className="text-sm sm:text-base font-black text-slate-800 flex items-center gap-1.5 leading-none">
                           <Clock className="w-4 h-4 text-emerald-500" />
@@ -436,7 +442,7 @@ export const MerchantDashboard: React.FC = () => {
                             <div className="flex flex-col">
                               <span className="text-[11px] font-bold text-slate-500 mb-1 flex items-center gap-1.5">
                                 <Calendar className="w-3.5 h-3.5" /> 
-                                {booking.bookingDate}
+                                {formatThaiDate(booking.bookingDate)}
                               </span>
                               <span className="text-sm font-black text-slate-800 flex items-center gap-1.5 leading-none">
                                 <Clock className="w-4 h-4 text-emerald-500" />

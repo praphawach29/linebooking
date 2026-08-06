@@ -784,22 +784,43 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const startTime = `${hourStr}:00`;
       const endTime = `${endHourStr}:00`;
 
-        const isBooked = activeDateBookings.some((b) => {
-          if (courtId && b.courtId !== courtId) return false;
+        const parseTime = (t: string) => {
+          const parts = t.split(':');
+          return parseInt(parts[0], 10) + parseInt(parts[1] || '0', 10) / 60;
+        };
+        const slotStart = parseTime(startTime);
+        const slotEnd = parseTime(endTime);
+
+        let isBooked = false;
+
+        if (courtId || staffId) {
+          isBooked = activeDateBookings.some((b) => {
+            const bStart = parseTime(b.startTime);
+            const bEnd = b.endTime ? parseTime(b.endTime) : (bStart + (b.bookingHours || 1));
+            const overlaps = slotStart < bEnd && bStart < slotEnd;
+            
+            if (!overlaps) return false;
+            
+            if (courtId && b.courtId === courtId) return true;
+            if (staffId && b.staffId === staffId) return true;
+            return false;
+          });
+        } else {
+          let overlappingCount = 0;
+          activeDateBookings.forEach((b) => {
+            if (b.serviceId !== serviceId) return;
+            const bStart = parseTime(b.startTime);
+            const bEnd = b.endTime ? parseTime(b.endTime) : (bStart + (b.bookingHours || 1));
+            if (slotStart < bEnd && bStart < slotEnd) {
+              overlappingCount++;
+            }
+          });
           
-          const parseTime = (t: string) => {
-            const parts = t.split(':');
-            return parseInt(parts[0], 10) + parseInt(parts[1] || '0', 10) / 60;
-          };
+          const serviceCourts = tenantCourts.filter(c => c.serviceId === serviceId && c.isActive);
+          const capacity = serviceCourts.length > 0 ? serviceCourts.length : (service?.maxCapacity || 1);
           
-          const slotStart = parseTime(startTime);
-          const slotEnd = parseTime(endTime);
-          
-          const bStart = parseTime(b.startTime);
-          const bEnd = b.endTime ? parseTime(b.endTime) : (bStart + (b.bookingHours || 1));
-          
-          return slotStart < bEnd && bStart < slotEnd;
-        });
+          isBooked = overlappingCount >= capacity;
+        }
 
       const isAdvanceValid = isSlotAvailable(dateStr, startTime);
       const isAvailable = !isBooked && isAdvanceValid;

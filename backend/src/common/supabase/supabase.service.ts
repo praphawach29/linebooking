@@ -6,30 +6,41 @@ import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common
  * ใช้ service role เพราะ worker เก็บเงินทำงานเบื้องหลัง ไม่มี session ของผู้ใช้
  * จึงต้องข้าม RLS — ห้ามเปิด endpoint ที่รับ table/filter จากผู้ใช้ตรง ๆ
  *
- * ENV: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+ * ENV: SUPABASE_URL, SUPABASE_SECRET_KEY (preferred) or SUPABASE_SERVICE_ROLE_KEY
  */
 @Injectable()
 export class SupabaseService {
   private readonly logger = new Logger(SupabaseService.name);
 
   get isConfigured(): boolean {
-    return !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+    return !!(process.env.SUPABASE_URL && this.adminKey);
+  }
+
+  private get adminKey(): string | undefined {
+    return process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
   }
 
   private headers(extra: Record<string, string> = {}) {
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
-    return {
+    const key = this.adminKey as string;
+    const headers: Record<string, string> = {
       apikey: key,
-      Authorization: `Bearer ${key}`,
       'Content-Type': 'application/json',
       Prefer: 'return=representation',
       ...extra,
     };
+
+    // Opaque sb_secret keys must only be sent through apikey. Legacy
+    // service_role JWTs still require Authorization for PostgREST.
+    if (!key.startsWith('sb_secret_')) {
+      headers.Authorization = `Bearer ${key}`;
+    }
+
+    return headers;
   }
 
   private async request<T = any>(path: string, method: string, body?: any, extraHeaders?: Record<string, string>): Promise<T | null> {
     if (!this.isConfigured) {
-      this.logger.warn('ยังไม่ได้ตั้ง SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY — ข้ามการเรียกฐานข้อมูล');
+      this.logger.warn('ยังไม่ได้ตั้ง SUPABASE_URL / Supabase admin key — ข้ามการเรียกฐานข้อมูล');
       return null;
     }
 

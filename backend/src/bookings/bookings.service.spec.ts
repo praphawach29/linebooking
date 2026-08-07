@@ -121,6 +121,7 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
       user: { findUnique: jest.fn() },
       membership: { findUnique: jest.fn() },
       service: { findFirst: jest.fn() },
+      courts: { findFirst: jest.fn() },
       staff: { findFirst: jest.fn() },
       booking: {
         create: jest.fn(),
@@ -305,17 +306,28 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
     });
 
     it('prices and reserves the complete multi-hour range', async () => {
+      const courtId = '44444444-4444-4444-8444-444444444444';
       mockTx.tenant.findUnique.mockResolvedValueOnce(mockTenant);
       mockTx.user.findUnique.mockResolvedValueOnce(mockCustomerUser);
       mockTx.membership.findUnique.mockResolvedValueOnce(mockMembership);
-      mockTx.service.findFirst.mockResolvedValueOnce(mockService);
+      mockTx.service.findFirst.mockResolvedValueOnce({
+        ...mockService,
+        price: new Prisma.Decimal(1200),
+      });
+      mockTx.courts.findFirst.mockResolvedValueOnce({
+        id: courtId,
+        name: 'Court 3',
+        extra_price_per_hour: new Prisma.Decimal(-200),
+      });
       mockTx.booking.create.mockResolvedValueOnce({
         ...mockCreatedBooking,
         service_duration: 180,
-        service_price: new Prisma.Decimal(1500),
+        service_price: new Prisma.Decimal(3000),
+        court_id: courtId,
+        court_name: 'Court 3',
         endTime: new Date('1970-01-01T13:00:00Z'),
-        price: new Prisma.Decimal(1500),
-        finalPrice: new Prisma.Decimal(1500),
+        price: new Prisma.Decimal(3000),
+        finalPrice: new Prisma.Decimal(3000),
       });
       availabilityService.calculateAvailability.mockResolvedValueOnce({
         ...mockAvailabilityResult,
@@ -324,6 +336,7 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
             startTime: '10:00',
             endTime: '13:00',
             staffId: staffIdA,
+            courtId,
             available: true,
           },
         ],
@@ -338,6 +351,7 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
         bookingDate,
         startTime,
         bookingHours: 3,
+        courtId,
       });
 
       expect(availabilityService.calculateAvailability).toHaveBeenCalledWith(
@@ -351,9 +365,11 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             service_duration: 180,
-            service_price: new Prisma.Decimal(1500),
-            price: new Prisma.Decimal(1500),
-            finalPrice: new Prisma.Decimal(1500),
+            service_price: new Prisma.Decimal(3000),
+            court_id: courtId,
+            court_name: 'Court 3',
+            price: new Prisma.Decimal(3000),
+            finalPrice: new Prisma.Decimal(3000),
             endTime: new Date('1970-01-01T13:00:00Z'),
           }),
         }),
@@ -361,9 +377,9 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
       expect(result).toMatchObject({
         endTime: '13:00',
         serviceDuration: 180,
-        servicePrice: 1500,
-        price: 1500,
-        finalPrice: 1500,
+        servicePrice: 3000,
+        price: 3000,
+        finalPrice: 3000,
       });
     });
 

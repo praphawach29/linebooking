@@ -271,25 +271,35 @@ export class BookingsService {
             const effectiveDurationMinutes =
               service.durationMinutes * bookingHours;
 
-            let selectedCourt: { id: string; name: string } | null = null;
+            let selectedCourt: {
+              id: string;
+              name: string;
+              extraPricePerHour: Prisma.Decimal | null;
+            } | null = null;
             if (command.courtId) {
-              selectedCourt = await tx.courts.findFirst({
+              const court = await tx.courts.findFirst({
                 where: {
                   id: command.courtId,
                   tenant_id: command.tenantId,
                   is_active: true,
                   OR: [{ service_id: command.serviceId }, { service_id: null }],
                 },
-                select: { id: true, name: true },
+                select: { id: true, name: true, extra_price_per_hour: true },
               });
 
-              if (!selectedCourt) {
+              if (!court) {
                 throw new NotFoundException({
                   statusCode: 404,
                   code: ErrorCode.RESOURCE_NOT_FOUND,
                   message: 'Court not found or inactive for this service',
                 });
               }
+
+              selectedCourt = {
+                id: court.id,
+                name: court.name,
+                extraPricePerHour: court.extra_price_per_hour,
+              };
             }
 
             // 5. Calculate Availability INSIDE transaction using tx
@@ -338,7 +348,13 @@ export class BookingsService {
             }
 
             // 8. Calculate Pricing & Time Objects
-            const priceVal = new Prisma.Decimal(service.price).mul(bookingHours);
+            const adjustedUnitPrice = new Prisma.Decimal(service.price).add(
+              selectedCourt?.extraPricePerHour ?? 0,
+            );
+            const unitPrice = adjustedUnitPrice.isNegative()
+              ? new Prisma.Decimal(0)
+              : adjustedUnitPrice;
+            const priceVal = unitPrice.mul(bookingHours);
             const discountVal = new Prisma.Decimal(0);
             const finalPriceVal = priceVal.sub(discountVal);
 

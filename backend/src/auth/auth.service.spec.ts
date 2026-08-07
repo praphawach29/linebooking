@@ -53,6 +53,9 @@ describe('AuthService merchant onboarding', () => {
         findUnique: jest.fn(),
         create: jest.fn().mockResolvedValue(tenant),
       },
+      businessHours: {
+        createMany: jest.fn().mockResolvedValue({ count: 7 }),
+      },
     };
     const prisma = {
       $transaction: jest.fn().mockImplementation((callback) => callback(tx)),
@@ -79,6 +82,16 @@ describe('AuthService merchant onboarding', () => {
         data: expect.objectContaining({ owner_user_id: authUserId }),
       }),
     );
+    expect(tx.businessHours.createMany).toHaveBeenCalledWith({
+      data: expect.arrayContaining([
+        expect.objectContaining({
+          tenantId,
+          dayOfWeek: 6,
+          isOpen: true,
+        }),
+      ]),
+    });
+    expect(tx.businessHours.createMany.mock.calls[0][0].data).toHaveLength(7);
     expect(tx.user.update).toHaveBeenCalledWith({
       where: { id: authUserId },
       data: { tenant_id: tenantId },
@@ -115,6 +128,7 @@ describe('AuthService merchant onboarding', () => {
         findUnique: jest.fn().mockResolvedValue(tenant),
         create: jest.fn(),
       },
+      businessHours: { createMany: jest.fn() },
     };
     const prisma = {
       $transaction: jest.fn().mockImplementation((callback) => callback(tx)),
@@ -129,6 +143,7 @@ describe('AuthService merchant onboarding', () => {
 
     expect(result.tenant.id).toBe(tenantId);
     expect(tx.tenant.create).not.toHaveBeenCalled();
+    expect(tx.businessHours.createMany).not.toHaveBeenCalled();
     expect(tx.user.update).not.toHaveBeenCalled();
   });
 

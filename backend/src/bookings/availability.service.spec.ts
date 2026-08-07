@@ -26,6 +26,7 @@ describe('AvailabilityService', () => {
     tenant: { findUnique: jest.fn() },
     service: { findFirst: jest.fn() },
     businessHours: { findFirst: jest.fn() },
+    courts: { findFirst: jest.fn() },
     staff: { findFirst: jest.fn() },
     staffService: { findFirst: jest.fn(), findMany: jest.fn() },
     staffSchedule: { findMany: jest.fn() },
@@ -958,5 +959,49 @@ describe('AvailabilityService', () => {
     let errMaxAdvance: any;
     try { await service.calculateAvailability(tenantId, validBookingDate, serviceId); } catch (e) { errMaxAdvance = e; }
     expect(errMaxAdvance).toBeInstanceOf(InternalServerErrorException);
+  });
+
+  it('infers court mode for legacy tenants and validates a multi-hour range', async () => {
+    const courtId = '44444444-4444-4444-8444-444444444444';
+    prisma.tenant.findUnique.mockResolvedValueOnce({
+      id: tenantId,
+      isActive: true,
+      settings: {
+        bookingFlowMode: null,
+        enableCourtSelection: true,
+        slotIntervalMinutes: 60,
+      },
+    });
+    prisma.service.findFirst.mockResolvedValueOnce({
+      id: serviceId,
+      name: 'Court rental',
+      isActive: true,
+      durationMinutes: 60,
+      bufferMinutes: 0,
+      maxCapacity: 1,
+      price: 1000,
+    });
+    prisma.courts.findFirst.mockResolvedValueOnce({ id: courtId, name: 'Court 3' });
+    prisma.businessHours.findFirst.mockResolvedValueOnce({
+      isOpen: true,
+      openTime: '10:00',
+      closeTime: '14:00',
+    });
+    prisma.booking.findMany.mockResolvedValueOnce([]);
+
+    const result = await service.calculateAvailability(
+      tenantId,
+      validBookingDate,
+      serviceId,
+      undefined,
+      { courtId, durationMinutesOverride: 180 },
+    );
+
+    expect(result.slots.map((slot) => [slot.startTime, slot.endTime])).toEqual([
+      ['10:00', '13:00'],
+      ['11:00', '14:00'],
+    ]);
+    expect(result.slots.every((slot) => slot.courtId === courtId)).toBe(true);
+    expect(prisma.staffService.findMany).not.toHaveBeenCalled();
   });
 });

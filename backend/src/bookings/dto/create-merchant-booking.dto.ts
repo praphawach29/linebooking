@@ -1,6 +1,9 @@
 import {
   IsString,
   IsOptional,
+  IsInt,
+  Min,
+  Max,
   Matches,
   MinLength,
   MaxLength,
@@ -32,6 +35,12 @@ export class CreateMerchantBookingDto {
     message: 'startTime must be in HH:mm format',
   })
   startTime: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(24)
+  bookingHours?: number;
 
   @IsOptional()
   @IsString()

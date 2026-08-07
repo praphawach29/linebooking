@@ -295,8 +295,76 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
         bookingDate,
         serviceId,
         staffIdA,
-        { actor: 'customer', txPrisma: mockTx },
+        {
+          actor: 'customer',
+          txPrisma: mockTx,
+          courtId: undefined,
+          durationMinutesOverride: 60,
+        },
       );
+    });
+
+    it('prices and reserves the complete multi-hour range', async () => {
+      mockTx.tenant.findUnique.mockResolvedValueOnce(mockTenant);
+      mockTx.user.findUnique.mockResolvedValueOnce(mockCustomerUser);
+      mockTx.membership.findUnique.mockResolvedValueOnce(mockMembership);
+      mockTx.service.findFirst.mockResolvedValueOnce(mockService);
+      mockTx.booking.create.mockResolvedValueOnce({
+        ...mockCreatedBooking,
+        service_duration: 180,
+        service_price: new Prisma.Decimal(1500),
+        endTime: new Date('1970-01-01T13:00:00Z'),
+        price: new Prisma.Decimal(1500),
+        finalPrice: new Prisma.Decimal(1500),
+      });
+      availabilityService.calculateAvailability.mockResolvedValueOnce({
+        ...mockAvailabilityResult,
+        slots: [
+          {
+            startTime: '10:00',
+            endTime: '13:00',
+            staffId: staffIdA,
+            available: true,
+          },
+        ],
+      });
+
+      const result = await service.createBookingAtomic({
+        actor: 'customer',
+        tenantId,
+        customerUserId,
+        serviceId,
+        staffId: staffIdA,
+        bookingDate,
+        startTime,
+        bookingHours: 3,
+      });
+
+      expect(availabilityService.calculateAvailability).toHaveBeenCalledWith(
+        tenantId,
+        bookingDate,
+        serviceId,
+        staffIdA,
+        expect.objectContaining({ durationMinutesOverride: 180 }),
+      );
+      expect(mockTx.booking.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            service_duration: 180,
+            service_price: new Prisma.Decimal(1500),
+            price: new Prisma.Decimal(1500),
+            finalPrice: new Prisma.Decimal(1500),
+            endTime: new Date('1970-01-01T13:00:00Z'),
+          }),
+        }),
+      );
+      expect(result).toMatchObject({
+        endTime: '13:00',
+        serviceDuration: 180,
+        servicePrice: 1500,
+        price: 1500,
+        finalPrice: 1500,
+      });
     });
 
     it('should ignore client attempts to dictate price or endTime (derived strictly from DB/AvailabilityService)', async () => {

@@ -83,6 +83,7 @@ describe('booking-api', () => {
         serviceId,
         bookingDate: '2026-08-10',
         startTime: '10:00',
+        bookingHours: 3,
         customerName: 'Customer',
         customerPhone: '0812345678',
         price: 1,
@@ -99,6 +100,7 @@ describe('booking-api', () => {
       serviceId,
       bookingDate: '2026-08-10',
       startTime: '10:00',
+      bookingHours: 3,
       customerName: 'Customer',
       customerPhone: '0812345678',
     });

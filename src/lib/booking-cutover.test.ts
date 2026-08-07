@@ -70,6 +70,8 @@ describe('Step 11 booking cutover', () => {
     assert.match(source, /createCustomerBookingWithLiff/);
     assert.match(source, /createMerchantBookingWithSession/);
     assert.match(source, /getAvailableSlotsFromApi/);
+    assert.doesNotMatch(source, /generate dynamic slots locally/i);
+    assert.doesNotMatch(source, /const generatedSlots/);
     assert.match(source, /updateMerchantBookingStatusWithSession/);
     assert.match(source, /rescheduleMerchantBookingWithSession/);
   });

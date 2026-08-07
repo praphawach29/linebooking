@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { SkeletonCard } from '../common/SkeletonCard';
 import { calculateServicePrice } from '../../lib/pricing-calculator';
+import { BookingApiError } from '../../lib/booking-api';
 
 interface LiffDateTimePickerProps {
   service: Service;
@@ -34,6 +35,22 @@ interface LiffDateTimePickerProps {
 const toHour = (timeStr: string) => parseInt(timeStr.split(':')[0], 10);
 // Formats integer hour back to "HH:00" string
 const toTimeStr = (hour: number) => `${hour < 10 ? '0' : ''}${hour}:00`;
+
+const getSlotsErrorMessage = (error: unknown): string => {
+  if (error instanceof BookingApiError) {
+    if (error.code === 'BOOKING_OUTSIDE_BUSINESS_HOURS') {
+      return 'ร้านปิดในวันที่เลือก กรุณาเลือกวันอื่นหรือติดต่อร้านค้า';
+    }
+    if (error.code === 'BOOKING_TOO_FAR_AHEAD') {
+      return 'วันที่เลือกเกินระยะเวลาที่ร้านเปิดให้จองล่วงหน้า';
+    }
+    if (error.code === 'BOOKING_IN_PAST') {
+      return 'ไม่สามารถเลือกวันหรือเวลาที่ผ่านมาแล้ว';
+    }
+    return error.message;
+  }
+  return error instanceof Error ? error.message : 'ไม่สามารถโหลดรอบเวลาได้';
+};
 
 export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
   service,
@@ -155,13 +172,13 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
       .catch((error: unknown) => {
         if (!cancelled) {
           setSlots([]);
-          setSlotsError(error instanceof Error ? error.message : 'ไม่สามารถโหลดรอบเวลาได้');
+          setSlotsError(getSlotsErrorMessage(error));
         }
       })
       .finally(() => { if (!cancelled) setIsSlotsLoading(false); });
 
     return () => { cancelled = true; };
-  }, [activeDate, service.id, staff?.id]);
+  }, [activeDate, service.id, staff?.id, court?.id]);
 
   // --- Tap-to-Range Logic ---
   // Returns true if all slots from hourA to hourB (inclusive, ordered) are available

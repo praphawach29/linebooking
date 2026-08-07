@@ -672,166 +672,18 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   ): Promise<AvailableSlot[]> => {
     if (!activeTenant) return [];
     const service = services.find((item) => item.id === serviceId);
-    const court = courtId ? courts.find((c) => c.id === courtId) : undefined;
-
-    // --- Determine effective operating hours (court-specific > service-specific > shop default) ---
-    const shopBusinessHours = businessHours;
-
-    // Helper: resolve operating schedule for a given date
-    const resolveSchedule = (dateIso: string) => {
-      const d = new Date(dateIso);
-      const dow = d.getDay(); // 0=Sun
-
-      // 1. Court-specific schedule (most specific)
-      if (court?.operatingSchedule?.isCustom) {
-        const sch = court.operatingSchedule;
-        if (!sch.days.includes(dow)) return null; // closed day for this court
-        return { startTime: sch.startTime, endTime: sch.endTime };
-      }
-
-      // 2. Service-specific schedule
-      if (service?.operatingSchedule?.isCustom) {
-        const sch = service.operatingSchedule;
-        if (!sch.days.includes(dow)) return null; // closed day for this service
-        return { startTime: sch.startTime, endTime: sch.endTime };
-      }
-
-      // 3. Shop-wide business hours
-      const bh = shopBusinessHours.find((h) => h.dayOfWeek === dow);
-      if (bh) {
-        if (!bh.isOpen) return null; // shop closed
-        return { startTime: bh.openTime, endTime: bh.closeTime };
-      }
-
-      // 4. Default fallback (08:00 - 23:00)
-      return { startTime: '08:00', endTime: '23:00' };
-    };
-
-    const schedule = resolveSchedule(dateStr);
-    if (!schedule) return []; // closed on this day
-
-    const parseHour = (t: string) => parseInt(t.split(':')[0], 10);
-    const startHour = parseHour(schedule.startTime);
-    const endHour = parseHour(schedule.endTime);
-
-    // Enforce advance booking limit and block past times
-    const maxAdvanceBooking = activeTenant.settings.maxAdvanceBookingDays ?? 60;
-    const maxAdvanceUnit = activeTenant.settings.maxAdvanceBookingUnit ?? 'days';
-    const now = new Date();
-    
-    const isSlotAvailable = (slotDateStr: string, timeStr: string) => {
-      const slotTime = new Date(`${slotDateStr}T${timeStr}:00`);
-      
-      // 1. Block past times
-      if (slotTime < now) return false;
-
-      // 2. Enforce max advance booking
-      if (maxAdvanceBooking > 0) {
-        if (maxAdvanceUnit === 'hours') {
-          const maxAllowedTime = new Date(now.getTime() + maxAdvanceBooking * 60 * 60 * 1000);
-          if (slotTime > maxAllowedTime) return false;
-        } else {
-          // days
-          const diffTime = slotTime.getTime() - now.getTime();
-          const diffDays = diffTime / (1000 * 60 * 60 * 24);
-          if (diffDays > maxAdvanceBooking) return false;
-        }
-      }
-      return true;
-    };
-
-    try {
-      const response = await getAvailableSlotsFromApi(
-        activeTenant.id,
-        { serviceId, bookingDate: dateStr, staffId, courtId },
-      );
-      if (response && response.slots && response.slots.length > 0) {
-        return response.slots
-          .filter((slot) => {
-            const h = parseHour(slot.startTime);
-            return h >= startHour && h < endHour;
-          })
-          .map((slot) => {
-            const isAdvanceValid = isSlotAvailable(dateStr, slot.startTime);
-            const isAvailable = slot.available && isAdvanceValid;
-            return {
-              startTime: slot.startTime,
-              endTime: slot.endTime,
-              isAvailable,
-              reason: !slot.available ? 'BOOKED' : !isAdvanceValid ? 'LEAD_TIME' : undefined,
-              price: service?.price ?? 1200,
-            };
-          });
-      }
-    } catch (e) {
-      // Ignore API errors and generate dynamic slots locally
-    }
-
-    // Dynamic slot generation within operating hours
-    const durationMinutes = service?.durationMinutes || 60;
-    const generatedSlots: AvailableSlot[] = [];
-    const activeDateBookings = bookings.filter(
-      (b) => b.tenantId === activeTenant.id && b.bookingDate === dateStr && b.status !== 'cancelled'
+    const response = await getAvailableSlotsFromApi(
+      activeTenant.id,
+      { serviceId, bookingDate: dateStr, staffId, courtId },
     );
 
-    for (let h = startHour; h < endHour; h++) {
-      const hourStr = h < 10 ? `0${h}` : `${h}`;
-      const endH = h + Math.max(1, Math.floor(durationMinutes / 60));
-      const endHourStr = endH < 10 ? `0${endH}` : `${endH}`;
-      const startTime = `${hourStr}:00`;
-      const endTime = `${endHourStr}:00`;
-
-        const parseTime = (t: string) => {
-          const parts = t.split(':');
-          return parseInt(parts[0], 10) + parseInt(parts[1] || '0', 10) / 60;
-        };
-        const slotStart = parseTime(startTime);
-        const slotEnd = parseTime(endTime);
-
-        let isBooked = false;
-
-        if (courtId || staffId) {
-          isBooked = activeDateBookings.some((b) => {
-            const bStart = parseTime(b.startTime);
-            const bEnd = b.endTime ? parseTime(b.endTime) : (bStart + (b.bookingHours || 1));
-            const overlaps = slotStart < bEnd && bStart < slotEnd;
-            
-            if (!overlaps) return false;
-            
-            if (courtId && b.courtId === courtId) return true;
-            if (staffId && b.staffId === staffId) return true;
-            return false;
-          });
-        } else {
-          let overlappingCount = 0;
-          activeDateBookings.forEach((b) => {
-            if (b.serviceId !== serviceId) return;
-            const bStart = parseTime(b.startTime);
-            const bEnd = b.endTime ? parseTime(b.endTime) : (bStart + (b.bookingHours || 1));
-            if (slotStart < bEnd && bStart < slotEnd) {
-              overlappingCount++;
-            }
-          });
-          
-          const serviceCourts = tenantCourts.filter(c => c.serviceId === serviceId && c.isActive);
-          const capacity = serviceCourts.length > 0 ? serviceCourts.length : (service?.maxCapacity || 1);
-          
-          isBooked = overlappingCount >= capacity;
-        }
-
-      const isAdvanceValid = isSlotAvailable(dateStr, startTime);
-      const isAvailable = !isBooked && isAdvanceValid;
-
-      generatedSlots.push({
-        startTime,
-        endTime,
-        isAvailable,
-        reason: isBooked ? 'BOOKED' : !isAdvanceValid ? 'LEAD_TIME' : undefined,
-        price: service?.price ?? 1200,
-      });
-    }
-
-    return generatedSlots;
+    return (response.slots || []).map((slot) => ({
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      isAvailable: slot.available,
+      reason: slot.available ? undefined : 'BOOKED',
+      price: service?.price ?? 1200,
+    }));
   };
 
     const handleLineBookingConfirmation = async (booking: Booking, tenant: Tenant, providedLineUserId?: string) => {
@@ -942,6 +794,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         courtId: data.courtId,
         bookingDate: data.bookingDate,
         startTime: cleanStartTime,
+        bookingHours: data.bookingHours,
         customerName: data.customerName,
         customerPhone: phone,
         notes: data.notes,

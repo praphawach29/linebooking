@@ -88,6 +88,18 @@ export class AuthService {
           select: { id: true, name: true, slug: true, businessType: true },
         });
 
+        const defaultOpenTime = new Date('1970-01-01T08:00:00.000Z');
+        const defaultCloseTime = new Date('1970-01-01T23:00:00.000Z');
+        await tx.businessHours.createMany({
+          data: Array.from({ length: 7 }, (_, dayOfWeek) => ({
+            tenantId: tenant.id,
+            dayOfWeek,
+            openTime: defaultOpenTime,
+            closeTime: defaultCloseTime,
+            isOpen: true,
+          })),
+        });
+
         user = await tx.user.update({
           where: { id: user.id },
           data: { tenant_id: tenant.id },

@@ -41,6 +41,7 @@ export interface AvailabilityOptions {
   txPrisma?: Prisma.TransactionClient | PrismaService;
   courtId?: string;
   excludeBookingId?: string;
+  durationMinutesOverride?: number;
 }
 
 @Injectable()
@@ -93,7 +94,10 @@ export class AvailabilityService {
 
     // 1, 3, 5. Read & validate BookingFlowMode ONLY from tenant.settings
     const bookingFlowMode: BookingFlowMode =
-      settings.bookingFlowMode || 'service_staff_time';
+      settings.bookingFlowMode ||
+      (settings.enableCourtSelection === true
+        ? 'sports_court_time'
+        : 'service_staff_time');
 
     if (!VALID_BOOKING_FLOW_MODES.includes(bookingFlowMode)) {
       throw new InternalServerErrorException({
@@ -191,7 +195,8 @@ export class AvailabilityService {
       selectedCourt = court;
     }
 
-    const durationMinutes = service.durationMinutes;
+    const durationMinutes =
+      options.durationMinutesOverride ?? service.durationMinutes;
     const bufferMinutes = service.bufferMinutes ?? 0;
     const maxCapacity = service.maxCapacity ?? 1; // Item 5: Use ?? 1 so 0 is caught by validation below
     const servicePrice = Number(service.price) || 0;

@@ -256,6 +256,21 @@ export class BookingsService {
               });
             }
 
+            const bookingHours = command.bookingHours ?? 1;
+            if (
+              !Number.isInteger(bookingHours) ||
+              bookingHours < 1 ||
+              bookingHours > 24
+            ) {
+              throw new BadRequestException({
+                statusCode: 400,
+                code: ErrorCode.VALIDATION_FAILED,
+                message: 'bookingHours must be an integer between 1 and 24',
+              });
+            }
+            const effectiveDurationMinutes =
+              service.durationMinutes * bookingHours;
+
             let selectedCourt: { id: string; name: string } | null = null;
             if (command.courtId) {
               selectedCourt = await tx.courts.findFirst({
@@ -284,7 +299,12 @@ export class BookingsService {
                 command.bookingDate,
                 command.serviceId,
                 command.staffId,
-                { actor: command.actor, txPrisma: tx, courtId: command.courtId },
+                {
+                  actor: command.actor,
+                  txPrisma: tx,
+                  courtId: command.courtId,
+                  durationMinutesOverride: effectiveDurationMinutes,
+                },
               );
 
             // 6. Match candidate slot at exact startTime (HH:mm)
@@ -318,7 +338,7 @@ export class BookingsService {
             }
 
             // 8. Calculate Pricing & Time Objects
-            const priceVal = new Prisma.Decimal(service.price);
+            const priceVal = new Prisma.Decimal(service.price).mul(bookingHours);
             const discountVal = new Prisma.Decimal(0);
             const finalPriceVal = priceVal.sub(discountVal);
 
@@ -364,7 +384,7 @@ export class BookingsService {
                 user_avatar: customerUser.avatarUrl,
                 serviceId: command.serviceId,
                 service_name: service.name,
-                service_duration: service.durationMinutes,
+                service_duration: effectiveDurationMinutes,
                 service_price: priceVal,
                 staffId: finalStaffId,
                 staff_name: staffName,

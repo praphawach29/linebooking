@@ -9,6 +9,7 @@ export interface CreateBookingCommand {
   courtId?: string;
   bookingDate: string; // YYYY-MM-DD
   startTime: string;   // HH:mm
+  bookingHours?: number;
   customerName?: string;
   customerPhone?: string;
   notes?: string;

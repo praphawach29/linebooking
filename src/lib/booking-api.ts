@@ -59,6 +59,7 @@ export interface CreateCustomerBookingInput {
   courtId?: string;
   bookingDate: string;
   startTime: string;
+  bookingHours?: number;
   customerName?: string;
   customerPhone?: string;
   notes?: string;
@@ -242,7 +243,7 @@ export function rescheduleMerchantBooking(
 
 function createBookingRequest(
   path: string,
-  body: Record<string, string>,
+  body: Record<string, string | number>,
   actor: BookingApiActor,
   options: AuthenticatedBookingRequestOptions,
 ): Promise<BookingApiResponse> {
@@ -274,8 +275,8 @@ function createBookingRequest(
 
 function customerBody(
   input: CreateCustomerBookingInput,
-): Record<string, string> {
-  const body: Record<string, string> = {
+): Record<string, string | number> {
+  const body: Record<string, string | number> = {
     serviceId: input.serviceId,
     bookingDate: input.bookingDate,
     startTime: input.startTime,
@@ -283,6 +284,7 @@ function customerBody(
 
   if (input.staffId) body.staffId = input.staffId;
   if (input.courtId) body.courtId = input.courtId;
+  if (input.bookingHours) body.bookingHours = input.bookingHours;
   if (input.customerName) body.customerName = input.customerName;
   if (input.customerPhone) body.customerPhone = input.customerPhone;
   if (input.notes) body.notes = input.notes;

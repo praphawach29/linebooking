@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import liff from '@line/liff';
 
 export interface LiffProfileData {
@@ -11,6 +11,7 @@ export interface LiffProfileData {
   isInClient: boolean;
   isLoading: boolean;
   isAuthorized: boolean;
+  hasIdToken: boolean;
   authCheckedOnce: boolean;
   error?: string;
 }
@@ -45,27 +46,37 @@ function saveStoredProfile(data: LiffProfileData) {
   }
 }
 
-let cachedProfile: LiffProfileData | null = getStoredProfile();
+let cachedProfile: LiffProfileData | null = null;
 let liffPromise: Promise<LiffProfileData> | null = null;
 
 async function getOrInitLiff(targetLiffId: string): Promise<LiffProfileData> {
-  if (cachedProfile && !cachedProfile.isLoading && cachedProfile.authCheckedOnce) {
-    return cachedProfile;
-  }
   if (liffPromise) {
     return liffPromise;
   }
 
   liffPromise = (async () => {
     try {
-      if (!liff.id) {
-        await liff.init({ liffId: targetLiffId });
-      }
+      await liff.init({ liffId: targetLiffId });
 
       const isInClient = liff.isInClient();
       const isLoggedIn = liff.isLoggedIn();
 
       if (isLoggedIn) {
+        const idToken = liff.getIDToken();
+        if (!idToken) {
+          return {
+            lineUserId: '',
+            displayName: 'ลูกค้า LINE User',
+            pictureUrl: '',
+            isLoggedIn: true,
+            isInClient,
+            isLoading: false,
+            isAuthorized: false,
+            hasIdToken: false,
+            authCheckedOnce: true,
+            error: 'ไม่พบ LINE ID token กรุณาตรวจสอบว่า LIFF เปิดใช้ scope openid แล้วเข้าสู่ระบบใหม่',
+          };
+        }
         const userProfile = await liff.getProfile();
         let userEmail = '';
         try {
@@ -89,17 +100,13 @@ async function getOrInitLiff(targetLiffId: string): Promise<LiffProfileData> {
           isInClient,
           isLoading: false,
           isAuthorized,
+          hasIdToken: true,
           authCheckedOnce: true,
         };
         cachedProfile = data;
         saveStoredProfile(data);
         return data;
       } else {
-        const stored = getStoredProfile();
-        if (stored && stored.lineUserId) {
-          cachedProfile = stored;
-          return stored;
-        }
         const data: LiffProfileData = {
           lineUserId: '',
           displayName: 'ลูกค้า LINE User',
@@ -108,6 +115,7 @@ async function getOrInitLiff(targetLiffId: string): Promise<LiffProfileData> {
           isInClient,
           isLoading: false,
           isAuthorized: false,
+          hasIdToken: false,
           authCheckedOnce: true,
         };
         cachedProfile = data;
@@ -115,11 +123,6 @@ async function getOrInitLiff(targetLiffId: string): Promise<LiffProfileData> {
       }
     } catch (err: any) {
       console.error('LIFF Profile Init Error:', err);
-      const stored = getStoredProfile();
-      if (stored && stored.lineUserId) {
-        cachedProfile = stored;
-        return stored;
-      }
       const data: LiffProfileData = {
         lineUserId: '',
         displayName: 'ลูกค้า LINE User',
@@ -128,6 +131,7 @@ async function getOrInitLiff(targetLiffId: string): Promise<LiffProfileData> {
         isInClient: false,
         isLoading: false,
         isAuthorized: false,
+        hasIdToken: false,
         authCheckedOnce: true,
         error: err?.message || 'Failed to initialize LIFF',
       };
@@ -143,13 +147,16 @@ async function getOrInitLiff(targetLiffId: string): Promise<LiffProfileData> {
 
 export function useLiffProfile(liffId?: string) {
   const [profile, setProfile] = useState<LiffProfileData>(() => {
-    if (cachedProfile) {
-      return cachedProfile;
-    }
     const stored = getStoredProfile();
     if (stored) {
-      cachedProfile = stored;
-      return stored;
+      return {
+        ...stored,
+        isLoggedIn: false,
+        isLoading: true,
+        isAuthorized: false,
+        hasIdToken: false,
+        authCheckedOnce: false,
+      };
     }
     return {
       lineUserId: '',
@@ -157,20 +164,37 @@ export function useLiffProfile(liffId?: string) {
       pictureUrl: '',
       isLoggedIn: false,
       isInClient: false,
-      isLoading: false,
+      isLoading: true,
       isAuthorized: false,
+      hasIdToken: false,
       authCheckedOnce: false,
     };
   });
 
   useEffect(() => {
     let isMounted = true;
-    const targetLiffId = liffId || '2010969802-QiiDBSxa';
-
-    // If profile is already resolved and authorized, skip redundant init calls
-    if (cachedProfile && cachedProfile.authCheckedOnce && cachedProfile.lineUserId) {
-      return;
+    const targetLiffId = liffId?.trim();
+    if (!targetLiffId) {
+      setProfile((current) => ({
+        ...current,
+        isLoading: false,
+        authCheckedOnce: true,
+        error: 'ร้านค้านี้ยังไม่ได้ตั้งค่า LIFF ID',
+      }));
+      return () => {
+        isMounted = false;
+      };
     }
+
+    setProfile((current) => ({
+      ...current,
+      isLoggedIn: false,
+      isLoading: true,
+      isAuthorized: false,
+      hasIdToken: false,
+      authCheckedOnce: false,
+      error: undefined,
+    }));
 
     getOrInitLiff(targetLiffId).then((data) => {
       if (isMounted) {
@@ -183,13 +207,13 @@ export function useLiffProfile(liffId?: string) {
     };
   }, [liffId]);
 
-  const login = () => {
+  const login = useCallback(() => {
     if (!liff.isLoggedIn()) {
-      liff.login();
+      liff.login({ redirectUri: window.location.href });
     }
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     if (liff.isLoggedIn()) {
       liff.logout();
     }
@@ -198,7 +222,7 @@ export function useLiffProfile(liffId?: string) {
       localStorage.removeItem(STORAGE_KEY);
     } catch (e) {}
     window.location.reload();
-  };
+  }, []);
 
   return { ...profile, login, logout };
 }

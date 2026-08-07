@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
 import {
   Calendar,
@@ -10,6 +10,7 @@ import {
   X,
   Star,
   Store,
+  ShieldCheck,
 } from 'lucide-react';
 import { LiffHome } from './LiffHome';
 import { LiffServiceDetail } from './LiffServiceDetail';
@@ -72,6 +73,29 @@ export const LiffLayout: React.FC = () => {
     ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1) 
     : '0';
 
+  const loginStartedRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      !isLoading &&
+      activeTenant?.liffId &&
+      liffProfile.authCheckedOnce &&
+      !liffProfile.isLoggedIn &&
+      !liffProfile.error &&
+      !loginStartedRef.current
+    ) {
+      loginStartedRef.current = true;
+      liffProfile.login();
+    }
+  }, [
+    activeTenant?.liffId,
+    isLoading,
+    liffProfile.authCheckedOnce,
+    liffProfile.error,
+    liffProfile.isLoggedIn,
+    liffProfile.login,
+  ]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-slate-900 text-white font-prompt">
@@ -106,6 +130,47 @@ export const LiffLayout: React.FC = () => {
           >
             🔑 เข้าสู่ระบบร้านค้า
           </a>
+        </div>
+      </div>
+    );
+  }
+
+  if (liffProfile.isLoading || !liffProfile.authCheckedOnce) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-900 p-6 text-white font-prompt">
+        <div className="flex flex-col items-center text-center">
+          <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+          <p className="text-sm font-bold">กำลังตรวจสอบบัญชี LINE...</p>
+          <p className="mt-1 text-xs text-slate-400">กรุณารอสักครู่ก่อนเริ่มทำรายการจอง</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!liffProfile.isLoggedIn || !liffProfile.isAuthorized || !liffProfile.hasIdToken) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-900 p-6 text-white font-prompt">
+        <div className="w-full max-w-sm text-center">
+          <ShieldCheck className="mx-auto mb-5 h-12 w-12 text-emerald-400" />
+          <h1 className="text-xl font-black">ยืนยันบัญชี LINE ก่อนจอง</h1>
+          <p className="mt-2 text-sm leading-6 text-slate-300">
+            ระบบต้องใช้บัญชี LINE เพื่อบันทึกคิวและส่งการแจ้งเตือนให้ถูกคน
+          </p>
+          {liffProfile.error && (
+            <p className="mt-4 rounded-lg border border-red-400/30 bg-red-500/10 p-3 text-xs leading-5 text-red-200">
+              {liffProfile.error}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              if (liffProfile.isLoggedIn) liffProfile.logout();
+              else liffProfile.login();
+            }}
+            className="mt-5 w-full rounded-lg bg-emerald-500 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-emerald-600"
+          >
+            {liffProfile.isLoggedIn ? 'เริ่มการเข้าสู่ระบบ LINE ใหม่' : 'เข้าสู่ระบบด้วย LINE'}
+          </button>
         </div>
       </div>
     );

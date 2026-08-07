@@ -188,9 +188,10 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
   };
 
   const handleSubmit = () => {
-    if (!liffProfile.isLoggedIn && !currentUser) {
+    if (!liffProfile.isLoggedIn || !liffProfile.isAuthorized || !liffProfile.hasIdToken) {
       setValidationError('กรุณาเข้าสู่ระบบด้วย LINE ก่อนทำการจอง เพื่อรับการแจ้งเตือนคิวและบันทึกคิวลงระบบ');
-      liffProfile.login();
+      if (liffProfile.isLoggedIn) liffProfile.logout();
+      else liffProfile.login();
       setShowSummaryModal(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;

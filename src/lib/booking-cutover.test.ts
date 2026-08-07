@@ -85,4 +85,17 @@ describe('Step 11 booking cutover', () => {
       /REVOKE INSERT, UPDATE, DELETE ON TABLE public\.bookings FROM authenticated/i,
     );
   });
+
+  it('gates the LIFF booking flow on a verified LINE ID token', async () => {
+    const [layout, summary, profileHook] = await Promise.all([
+      readFile(new URL('../components/liff/LiffLayout.tsx', import.meta.url), 'utf8'),
+      readFile(new URL('../components/liff/LiffBookingSummary.tsx', import.meta.url), 'utf8'),
+      readFile(new URL('../hooks/useLiffProfile.ts', import.meta.url), 'utf8'),
+    ]);
+
+    assert.match(layout, /!liffProfile\.isLoggedIn \|\| !liffProfile\.isAuthorized \|\| !liffProfile\.hasIdToken/);
+    assert.match(summary, /!liffProfile\.isLoggedIn \|\| !liffProfile\.isAuthorized \|\| !liffProfile\.hasIdToken/);
+    assert.match(profileHook, /const idToken = liff\.getIDToken\(\)/);
+    assert.doesNotMatch(profileHook, /cachedProfile && cachedProfile\.authCheckedOnce/);
+  });
 });

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { onboardMerchant } from '../lib/merchant-onboarding';
 
 interface AuthUser {
   id: string;               // auth.users UUID
@@ -97,42 +98,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Auto-recovery: If account exists in Auth but shop profile wasn't created OR tenant_id is NULL
       const needsShop = !user || !user.tenantId;
       if (needsShop) {
-        const tenantId = crypto.randomUUID();
         const defaultShopName = `ร้านค้าของ ${data.user.email?.split('@')[0] || 'ฉัน'}`;
-        const slug = 'shop-' + Date.now().toString(36);
-
-        // 1. Create tenant record
-        const { error: tenantError } = await supabase.from('tenants').insert({
-          id: tenantId,
-          name: defaultShopName,
-          slug,
-          business_type: 'other',
-          is_active: true,
-          settings: { currency: 'THB', autoConfirm: false, depositPercentage: 0 },
-        });
-
-        if (!tenantError) {
-          if (!user) {
-            // 2a. No user row at all — create one
-            const { error: userError } = await supabase.from('users').insert({
-              id: data.user.id,
-              auth_user_id: data.user.id,   // ← สำคัญ: ทำให้ my_tenant_ids() หา tenant ได้
-              tenant_id: tenantId,
-              display_name: data.user.email?.split('@')[0] || 'เจ้าของร้าน',
-              email: data.user.email || email,
+        if (data.session?.access_token) {
+          try {
+            const result = await onboardMerchant(data.session.access_token, {
+              displayName: user?.displayName || data.user.email?.split('@')[0] || 'เจ้าของร้าน',
+              shopName: defaultShopName,
+              businessType: 'other',
             });
-            if (!userError) {
-              await supabase.from('tenants').update({ owner_user_id: data.user.id }).eq('id', tenantId);
-            }
-          } else {
-            // 2b. User row exists but has no tenant — just link it
-            await supabase
-              .from('users')
-              .update({ tenant_id: tenantId })
-              .eq('id', user.dbUserId);
-            await supabase.from('tenants').update({ owner_user_id: user.dbUserId }).eq('id', tenantId);
+            user = result.user;
+          } catch (onboardingError) {
+            return {
+              error:
+                onboardingError instanceof Error
+                  ? onboardingError.message
+                  : 'ไม่สามารถสร้างข้อมูลร้านค้าได้',
+            };
           }
-          user = await fetchDbUser(data.user);
         }
       }
 
@@ -209,61 +191,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
     }
 
-    const slug = shopName.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + Date.now().toString(36);
-
-    // 4. Create tenant record
-    const tenantId = crypto.randomUUID();
-    const { error: tenantError } = await supabase.from('tenants').insert({
-      id: tenantId,
-      name: shopName,
-      slug,
-      business_type: businessType,
-      is_active: true,
-      settings: { currency: 'THB', autoConfirm: false, depositPercentage: 0 },
-    });
-
-    if (tenantError) return { error: `ไม่สามารถสร้างข้อมูลร้านค้าได้: ${tenantError.message}` };
-
-    // 5. Create or update user record linked to auth user + tenant
-    // Use authUserId directly as users.id to guarantee 1:1 mapping with auth.users
-    const userPayload: Record<string, any> = {
-      id: authUserId,
-      auth_user_id: authUserId,    // ← สำคัญ: ทำให้ my_tenant_ids() หา tenant ได้
-      tenant_id: tenantId,
-      display_name: displayName,
-      email,
-      phone,
-    };
-
-    let { error: userError } = await supabase.from('users').insert(userPayload);
-
-    if (userError) {
-      // If user row already exists for this auth user, update its tenant_id
-      const { error: updateErr } = await supabase
-        .from('users')
-        .update({
-          tenant_id: tenantId,
-          display_name: displayName,
-          email,
-          phone,
-        })
-        .eq('id', authUserId);
-
-      if (updateErr) {
-        return { error: `ไม่สามารถสร้างโปรไฟล์ผู้ใช้ได้: ${userError.message}` };
-      }
-    }
-
-    // 6. Update tenant owner & hydrate local auth user context
-    await supabase
-      .from('tenants')
-      .update({ owner_user_id: authUserId })
-      .eq('id', tenantId);
-
-    const { data: currentAuth } = await supabase.auth.getUser();
-    if (currentAuth?.user) {
-      const userProfile = await fetchDbUser(currentAuth.user);
-      if (userProfile) setAuthUser(userProfile);
+    try {
+      const result = await onboardMerchant(activeSession.access_token, {
+        displayName,
+        shopName,
+        businessType,
+        phone,
+      });
+      setAuthUser(result.user);
+    } catch (onboardingError) {
+      return {
+        error:
+          onboardingError instanceof Error
+            ? onboardingError.message
+            : 'ไม่สามารถสร้างข้อมูลร้านค้าได้',
+      };
     }
 
     return { error: null };

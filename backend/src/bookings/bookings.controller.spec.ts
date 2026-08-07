@@ -59,8 +59,11 @@ describe('BookingsController (Unit Tests)', () => {
 
   const mockBookingsService = {
     getAvailableSlots: jest.fn(),
+    getCustomerBookings: jest.fn(),
     createBookingAtomic: jest.fn(),
     cancelBookingAsMerchant: jest.fn(),
+    updateBookingStatusAsMerchant: jest.fn(),
+    rescheduleBookingAsMerchant: jest.fn(),
   };
 
   const mockAvailabilityService = {
@@ -257,6 +260,20 @@ describe('BookingsController (Unit Tests)', () => {
       createdAt: '2026-08-02T18:00:00.000Z',
     };
 
+    it('returns only the authenticated LINE customer booking history', async () => {
+      bookingsService.getCustomerBookings.mockResolvedValueOnce([
+        bookingResponse,
+      ]);
+
+      await expect(
+        controller.getCustomerBookings(tenantId, { id: customerId }),
+      ).resolves.toEqual([bookingResponse]);
+      expect(bookingsService.getCustomerBookings).toHaveBeenCalledWith(
+        tenantId,
+        customerId,
+      );
+    });
+
     it('maps authenticated LINE customer data to the atomic customer command', async () => {
       bookingsService.createBookingAtomic.mockResolvedValueOnce(
         bookingResponse,
@@ -335,6 +352,10 @@ describe('BookingsController (Unit Tests)', () => {
         GUARDS_METADATA,
         BookingsController.prototype.createCustomerBooking,
       ) as unknown[];
+      const historyGuards = Reflect.getMetadata(
+        GUARDS_METADATA,
+        BookingsController.prototype.getCustomerBookings,
+      ) as unknown[];
       const merchantGuards = Reflect.getMetadata(
         GUARDS_METADATA,
         BookingsController.prototype.createMerchantBooking,
@@ -343,10 +364,24 @@ describe('BookingsController (Unit Tests)', () => {
         GUARDS_METADATA,
         BookingsController.prototype.cancelMerchantBooking,
       ) as unknown[];
+      const statusGuards = Reflect.getMetadata(
+        GUARDS_METADATA,
+        BookingsController.prototype.updateMerchantBookingStatus,
+      ) as unknown[];
+      const rescheduleGuards = Reflect.getMetadata(
+        GUARDS_METADATA,
+        BookingsController.prototype.rescheduleMerchantBooking,
+      ) as unknown[];
 
       expect(customerGuards).toEqual([LineIdTokenGuard]);
+      expect(historyGuards).toEqual([LineIdTokenGuard]);
       expect(merchantGuards).toEqual([SupabaseAuthGuard, TenantAccessGuard]);
       expect(cancellationGuards).toEqual([
+        SupabaseAuthGuard,
+        TenantAccessGuard,
+      ]);
+      expect(statusGuards).toEqual([SupabaseAuthGuard, TenantAccessGuard]);
+      expect(rescheduleGuards).toEqual([
         SupabaseAuthGuard,
         TenantAccessGuard,
       ]);

@@ -4,6 +4,7 @@ import {
   BookingApiError,
   createCustomerBooking,
   createMerchantBooking,
+  getCustomerBookings,
   getAvailableSlots,
 } from './booking-api';
 
@@ -43,6 +44,31 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 describe('booking-api', () => {
+  it('loads customer history with tenant and LINE authorization headers', async () => {
+    let capturedUrl = '';
+    let capturedInit: RequestInit | undefined;
+    const fetcher: typeof fetch = async (url, init) => {
+      capturedUrl = String(url);
+      capturedInit = init;
+      return jsonResponse([]);
+    };
+
+    await getCustomerBookings({
+      tenantId,
+      accessToken: 'line-id-token',
+      apiUrl,
+      fetcher,
+    });
+
+    assert.equal(capturedUrl, `${apiUrl}/bookings/mine`);
+    assert.equal(capturedInit?.method, 'GET');
+    assert.equal(
+      new Headers(capturedInit?.headers).get('Authorization'),
+      'Bearer line-id-token',
+    );
+    assert.equal(new Headers(capturedInit?.headers).get('x-tenant-id'), tenantId);
+  });
+
   it('sends a customer request with the LINE token, tenant header and whitelisted camelCase body', async () => {
     let capturedUrl = '';
     let capturedInit: RequestInit | undefined;

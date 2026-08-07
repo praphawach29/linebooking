@@ -8,6 +8,9 @@ import {
 import {
   createCustomerBookingWithLiff,
   createMerchantBookingWithSession,
+  getCustomerBookingsWithLiff,
+  rescheduleMerchantBookingWithSession,
+  updateMerchantBookingStatusWithSession,
 } from '../lib/booking-client';
 import { mapBookingApiResponse } from '../lib/booking-mapper';
 import { sendLineBookingConfirmation } from '../utils/lineMessaging';
@@ -321,12 +324,12 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         ] = await Promise.all([
           // If platform_admin: fetch ALL real tenants in Supabase!
           // If logged-in merchant: fetch by their specific tenant_id
-          // If public guest: fetch active tenants (RLS restricts it)
+          // Public guests use the filtered view, which excludes LINE credentials.
           isPlatformAdmin
             ? supabase.from('tenants').select('*').order('created_at', { ascending: false })
             : isAuthenticated && userTenantId
             ? supabase.from('tenants').select('*').eq('id', userTenantId)
-            : supabase.from('tenants').select('*'),
+            : supabase.from('public_tenants').select('*'),
           supabase.from('services').select('*'),
           supabase.from('service_addons').select('*'),
           supabase.from('staff').select('*'),
@@ -337,7 +340,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           // even if RLS policies are inconsistent between migrations
           isAuthenticated && userTenantId
             ? supabase.from('bookings').select('*').eq('tenant_id', userTenantId).order('created_at', { ascending: false })
-            : supabase.from('bookings').select('*').order('created_at', { ascending: false }),
+            : Promise.resolve({ data: [] }),
           supabase.from('cancellation_policies').select('*'),
           supabase.from('reviews').select('*'),
           supabase.from('rewards').select('*'),
@@ -570,10 +573,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return activeTenant ? rewards.filter((r) => r.tenantId === activeTenant.id) : [];
   }, [rewards, activeTenant]);
 
-  /**
-   * คิวของลูกค้าคนเดียว — เรียก RPC get_my_bookings ที่คืนเฉพาะการจองของ LINE user นั้น
-   * (เดิมหน้า LIFF อ่านตาราง bookings ทั้งตาราง ซึ่งเห็นชื่อ/เบอร์ลูกค้าคนอื่นด้วย)
-   */
+  /** Load this customer history through the LINE-authenticated backend API. */
   const fetchMyBookings = async (lineUserId?: string): Promise<Booking[]> => {
     let lineId = lineUserId || currentUser?.lineUserId;
     if (!lineId) {
@@ -588,36 +588,32 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } catch (e) {}
     }
 
-    const localBookings = getLocalStoredBookings();
+    if (!lineId || !activeTenant) return [];
 
-    if (!lineId) {
-      setBookings((prev) => {
-        const ids = new Set(localBookings.map((b) => b.id));
-        return [...localBookings, ...prev.filter((b) => !ids.has(b.id))];
+    const liffId =
+      activeTenant.liffId ||
+      (import.meta.env.VITE_LIFF_ID as string | undefined) ||
+      '';
+
+    try {
+      const response = await getCustomerBookingsWithLiff({
+        tenantId: activeTenant.id,
+        liffId,
       });
-      return localBookings;
-    }
-
-    const { data, error } = await supabase.rpc('get_my_bookings', { p_line_user_id: lineId });
-    if (error) {
-      console.error('Error fetching my bookings:', error.message);
-      setBookings((prev) => {
-        const ids = new Set(localBookings.map((b) => b.id));
-        return [...localBookings, ...prev.filter((b) => !ids.has(b.id))];
+      const list = response.map((item) => {
+        const service = services.find((entry) => entry.id === item.serviceId);
+        return mapBookingApiResponse(item, service);
       });
-      return localBookings;
+
+      setBookings((prev) => {
+        const ids = new Set(list.map((b) => b.id));
+        return [...list, ...prev.filter((b) => !ids.has(b.id))];
+      });
+      return list;
+    } catch (error) {
+      console.error('Error fetching customer bookings from API:', error);
+      return [];
     }
-
-    const list = camelizeKeys(data || []) as Booking[];
-
-    // A successful RPC response is the source of truth for the customer's queue.
-    // Do not merge browser-local fallback records here; each device can have stale
-    // localStorage and would otherwise show a different booking count.
-    setBookings((prev) => {
-      const ids = new Set(list.map((b) => b.id));
-      return [...list, ...prev.filter((b) => !ids.has(b.id))];
-    });
-    return list;
   };
 
   const fetchMembership = (userId: string) => {
@@ -984,195 +980,61 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       return savedBooking;
     } catch (err: unknown) {
-      console.warn('Booking API returned error, proceeding with resilient booking creation:', err);
-
-      // Resilient fallback booking creation for multi-hour and web/LIFF demo sessions
-      const bHours = data.bookingHours || 1;
-      const startH = parseInt(cleanStartTime.split(':')[0], 10);
-      const endH = startH + bHours;
-      const endTime = `${endH < 10 ? '0' + endH : endH}:00`;
-
-      const addonsTotal = (data.selectedAddons || []).reduce((sum, a) => sum + a.price, 0);
-      const courtExtra = localCourt?.extraPricePerHour || 0;
-      const unitPrice = Math.max(0, service.price + courtExtra);
-      const totalPrice = (unitPrice * bHours) + addonsTotal;
-      const depositPct = activeTenant.settings.depositPercentage ?? 50;
-      const depositAmount = (totalPrice * depositPct) / 100;
-
-      const fallbackBooking: Booking = {
-        id: generateUUID(),
-        refNo: `BK-${Date.now().toString().slice(-6)}`,
-        tenantId: activeTenant.id,
-        userId: currentUser?.id || 'guest',
-        userName: data.customerName || currentUser?.displayName || 'ลูกค้าทั่วไป',
-        userPhone: data.customerPhone || currentUser?.phone || '',
-        serviceId: service.id,
-        serviceName: service.name,
-        serviceDuration: service.durationMinutes * bHours,
-        servicePrice: service.price,
-        staffId: data.staffId || localStaff?.id || '',
-        staffName: localStaff?.name || 'เจ้าหน้าที่ประจำสนาม',
-        courtId: data.courtId,
-        courtName: localCourt?.name,
-        bookingDate: data.bookingDate,
-        startTime: cleanStartTime,
-        endTime: endTime,
-        status: 'pending',
-        price: totalPrice,
-        discountAmount: 0,
-        finalPrice: totalPrice,
-        depositAmount: depositAmount,
-        paymentStatus: 'unpaid',
-        paymentMethod: data.paymentMethod,
-        source: data.source || 'line_liff',
-        notes: data.notes,
-        createdAt: new Date().toISOString(),
-      };
-
-      saveLocalStoredBooking(fallbackBooking);
-
-      // Save directly into Supabase PostgreSQL bookings table
-      // Step 1: Resolve a valid user_id by upserting LINE user into users table
-      try {
-        let resolvedUserId: string | null = null;
-
-        // Try to get line user id from stored profile
-        const lineProfileRaw = (() => {
-          try { return localStorage.getItem('line_liff_profile_v1'); } catch { return null; }
-        })();
-        const lineProfile = lineProfileRaw ? (() => { try { return JSON.parse(lineProfileRaw); } catch { return null; } })() : null;
-        const lineUserId = lineProfile?.lineUserId || null;
-
-        if (lineUserId) {
-          // Upsert the LINE user into users table first (no FK violation)
-          const { data: upsertedUser } = await supabase
-            .from('users')
-            .upsert({
-              line_user_id: lineUserId,
-              display_name: fallbackBooking.userName || 'ลูกค้า LINE',
-              role: 'customer',
-            }, { onConflict: 'line_user_id' })
-            .select('id')
-            .single();
-          resolvedUserId = upsertedUser?.id ?? null;
-        }
-
-        // Step 2: Insert booking with resolved user_id (or null to avoid FK violation)
-        const { error: bookingError } = await supabase.from('bookings').upsert({
-          id: fallbackBooking.id,
-          ref_no: fallbackBooking.refNo,
-          tenant_id: fallbackBooking.tenantId,
-          user_id: resolvedUserId,
-          user_name: fallbackBooking.userName,
-          user_phone: fallbackBooking.userPhone || null,
-          service_id: fallbackBooking.serviceId,
-          service_name: fallbackBooking.serviceName,
-          service_duration: fallbackBooking.serviceDuration,
-          service_price: fallbackBooking.servicePrice,
-          staff_id: fallbackBooking.staffId || null,
-          staff_name: fallbackBooking.staffName || null,
-          court_id: fallbackBooking.courtId || null,
-          court_name: fallbackBooking.courtName || null,
-          booking_date: fallbackBooking.bookingDate,
-          start_time: fallbackBooking.startTime,
-          end_time: fallbackBooking.endTime,
-          status: fallbackBooking.status,
-          price: fallbackBooking.price,
-          discount_amount: fallbackBooking.discountAmount,
-          final_price: fallbackBooking.finalPrice,
-          deposit_amount: fallbackBooking.depositAmount,
-          payment_status: fallbackBooking.paymentStatus,
-          payment_method: fallbackBooking.paymentMethod || null,
-          source: fallbackBooking.source || 'line_liff',
-          notes: fallbackBooking.notes || null,
-          created_at: fallbackBooking.createdAt,
-        });
-        if (bookingError) {
-          console.error('Supabase booking upsert error:', bookingError.message, bookingError.details);
-        }
-      } catch (dbErr) {
-        console.warn('Supabase fallback upsert warning:', dbErr);
-      }
-
-      setBookings((prev) => [fallbackBooking, ...prev]);
-      setError(null);
-      
-      // Trigger LINE message asynchronously
-      handleLineBookingConfirmation(fallbackBooking, activeTenant, lineProfile?.lineUserId).catch(console.error);
-      
-      return fallbackBooking;
+      console.error('Booking API request failed:', err);
+      setError(err instanceof Error ? err.message : 'Unable to create booking');
+      return null;
     }
   };
 
   const updateBookingStatus = async (bookingId: string, status: BookingStatus, reason?: string) => {
-    const existing = bookings.find((b) => b.id === bookingId);
-    if (!existing) return;
+    const existing = bookings.find((booking) => booking.id === bookingId);
+    if (!existing || !activeTenant) return;
 
-    const now = new Date().toISOString();
-    const updated: Booking = {
-      ...existing,
-      status,
-      cancellationReason: status === 'cancelled' ? reason || existing.cancellationReason : existing.cancellationReason,
-      cancelledAt: status === 'cancelled' ? now : existing.cancelledAt,
-      checkedInAt: status === 'checked_in' ? now : existing.checkedInAt,
-      completedAt: status === 'completed' ? now : existing.completedAt,
-      paymentStatus:
-        status === 'cancelled' && existing.paymentStatus === 'paid' ? 'refunded' : existing.paymentStatus,
-    };
+    try {
+      const response = await updateMerchantBookingStatusWithSession(
+        bookingId,
+        { status, reason },
+        { tenantId: activeTenant.id },
+      );
+      const service = services.find((item) => item.id === response.serviceId);
+      const staff = staffs.find((item) => item.id === response.staffId);
+      const court = courts.find((item) => item.id === response.courtId);
+      const updated = mapBookingApiResponse(response, service, staff, court);
+      setBookings((prev) => prev.map((item) => (item.id === bookingId ? updated : item)));
 
-    setBookings((prev) => prev.map((b) => (b.id === bookingId ? updated : b)));
-
-    const { error: updateError } = await supabase
-      .from('bookings')
-      .update({
-        status: updated.status,
-        cancellation_reason: updated.cancellationReason || null,
-        cancelled_at: updated.cancelledAt || null,
-        checked_in_at: updated.checkedInAt || null,
-        completed_at: updated.completedAt || null,
-        payment_status: updated.paymentStatus,
-      })
-      .eq('id', bookingId);
-
-    if (updateError) {
-      setBookings((prev) => prev.map((b) => (b.id === bookingId ? existing : b)));
-      setError(updateError.message || 'Failed to update booking status');
+      if (status === 'confirmed' && existing.status !== 'confirmed') {
+        handleLineBookingConfirmation(updated, activeTenant).catch(console.error);
+      }
+      setError(null);
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : 'Failed to update booking status');
       throw updateError;
     }
-
-    // If status changed to confirmed, send confirmation message
-    if (status === 'confirmed' && existing.status !== 'confirmed') {
-      handleLineBookingConfirmation(updated, activeTenant).catch(console.error);
-    }
-
-    setError(null);
   };
 
-  const rescheduleBooking = async (bookingId: string, newDate: string, newStartTime: string, newEndTime: string) => {
-    const existing = bookings.find((b) => b.id === bookingId);
-    if (!existing) return;
+  const rescheduleBooking = async (
+    bookingId: string,
+    newDate: string,
+    newStartTime: string,
+    _newEndTime: string,
+  ) => {
+    const existing = bookings.find((booking) => booking.id === bookingId);
+    if (!existing || !activeTenant) return;
 
-    const updated: Booking = {
-      ...existing,
-      bookingDate: newDate,
-      startTime: newStartTime,
-      endTime: newEndTime,
-    };
-
-    setBookings((prev) => prev.map((b) => (b.id === bookingId ? updated : b)));
-
-    const { error: updateError } = await supabase
-      .from('bookings')
-      .update({
-        booking_date: newDate,
-        start_time: newStartTime,
-        end_time: newEndTime,
-      })
-      .eq('id', bookingId);
-
-    if (updateError) {
-      setBookings((prev) => prev.map((b) => (b.id === bookingId ? existing : b)));
-      setError(updateError.message || 'Failed to reschedule booking');
+    try {
+      const response = await rescheduleMerchantBookingWithSession(
+        bookingId,
+        { bookingDate: newDate, startTime: newStartTime },
+        { tenantId: activeTenant.id },
+      );
+      const service = services.find((item) => item.id === response.serviceId);
+      const staff = staffs.find((item) => item.id === response.staffId);
+      const court = courts.find((item) => item.id === response.courtId);
+      const updated = mapBookingApiResponse(response, service, staff, court);
+      setBookings((prev) => prev.map((item) => (item.id === bookingId ? updated : item)));
+      setError(null);
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : 'Failed to reschedule booking');
       throw updateError;
     }
   };

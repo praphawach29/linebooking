@@ -19,6 +19,8 @@ import {
   CreateCustomerBookingDto,
   CreateMerchantBookingDto,
   GetAvailableSlotsQueryDto,
+  RescheduleBookingDto,
+  UpdateBookingStatusDto,
 } from './dto';
 import { CustomerTenantGuard } from '../common/guards/customer-tenant.guard';
 import { TenantId } from '../common/decorators/tenant-id.decorator';
@@ -33,6 +35,15 @@ export class BookingsController {
     private readonly bookingsService: BookingsService,
     private readonly availabilityService: AvailabilityService,
   ) {}
+
+  @Get('mine')
+  @UseGuards(LineIdTokenGuard)
+  async getCustomerBookings(
+    @TenantId() tenantId: string,
+    @CurrentCustomer() customer: { id: string },
+  ): Promise<BookingResponseDto[]> {
+    return this.bookingsService.getCustomerBookings(tenantId, customer.id);
+  }
 
   /**
    * GET /bookings/available-slots
@@ -105,5 +116,35 @@ export class BookingsController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) bookingId: string,
   ) {
     return this.bookingsService.cancelBookingAsMerchant(tenantId, bookingId);
+  }
+
+  @Patch(':id/status')
+  @UseGuards(SupabaseAuthGuard, TenantAccessGuard)
+  async updateMerchantBookingStatus(
+    @TenantId() tenantId: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) bookingId: string,
+    @Body() dto: UpdateBookingStatusDto,
+  ): Promise<BookingResponseDto> {
+    return this.bookingsService.updateBookingStatusAsMerchant(
+      tenantId,
+      bookingId,
+      dto.status,
+      dto.reason,
+    );
+  }
+
+  @Patch(':id/reschedule')
+  @UseGuards(SupabaseAuthGuard, TenantAccessGuard)
+  async rescheduleMerchantBooking(
+    @TenantId() tenantId: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) bookingId: string,
+    @Body() dto: RescheduleBookingDto,
+  ): Promise<BookingResponseDto> {
+    return this.bookingsService.rescheduleBookingAsMerchant(
+      tenantId,
+      bookingId,
+      dto.bookingDate,
+      dto.startTime,
+    );
   }
 }

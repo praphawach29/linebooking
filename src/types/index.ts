@@ -74,6 +74,7 @@ export interface Tenant {
     maxAdvanceBookingUnit?: 'days' | 'hours';
     minLeadTimeHours?: number;
     depositPercentage?: number;
+    bufferMinutesDefault?: number;
     googleMapUrl?: string;
     currency?: string;
     lineReminderEnabled?: boolean;
@@ -90,7 +91,6 @@ export interface Tenant {
     enableStaffSelection?: boolean;
     enableCourtSelection?: boolean;
     resourceTerm?: string;
-    googleMapUrl?: string;
     bookingFlowConfig?: BookingFlowConfig;
   };
   createdAt: string;

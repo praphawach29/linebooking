@@ -40,5 +40,9 @@ export interface BookingResponseDto {
   paymentMethod?: string | null;
   source: string;
   notes?: string | null;
+  cancellationReason?: string | null;
+  cancelledAt?: string | null;
+  checkedInAt?: string | null;
+  completedAt?: string | null;
   createdAt: string;
 }

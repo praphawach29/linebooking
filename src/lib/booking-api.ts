@@ -96,6 +96,10 @@ export interface BookingApiResponse {
   paymentMethod?: string | null;
   source: string;
   notes?: string | null;
+  cancellationReason?: string | null;
+  cancelledAt?: string | null;
+  checkedInAt?: string | null;
+  completedAt?: string | null;
   createdAt: string;
 }
 
@@ -163,6 +167,24 @@ export function createCustomerBooking(
   return createBookingRequest('/bookings', body, 'customer', options);
 }
 
+export function getCustomerBookings(
+  options: AuthenticatedBookingRequestOptions,
+): Promise<BookingApiResponse[]> {
+  return requestJson<BookingApiResponse[]>(
+    '/bookings/mine',
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${options.accessToken}`,
+        'x-tenant-id': options.tenantId,
+      },
+      signal: options.signal,
+    },
+    'customer',
+    options,
+  );
+}
+
 export function createMerchantBooking(
   input: CreateMerchantBookingInput,
   options: AuthenticatedBookingRequestOptions,
@@ -172,6 +194,50 @@ export function createMerchantBooking(
     ...customerBody(input),
   };
   return createBookingRequest('/bookings/merchant', body, 'merchant', options);
+}
+
+export function updateMerchantBookingStatus(
+  bookingId: string,
+  input: { status: string; reason?: string },
+  options: AuthenticatedBookingRequestOptions,
+): Promise<BookingApiResponse> {
+  return requestJson<BookingApiResponse>(
+    `/bookings/${bookingId}/status`,
+    {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${options.accessToken}`,
+        'Content-Type': 'application/json',
+        'x-tenant-id': options.tenantId,
+      },
+      body: JSON.stringify(input),
+      signal: options.signal,
+    },
+    'merchant',
+    options,
+  );
+}
+
+export function rescheduleMerchantBooking(
+  bookingId: string,
+  input: { bookingDate: string; startTime: string },
+  options: AuthenticatedBookingRequestOptions,
+): Promise<BookingApiResponse> {
+  return requestJson<BookingApiResponse>(
+    `/bookings/${bookingId}/reschedule`,
+    {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${options.accessToken}`,
+        'Content-Type': 'application/json',
+        'x-tenant-id': options.tenantId,
+      },
+      body: JSON.stringify(input),
+      signal: options.signal,
+    },
+    'merchant',
+    options,
+  );
 }
 
 function createBookingRequest(

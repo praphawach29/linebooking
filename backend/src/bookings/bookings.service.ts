@@ -25,6 +25,141 @@ export class BookingsService {
     private readonly availabilityService: AvailabilityService,
   ) {}
 
+  async getCustomerBookings(
+    tenantId: string,
+    customerUserId: string,
+  ): Promise<BookingResponseDto[]> {
+    const bookings = await this.prisma.booking.findMany({
+      where: { tenantId, userId: customerUserId },
+      orderBy: [{ bookingDate: 'desc' }, { startTime: 'desc' }],
+      take: 100,
+    });
+
+    return bookings.map((booking) => this.toBookingResponse(booking));
+  }
+
+  async updateBookingStatusAsMerchant(
+    tenantId: string,
+    bookingId: string,
+    status: 'pending' | 'confirmed' | 'checked_in' | 'completed' | 'cancelled' | 'no_show',
+    reason?: string,
+  ): Promise<BookingResponseDto> {
+    const booking = await this.prisma.booking.findFirst({
+      where: { id: bookingId, tenantId },
+    });
+    if (!booking) {
+      throw new NotFoundException({
+        statusCode: 404,
+        code: ErrorCode.BOOKING_NOT_FOUND,
+        message: 'Booking not found for this tenant',
+      });
+    }
+
+    if (booking.status === status) return this.toBookingResponse(booking);
+
+    const transitions: Record<string, string[]> = {
+      pending: ['confirmed', 'cancelled'],
+      confirmed: ['checked_in', 'completed', 'cancelled', 'no_show'],
+      checked_in: ['completed', 'cancelled'],
+    };
+    if (!transitions[booking.status || 'pending']?.includes(status)) {
+      throw new BadRequestException({
+        statusCode: 400,
+        code: ErrorCode.INVALID_BOOKING_STATUS,
+        message: `Cannot change booking status from ${booking.status} to ${status}`,
+      });
+    }
+
+    const now = new Date();
+    const updated = await this.prisma.booking.update({
+      where: { id: booking.id },
+      data: {
+        status,
+        cancellationReason:
+          status === 'cancelled' ? reason?.trim() || null : undefined,
+        cancelledAt: status === 'cancelled' ? now : undefined,
+        checkedInAt: status === 'checked_in' ? now : undefined,
+        completedAt: status === 'completed' ? now : undefined,
+      },
+    });
+    return this.toBookingResponse(updated);
+  }
+
+  async rescheduleBookingAsMerchant(
+    tenantId: string,
+    bookingId: string,
+    bookingDate: string,
+    startTime: string,
+  ): Promise<BookingResponseDto> {
+    return this.prisma.$transaction(
+      async (tx) => {
+        const booking = await tx.booking.findFirst({
+          where: { id: bookingId, tenantId },
+        });
+        if (!booking) {
+          throw new NotFoundException({
+            statusCode: 404,
+            code: ErrorCode.BOOKING_NOT_FOUND,
+            message: 'Booking not found for this tenant',
+          });
+        }
+        if (!['pending', 'confirmed'].includes(booking.status || 'pending')) {
+          throw new BadRequestException({
+            statusCode: 400,
+            code: ErrorCode.INVALID_BOOKING_STATUS,
+            message: `Cannot reschedule booking with status ${booking.status}`,
+          });
+        }
+        if (!booking.serviceId) {
+          throw new NotFoundException({
+            statusCode: 404,
+            code: ErrorCode.SERVICE_NOT_FOUND,
+            message: 'Booking service no longer exists',
+          });
+        }
+
+        const availability = await this.availabilityService.calculateAvailability(
+          tenantId,
+          bookingDate,
+          booking.serviceId,
+          booking.staffId || undefined,
+          {
+            actor: 'merchant',
+            txPrisma: tx,
+            courtId: booking.court_id || undefined,
+            excludeBookingId: booking.id,
+          },
+        );
+        const slot = availability.slots.find(
+          (candidate) => candidate.startTime === startTime && candidate.available,
+        );
+        if (!slot) {
+          throw new ConflictException({
+            statusCode: 409,
+            code: ErrorCode.BOOKING_SLOT_UNAVAILABLE,
+            message: 'Selected booking slot is no longer available',
+          });
+        }
+
+        const [year, month, day] = bookingDate.split('-').map(Number);
+        const updated = await tx.booking.update({
+          where: { id: booking.id },
+          data: {
+            bookingDate: new Date(Date.UTC(year, month - 1, day)),
+            startTime: new Date(`1970-01-01T${startTime}:00Z`),
+            endTime: new Date(`1970-01-01T${slot.endTime}:00Z`),
+            staffId: slot.staffId,
+          },
+        });
+        return this.toBookingResponse(updated);
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        timeout: 10000,
+      },
+    );
+  }
+
   /**
    * Atomic Create Booking with Serializable Isolation Level and Bounded Retry (up to 3 attempts).
    * Single source of truth for creating customer and merchant bookings in Phase 1.
@@ -346,6 +481,43 @@ export class BookingsService {
   }
 
   // --- Typed Helper Methods ---
+
+  private toBookingResponse(booking: BookingPayload): BookingResponseDto {
+    return {
+      id: booking.id,
+      refNo: booking.ref_no,
+      tenantId: booking.tenantId || '',
+      userId: booking.userId || '',
+      userName: booking.user_name,
+      userPhone: booking.user_phone,
+      serviceId: booking.serviceId || '',
+      serviceName: booking.service_name,
+      serviceDuration: booking.service_duration,
+      servicePrice:
+        booking.service_price === null ? null : Number(booking.service_price),
+      staffId: booking.staffId,
+      staffName: booking.staff_name,
+      courtId: booking.court_id,
+      courtName: booking.court_name,
+      bookingDate: booking.bookingDate.toISOString().slice(0, 10),
+      startTime: booking.startTime.toISOString().slice(11, 16),
+      endTime: booking.endTime.toISOString().slice(11, 16),
+      status: booking.status || 'pending',
+      price: Number(booking.price),
+      discountAmount: Number(booking.discountAmount || 0),
+      finalPrice: Number(booking.finalPrice),
+      depositAmount: Number(booking.deposit_amount || 0),
+      paymentStatus: booking.paymentStatus || 'unpaid',
+      paymentMethod: booking.payment_method,
+      source: booking.source || 'line_liff',
+      notes: booking.notes,
+      cancellationReason: booking.cancellationReason,
+      cancelledAt: booking.cancelledAt?.toISOString() || null,
+      checkedInAt: booking.checkedInAt?.toISOString() || null,
+      completedAt: booking.completedAt?.toISOString() || null,
+      createdAt: booking.createdAt?.toISOString() || '',
+    };
+  }
 
   public isRefNoUniqueViolation(error: unknown): boolean {
     if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;

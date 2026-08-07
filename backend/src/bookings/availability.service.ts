@@ -40,6 +40,7 @@ export interface AvailabilityOptions {
   actor?: 'customer' | 'merchant';
   txPrisma?: Prisma.TransactionClient | PrismaService;
   courtId?: string;
+  excludeBookingId?: string;
 }
 
 @Injectable()
@@ -322,6 +323,9 @@ export class AvailabilityService {
         tenantId,
         bookingDate: bookingDateObj,
         status: { in: ['pending', 'confirmed', 'checked_in'] },
+        ...(options.excludeBookingId
+          ? { id: { not: options.excludeBookingId } }
+          : {}),
       },
       select: {
         id: true,

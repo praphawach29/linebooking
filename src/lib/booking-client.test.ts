@@ -3,6 +3,7 @@ import { beforeEach, describe, it } from 'node:test';
 import {
   createCustomerBookingWithLiff,
   createMerchantBookingWithSession,
+  getCustomerBookingsWithLiff,
 } from './booking-client';
 import { resetBookingAuthStateForTests } from './booking-auth';
 
@@ -36,6 +37,30 @@ function response(source: string): Response {
 
 describe('booking-client actor integration', () => {
   beforeEach(() => resetBookingAuthStateForTests());
+
+  it('uses a verified LINE ID token for customer booking history', async () => {
+    let path = '';
+    const fetcher: typeof fetch = async (url) => {
+      path = new URL(String(url)).pathname;
+      return new Response('[]', { status: 200 });
+    };
+    const liffClient = {
+      init: async () => undefined,
+      isLoggedIn: () => true,
+      login: () => undefined,
+      getIDToken: () => 'verified-line-id-token',
+    };
+
+    await getCustomerBookingsWithLiff({
+      tenantId,
+      liffId: '2001234567-AbCdEfGh',
+      lineTokenOptions: { client: liffClient as never },
+      apiUrl,
+      fetcher,
+    });
+
+    assert.equal(path, '/bookings/mine');
+  });
 
   it('uses a LINE ID token for the customer endpoint', async () => {
     let path = '';

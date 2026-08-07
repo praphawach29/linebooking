@@ -122,7 +122,11 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
       membership: { findUnique: jest.fn() },
       service: { findFirst: jest.fn() },
       staff: { findFirst: jest.fn() },
-      booking: { create: jest.fn() },
+      booking: {
+        create: jest.fn(),
+        findFirst: jest.fn(),
+        update: jest.fn(),
+      },
     };
 
     const mockPrismaService = {
@@ -130,6 +134,7 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
         return cb(mockTx);
       }),
       booking: {
+        findMany: jest.fn(),
         findFirst: jest.fn(),
         update: jest.fn(),
       },
@@ -150,6 +155,97 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
     service = module.get<BookingsService>(BookingsService);
     prisma = module.get(PrismaService);
     availabilityService = module.get(AvailabilityService);
+  });
+
+  describe('customer booking history isolation', () => {
+    it('always scopes history by both tenant and authenticated customer', async () => {
+      prisma.booking.findMany.mockResolvedValueOnce([mockCreatedBooking]);
+
+      const result = await service.getCustomerBookings(
+        tenantId,
+        customerUserId,
+      );
+
+      expect(prisma.booking.findMany).toHaveBeenCalledWith({
+        where: { tenantId, userId: customerUserId },
+        orderBy: [{ bookingDate: 'desc' }, { startTime: 'desc' }],
+        take: 100,
+      });
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({ tenantId, userId: customerUserId });
+    });
+  });
+
+  describe('merchant booking mutations', () => {
+    it('validates and persists a server-owned status transition', async () => {
+      prisma.booking.findFirst.mockResolvedValueOnce(mockCreatedBooking);
+      prisma.booking.update.mockResolvedValueOnce({
+        ...mockCreatedBooking,
+        status: 'confirmed',
+      });
+
+      const result = await service.updateBookingStatusAsMerchant(
+        tenantId,
+        mockCreatedBooking.id,
+        'confirmed',
+      );
+
+      expect(prisma.booking.findFirst).toHaveBeenCalledWith({
+        where: { id: mockCreatedBooking.id, tenantId },
+      });
+      expect(prisma.booking.update).toHaveBeenCalledWith({
+        where: { id: mockCreatedBooking.id },
+        data: expect.objectContaining({ status: 'confirmed' }),
+      });
+      expect(result.status).toBe('confirmed');
+    });
+
+    it('reschedules atomically and excludes the current booking from conflicts', async () => {
+      mockTx.booking.findFirst.mockResolvedValueOnce(mockCreatedBooking);
+      mockTx.booking.update.mockResolvedValueOnce({
+        ...mockCreatedBooking,
+        bookingDate: new Date('2026-08-04T00:00:00Z'),
+        startTime: new Date('1970-01-01T11:00:00Z'),
+        endTime: new Date('1970-01-01T12:00:00Z'),
+      });
+      availabilityService.calculateAvailability.mockResolvedValueOnce({
+        ...mockAvailabilityResult,
+        bookingDate: '2026-08-04',
+        slots: [
+          {
+            startTime: '11:00',
+            endTime: '12:00',
+            staffId: staffIdA,
+            available: true,
+          },
+        ],
+      });
+
+      const result = await service.rescheduleBookingAsMerchant(
+        tenantId,
+        mockCreatedBooking.id,
+        '2026-08-04',
+        '11:00',
+      );
+
+      expect(availabilityService.calculateAvailability).toHaveBeenCalledWith(
+        tenantId,
+        '2026-08-04',
+        serviceId,
+        staffIdA,
+        expect.objectContaining({
+          actor: 'merchant',
+          txPrisma: mockTx,
+          excludeBookingId: mockCreatedBooking.id,
+        }),
+      );
+      expect(mockTx.booking.update).toHaveBeenCalled();
+      expect(result).toMatchObject({
+        bookingDate: '2026-08-04',
+        startTime: '11:00',
+        endTime: '12:00',
+      });
+    });
   });
 
   describe('1. Successful Booking Creation & Backend Calculations', () => {

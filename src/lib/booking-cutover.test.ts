@@ -59,8 +59,30 @@ describe('Step 11 booking cutover', () => {
     );
 
     assert.doesNotMatch(source, /from\(['"]bookings['"]\)\s*\.insert/s);
+    assert.doesNotMatch(
+      source,
+      /from\((?:'|\x22)bookings(?:'|\x22)\)[\s\S]{0,160}?\.upsert\s*\(/,
+    );
+    assert.doesNotMatch(
+      source,
+      /from\((?:'|\x22)bookings(?:'|\x22)\)[\s\S]{0,200}?\.(?:update|delete)\s*\(/,
+    );
     assert.match(source, /createCustomerBookingWithLiff/);
     assert.match(source, /createMerchantBookingWithSession/);
     assert.match(source, /getAvailableSlotsFromApi/);
+    assert.match(source, /updateMerchantBookingStatusWithSession/);
+    assert.match(source, /rescheduleMerchantBookingWithSession/);
+  });
+
+  it('closes client booking mutations in migration 0021', async () => {
+    const sql = await readFile(
+      new URL('../../supabase/migrations/0021_close_browser_booking_updates.sql', import.meta.url),
+      'utf8',
+    );
+
+    assert.match(
+      sql,
+      /REVOKE INSERT, UPDATE, DELETE ON TABLE public\.bookings FROM authenticated/i,
+    );
   });
 });

@@ -3,7 +3,7 @@ import type { BookingApiResponse } from './booking-api';
 
 export function mapBookingApiResponse(
   response: BookingApiResponse,
-  service: Service,
+  service?: Service,
   staff?: Staff,
   court?: Court,
 ): Booking {
@@ -15,8 +15,8 @@ export function mapBookingApiResponse(
     userName: response.userName,
     userPhone: response.userPhone || '',
     serviceId: response.serviceId,
-    serviceName: response.serviceName || service.name,
-    serviceDuration: response.serviceDuration ?? service.durationMinutes,
+    serviceName: response.serviceName || service?.name || '',
+    serviceDuration: response.serviceDuration ?? service?.durationMinutes ?? 0,
     servicePrice: response.servicePrice ?? response.price,
     staffId: response.staffId || undefined,
     staffName: response.staffName || undefined,
@@ -37,6 +37,10 @@ export function mapBookingApiResponse(
       : undefined,
     source: response.source as Booking['source'],
     notes: response.notes || undefined,
+    cancellationReason: response.cancellationReason || undefined,
+    cancelledAt: response.cancelledAt || undefined,
+    checkedInAt: response.checkedInAt || undefined,
+    completedAt: response.completedAt || undefined,
     createdAt: response.createdAt,
   };
 }

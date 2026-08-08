@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
@@ -11,7 +11,7 @@ import {
 } from './notifications.types';
 
 @Injectable()
-export class NotificationsService implements OnModuleInit {
+export class NotificationsService implements OnApplicationBootstrap {
   private readonly logger = new Logger(NotificationsService.name);
 
   constructor(
@@ -20,7 +20,7 @@ export class NotificationsService implements OnModuleInit {
     private readonly lineClient: LineMessagingClient,
   ) {}
 
-  async onModuleInit(): Promise<void> {
+  async onApplicationBootstrap(): Promise<void> {
     const queued = await this.prisma.lineMessageDelivery.findMany({
       where: { status: 'queued', scheduledAt: { lte: new Date() } },
       orderBy: { scheduledAt: 'asc' },
@@ -32,9 +32,7 @@ export class NotificationsService implements OnModuleInit {
       await this.enqueueDelivery(delivery.id);
     }
 
-    if (queued.length > 0) {
-      this.logger.log(`Recovered ${queued.length} queued LINE deliveries`);
-    }
+    this.logger.log(`LINE delivery recovery scan found ${queued.length} queued jobs`);
   }
 
   async queueBookingEvent(

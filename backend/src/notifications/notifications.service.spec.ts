@@ -27,7 +27,7 @@ describe('NotificationsService LINE quota', () => {
       { id: 'delivery-2' },
     ]);
 
-    await service.onModuleInit();
+    await service.onApplicationBootstrap();
 
     expect(queue.add).toHaveBeenCalledTimes(2);
     expect(queue.add).toHaveBeenNthCalledWith(

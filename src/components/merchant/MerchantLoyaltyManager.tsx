@@ -21,6 +21,13 @@ import {
   Package
 } from 'lucide-react';
 
+const getValidAvatar = (avatar: string | null | undefined, name: string) => {
+  if (!avatar || avatar === 'null' || avatar === 'undefined' || avatar.trim() === '') {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+  }
+  return avatar;
+};
+
 export const MerchantLoyaltyManager: React.FC = () => {
   const {
     activeTenant,

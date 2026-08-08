@@ -35,6 +35,10 @@ export const MerchantDashboard: React.FC = () => {
   const [filterMode, setFilterMode] = useState<'today' | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [quickActionNotice, setQuickActionNotice] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
   const [lineQuota, setLineQuota] = useState<LineQuotaStatus | null>(null);
   const [lineQuotaLoading, setLineQuotaLoading] = useState(false);
 
@@ -91,11 +95,23 @@ export const MerchantDashboard: React.FC = () => {
   const handleQuickStatusUpdate = async (e: React.MouseEvent, booking: Booking, newStatus: Booking['status']) => {
     e.stopPropagation();
     setUpdatingId(booking.id);
+    setQuickActionNotice(null);
     try {
-      const paymentStatusUpdate = (newStatus === 'confirmed' && booking.paymentStatus !== 'paid') ? 'paid' : undefined;
-      await updateBookingStatus(booking.id, newStatus, paymentStatusUpdate);
+      await updateBookingStatus(booking.id, newStatus);
+      setQuickActionNotice({
+        type: 'success',
+        message: newStatus === 'confirmed'
+          ? `ยืนยันคิว ${booking.refNo || booking.id} เรียบร้อยแล้ว`
+          : `อัปเดตสถานะคิว ${booking.refNo || booking.id} เรียบร้อยแล้ว`,
+      });
     } catch (err) {
       console.error('Quick status update failed:', err);
+      setQuickActionNotice({
+        type: 'error',
+        message: err instanceof Error
+          ? err.message
+          : 'ไม่สามารถอัปเดตสถานะการจองได้ กรุณาลองใหม่อีกครั้ง',
+      });
     } finally {
       setUpdatingId(null);
     }
@@ -350,6 +366,24 @@ export const MerchantDashboard: React.FC = () => {
             </div>
           </div>
 
+          {quickActionNotice && (
+            <div
+              role="status"
+              className={`mb-4 flex items-start gap-2 rounded-xl border px-4 py-3 text-sm font-bold ${
+                quickActionNotice.type === 'success'
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                  : 'border-red-200 bg-red-50 text-red-700'
+              }`}
+            >
+              {quickActionNotice.type === 'success' ? (
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+              ) : (
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              )}
+              <span>{quickActionNotice.message}</span>
+            </div>
+          )}
+
           {displayedBookings.length === 0 ? (
             <div className="p-12 text-center border-2 border-dashed border-border rounded-3xl bg-slate-50/50">
               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -581,7 +615,7 @@ export const MerchantDashboard: React.FC = () => {
                                 <button
                                   type="button"
                                   disabled={updatingId === booking.id}
-                                  onClick={(e) => handleQuickStatusUpdate(e, booking.id, 'checked_in')}
+                                  onClick={(e) => handleQuickStatusUpdate(e, booking, 'checked_in')}
                                   className="p-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition-all border border-blue-200/50 hover:border-transparent shadow-sm active:scale-95 disabled:opacity-50"
                                   title="เช็คอินหน้าร้าน"
                                 >

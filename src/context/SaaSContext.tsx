@@ -817,7 +817,12 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const updateBookingStatus = async (bookingId: string, status: BookingStatus, reason?: string) => {
     const existing = bookings.find((booking) => booking.id === bookingId);
-    if (!existing || !activeTenant) return;
+    if (!existing) {
+      throw new Error('ไม่พบรายการจองนี้ในข้อมูลล่าสุด กรุณารีเฟรชหน้าแล้วลองอีกครั้ง');
+    }
+    if (!activeTenant) {
+      throw new Error('ไม่พบข้อมูลร้านค้าที่กำลังใช้งาน กรุณาเข้าสู่ระบบใหม่');
+    }
 
     try {
       const response = await updateMerchantBookingStatusWithSession(

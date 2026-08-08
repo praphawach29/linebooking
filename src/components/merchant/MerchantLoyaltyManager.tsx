@@ -564,7 +564,7 @@ export const MerchantLoyaltyManager: React.FC = () => {
                   type="number"
                   required
                   min={1}
-                  value={editingReward.pointsRequired || 100}
+                  value={editingReward.pointsRequired !== undefined ? editingReward.pointsRequired : 100}
                   onChange={(e) =>
                     setEditingReward({ ...editingReward, pointsRequired: (e.target.value === '' ? '' : Number(e.target.value)) as any })
                   }

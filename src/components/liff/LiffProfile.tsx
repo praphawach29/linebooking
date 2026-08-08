@@ -11,13 +11,19 @@ interface LiffProfileProps {
 }
 
 export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
-  const { currentUser, activeTenant, bookings, fetchMembership, updateCurrentUserContact } = useSaaS();
+  const { currentUser, activeTenant, bookings, fetchMembership, updateCurrentUserContact, fetchMyBookings } = useSaaS();
   const liffProfile = useLiffProfile(activeTenant?.liffId);
 
   const [membershipData, setMembershipData] = useState<Membership | null>(null);
+  const [myBookings, setMyBookings] = useState<any[]>([]);
 
   useEffect(() => {
     if (activeTenant && liffProfile.isLoggedIn) {
+      // Fetch bookings history
+      fetchMyBookings(liffProfile.lineUserId).then(bks => {
+        if (bks) setMyBookings(bks);
+      }).catch(console.error);
+      
       // Use the LINE ID Token to fetch latest membership from API
       try {
         const token = liff.getIDToken();
@@ -33,7 +39,7 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
         console.error("Failed to fetch membership:", err);
       }
     }
-  }, [activeTenant, liffProfile.isLoggedIn]);
+  }, [activeTenant, liffProfile.isLoggedIn, liffProfile.lineUserId]);
 
   const [phoneInput, setPhoneInput] = useState<string>(() => {
     try {
@@ -67,8 +73,12 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
   const avatarUrl = liffProfile.pictureUrl || currentUser?.avatarUrl ||
     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
 
-  const userBookings = bookings.filter((b) => b.userId === currentUser?.id || b.userPhone === phoneInput);
-  const completedCount = userBookings.filter((b) => b.status === 'completed').length;
+  // Determine which bookings to count: use the fetched ones if available, otherwise fallback to global context filtered by phone
+  const userBookings = myBookings.length > 0 
+    ? myBookings 
+    : bookings.filter((b) => b.userId === currentUser?.id || b.userPhone === phoneInput);
+  
+  const completedCount = userBookings.filter((b) => b.status === 'completed' || b.status === 'checked_in').length;
   const membership = membershipData || (currentUser ? fetchMembership(currentUser.id) : undefined);
   const points = membership?.points || 0;
   const tierDisplay = membership?.tier 

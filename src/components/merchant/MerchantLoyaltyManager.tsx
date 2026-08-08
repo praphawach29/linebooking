@@ -94,8 +94,8 @@ export const MerchantLoyaltyManager: React.FC = () => {
   // Convert to array
   const customerList = Array.from(uniqueUserMap.values()).map((user) => {
     const mem = memberships.find((m) => m.userId === user.id && (!m.tenantId || m.tenantId === activeTenant.id));
-    const completedCount = tenantBookings.filter((b) => b.userId === user.id && b.status === 'completed').length;
-    const points = mem?.points || completedCount * 10;
+    const completedCount = tenantBookings.filter((b) => b.userId === user.id && (b.status === 'completed' || b.status === 'checked_in')).length;
+    const points = mem?.points || 0;
     const tier = mem?.tier || (completedCount >= 10 ? 'Platinum' : completedCount >= 5 ? 'Gold' : 'Silver');
 
     return {

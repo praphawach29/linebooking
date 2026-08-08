@@ -29,7 +29,7 @@ export class NotificationsService implements OnApplicationBootstrap {
     });
 
     for (const delivery of queued) {
-      await this.enqueueDelivery(delivery.id);
+      await this.enqueueDelivery(delivery.id, true);
     }
 
     this.logger.log(`LINE delivery recovery scan found ${queued.length} queued jobs`);
@@ -76,7 +76,20 @@ export class NotificationsService implements OnApplicationBootstrap {
     }
   }
 
-  private async enqueueDelivery(deliveryId: string): Promise<void> {
+  private async enqueueDelivery(deliveryId: string, replaceStaleJob = false): Promise<void> {
+    if (replaceStaleJob) {
+      const existingJob = await this.notificationQueue.getJob(deliveryId);
+      if (existingJob) {
+        const state = await existingJob.getState();
+        if (state === 'active') {
+          this.logger.log(`LINE delivery ${deliveryId} is already active`);
+          return;
+        }
+        await existingJob.remove();
+        this.logger.log(`Removed stale LINE delivery job ${deliveryId} from state ${state}`);
+      }
+    }
+
     await this.notificationQueue.add(
       'line-booking-event',
       { deliveryId },

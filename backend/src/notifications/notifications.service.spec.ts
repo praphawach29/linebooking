@@ -1,7 +1,7 @@
 import { NotificationsService } from './notifications.service';
 
 describe('NotificationsService LINE quota', () => {
-  const queue = { add: jest.fn() };
+  const queue = { add: jest.fn(), getJob: jest.fn() };
   const prisma = {
     tenant: { findUnique: jest.fn() },
     lineQuotaSnapshot: { upsert: jest.fn(), findUnique: jest.fn() },
@@ -15,6 +15,7 @@ describe('NotificationsService LINE quota', () => {
     service = new NotificationsService(queue as any, prisma as any, lineClient as any);
     prisma.tenant.findUnique.mockResolvedValue({ lineChannelAccessToken: 'token' });
     prisma.lineMessageDelivery.findMany.mockResolvedValue([]);
+    queue.getJob.mockResolvedValue(null);
     prisma.lineQuotaSnapshot.upsert.mockImplementation(({ create }: any) => ({
       ...create,
       fetchedAt: new Date('2026-08-08T00:00:00Z'),
@@ -35,6 +36,24 @@ describe('NotificationsService LINE quota', () => {
       'line-booking-event',
       { deliveryId: 'delivery-1' },
       expect.objectContaining({ jobId: 'delivery-1', attempts: 3 }),
+    );
+  });
+
+  it('replaces a stale Redis job when the durable delivery is still queued', async () => {
+    const staleJob = {
+      getState: jest.fn().mockResolvedValue('completed'),
+      remove: jest.fn().mockResolvedValue(undefined),
+    };
+    prisma.lineMessageDelivery.findMany.mockResolvedValue([{ id: 'delivery-1' }]);
+    queue.getJob.mockResolvedValue(staleJob);
+
+    await service.onApplicationBootstrap();
+
+    expect(staleJob.remove).toHaveBeenCalledTimes(1);
+    expect(queue.add).toHaveBeenCalledWith(
+      'line-booking-event',
+      { deliveryId: 'delivery-1' },
+      expect.objectContaining({ jobId: 'delivery-1' }),
     );
   });
 

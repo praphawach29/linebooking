@@ -14,6 +14,7 @@ export function mapBookingApiResponse(
     userId: response.userId,
     userName: response.userName,
     userPhone: response.userPhone || '',
+    userAvatar: response.userAvatar || undefined,
     serviceId: response.serviceId,
     serviceName: response.serviceName || service?.name || '',
     serviceDuration: response.serviceDuration ?? service?.durationMinutes ?? 0,

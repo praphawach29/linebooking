@@ -42,16 +42,16 @@ export const MerchantLoyaltyManager: React.FC = () => {
 
   // Points Adjustment Modal state
   const [pointAdjustUser, setPointAdjustUser] = useState<{ id: string; name: string; currentPoints: number } | null>(null);
-  const [adjustPointsDelta, setAdjustPointsDelta] = useState<number>(50);
+  const [adjustPointsDelta, setAdjustPointsDelta] = useState<number | ''>(50);
   const [adjustReason, setAdjustReason] = useState<string>('โบนัสพิเศษจากร้านค้า');
 
   // Package Management Modal state
   const [packageUser, setPackageUser] = useState<{ id: string; name: string } | null>(null);
-  const [newPackage, setNewPackage] = useState({ name: '', quota: 10, serviceId: '' });
+  const [newPackage, setNewPackage] = useState<{ name: string; quota: number | ''; serviceId: string }>({ name: '', quota: 10, serviceId: '' });
 
   // Settings State
   const [editingSettings, setEditingSettings] = useState(false);
-  const [localSettings, setLocalSettings] = useState({
+  const [localSettings, setLocalSettings] = useState<{pointStrategy: string; pointsPerVisit: number | ''; pointsPerCurrency: number | ''; currencyAmount: number | ''; enablePackageDeduction: boolean}>({
     pointStrategy: loyaltySettings?.pointStrategy || 'DISABLED',
     pointsPerVisit: loyaltySettings?.pointsPerVisit || 0,
     pointsPerCurrency: loyaltySettings?.pointsPerCurrency || 0,
@@ -135,7 +135,7 @@ export const MerchantLoyaltyManager: React.FC = () => {
       {/* Header Banner */}
       <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-amber-100 text-amber-700 rounded-2xl border border-amber-200">
+          <div className="p-2.5 bg-amber-100 text-amber-700 rounded-2xl border border-amber-200 shrink-0">
             <Gift className="w-6 h-6" />
           </div>
           <div>
@@ -172,11 +172,11 @@ export const MerchantLoyaltyManager: React.FC = () => {
       </div>
 
       {/* Main Sub-Tab Switcher */}
-      <div className="flex items-center justify-between bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between bg-slate-100 p-1.5 lg:p-2 rounded-2xl border border-slate-200 gap-2">
+        <div className="flex overflow-x-auto hide-scrollbar items-center gap-1.5 lg:gap-2 pb-1 lg:pb-0 w-full lg:w-auto">
           <button
             onClick={() => setActiveSubTab('members')}
-            className={`px-4 py-2 rounded-xl font-bold transition-all flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-xl font-bold transition-all flex items-center gap-2 shrink-0 whitespace-nowrap ${
               activeSubTab === 'members'
                 ? 'bg-white text-emerald-700 shadow-xs font-black'
                 : 'text-slate-600 hover:text-slate-900'
@@ -188,7 +188,7 @@ export const MerchantLoyaltyManager: React.FC = () => {
 
           <button
             onClick={() => setActiveSubTab('rewards')}
-            className={`px-4 py-2 rounded-xl font-bold transition-all flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-xl font-bold transition-all flex items-center gap-2 shrink-0 whitespace-nowrap ${
               activeSubTab === 'rewards'
                 ? 'bg-white text-emerald-700 shadow-xs font-black'
                 : 'text-slate-600 hover:text-slate-900'
@@ -200,7 +200,7 @@ export const MerchantLoyaltyManager: React.FC = () => {
 
           <button
             onClick={() => setActiveSubTab('settings')}
-            className={`px-4 py-2 rounded-xl font-bold transition-all flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-xl font-bold transition-all flex items-center gap-2 shrink-0 whitespace-nowrap ${
               activeSubTab === 'settings'
                 ? 'bg-white text-emerald-700 shadow-xs font-black'
                 : 'text-slate-600 hover:text-slate-900'
@@ -213,7 +213,7 @@ export const MerchantLoyaltyManager: React.FC = () => {
         </div>
 
         {/* Search Box */}
-        <div className="relative w-64">
+        <div className="relative w-full lg:w-64 shrink-0">
           <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
           <input
             type="text"
@@ -229,7 +229,7 @@ export const MerchantLoyaltyManager: React.FC = () => {
       {activeSubTab === 'members' && (
         <div className="space-y-4">
           {/* Summary Stat KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
             <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between">
               <div>
                 <span className="text-[11px] text-slate-500 font-bold block">ลูกค้าสมาชิกในระบบ</span>
@@ -266,8 +266,8 @@ export const MerchantLoyaltyManager: React.FC = () => {
           </div>
 
           {/* Members Table */}
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <table className="w-full text-left border-collapse text-xs">
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs whitespace-nowrap min-w-[600px]">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 font-black text-slate-700">
                   <th className="p-3.5">ลูกค้า</th>
@@ -436,7 +436,7 @@ export const MerchantLoyaltyManager: React.FC = () => {
       {/* TAB 3: SETTINGS */}
       {activeSubTab === 'settings' && (
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs max-w-2xl">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <Settings className="w-5 h-5 text-slate-500" /> ตั้งค่า Loyalty & Packages
             </h2>
@@ -478,7 +478,7 @@ export const MerchantLoyaltyManager: React.FC = () => {
                 <input 
                   type="number" disabled={!editingSettings}
                   value={localSettings.pointsPerVisit}
-                  onChange={(e) => setLocalSettings({...localSettings, pointsPerVisit: Number(e.target.value)})}
+                  onChange={(e) => setLocalSettings({...localSettings, pointsPerVisit: (e.target.value === '' ? '' : Number(e.target.value)) as any})}
                   className="w-full p-2.5 border border-slate-200 rounded-xl disabled:bg-slate-50"
                 />
               </div>
@@ -491,7 +491,7 @@ export const MerchantLoyaltyManager: React.FC = () => {
                   <input 
                     type="number" disabled={!editingSettings}
                     value={localSettings.currencyAmount}
-                    onChange={(e) => setLocalSettings({...localSettings, currencyAmount: Number(e.target.value)})}
+                    onChange={(e) => setLocalSettings({...localSettings, currencyAmount: (e.target.value === '' ? '' : Number(e.target.value)) as any})}
                     className="w-full p-2.5 border border-slate-200 rounded-xl disabled:bg-slate-50"
                   />
                 </div>
@@ -500,7 +500,7 @@ export const MerchantLoyaltyManager: React.FC = () => {
                   <input 
                     type="number" disabled={!editingSettings}
                     value={localSettings.pointsPerCurrency}
-                    onChange={(e) => setLocalSettings({...localSettings, pointsPerCurrency: Number(e.target.value)})}
+                    onChange={(e) => setLocalSettings({...localSettings, pointsPerCurrency: (e.target.value === '' ? '' : Number(e.target.value)) as any})}
                     className="w-full p-2.5 border border-slate-200 rounded-xl disabled:bg-slate-50"
                   />
                 </div>
@@ -562,7 +562,7 @@ export const MerchantLoyaltyManager: React.FC = () => {
                   min={1}
                   value={editingReward.pointsRequired || 100}
                   onChange={(e) =>
-                    setEditingReward({ ...editingReward, pointsRequired: Number(e.target.value) })
+                    setEditingReward({ ...editingReward, pointsRequired: (e.target.value === '' ? '' : Number(e.target.value)) as any })
                   }
                   className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono font-bold"
                 />
@@ -649,7 +649,7 @@ export const MerchantLoyaltyManager: React.FC = () => {
                 <input
                   type="number"
                   value={adjustPointsDelta}
-                  onChange={(e) => setAdjustPointsDelta(Number(e.target.value))}
+                  onChange={(e) => setAdjustPointsDelta((e.target.value === '' ? '' : Number(e.target.value)) as any)}
                   placeholder="เช่น 50 หรือ -50"
                   className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono font-bold text-sm"
                 />
@@ -717,7 +717,7 @@ export const MerchantLoyaltyManager: React.FC = () => {
                 <input 
                   type="number" required min={1}
                   value={newPackage.quota}
-                  onChange={(e) => setNewPackage({...newPackage, quota: Number(e.target.value)})}
+                  onChange={(e) => setNewPackage({...newPackage, quota: (e.target.value === '' ? '' : Number(e.target.value)) as any})}
                   className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>

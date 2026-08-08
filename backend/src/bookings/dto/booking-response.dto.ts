@@ -20,6 +20,7 @@ export interface BookingResponseDto {
   userId: string;
   userName: string;
   userPhone?: string | null;
+  userAvatar?: string | null;
   serviceId: string;
   serviceName?: string | null;
   serviceDuration?: number | null;

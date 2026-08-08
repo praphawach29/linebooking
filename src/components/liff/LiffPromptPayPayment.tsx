@@ -3,6 +3,7 @@ import { Service, Staff, Court, Booking, SelectedAddon, PaymentMethod } from '..
 import { useSaaS } from '../../context/SaaSContext';
 import { QrCode, Copy, Check, Sparkles, ShieldCheck, AlertCircle, Clock } from 'lucide-react';
 import { generatePromptPayPayload, promptPayQrImageUrl, formatPromptPayDisplay } from '../../utils/promptpay';
+import { getBookingSubmitErrorMessage } from '../../lib/booking-error-message';
 
 interface LiffPromptPayPaymentProps {
   service: Service;
@@ -99,25 +100,30 @@ export const LiffPromptPayPayment: React.FC<LiffPromptPayPaymentProps> = ({
     // Extract clean HH:mm start time if range string (e.g. "18:00 - 20:00") is passed
     const cleanStartTime = time.includes(' - ') ? time.split(' - ')[0].trim() : time.trim();
 
-    const newBooking = await createBooking({
-      serviceId: service.id,
-      staffId: staff?.id,
-      courtId: court?.id,
-      bookingDate: date,
-      startTime: cleanStartTime,
-      bookingHours: bookingHours,
-      selectedAddons,
-      customerName,
-      customerPhone,
-      notes,
-      paymentMethod,
-      source: 'line_liff',
-    });
-    setIsProcessing(false);
-    if (newBooking) {
-      onBookingComplete(newBooking);
-    } else {
-      setSubmitError('ไม่สามารถยืนยันการจองได้ รอบเวลานี้อาจถูกจองแล้ว หรือช่วงเวลาไม่ถูกต้อง');
+    try {
+      const newBooking = await createBooking({
+        serviceId: service.id,
+        staffId: staff?.id,
+        courtId: court?.id,
+        bookingDate: date,
+        startTime: cleanStartTime,
+        bookingHours: bookingHours,
+        selectedAddons,
+        customerName,
+        customerPhone,
+        notes,
+        paymentMethod,
+        source: 'line_liff',
+      });
+      if (newBooking) {
+        onBookingComplete(newBooking);
+      } else {
+        setSubmitError('ระบบไม่สามารถยืนยันการจองได้ กรุณากลับไปตรวจสอบข้อมูลแล้วลองใหม่ (รหัส: BOOKING_NOT_CREATED)');
+      }
+    } catch (error: unknown) {
+      setSubmitError(getBookingSubmitErrorMessage(error));
+    } finally {
+      setIsProcessing(false);
     }
   };
 

@@ -835,7 +835,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (err: unknown) {
       console.error('Booking API request failed:', err);
       setError(err instanceof Error ? err.message : 'Unable to create booking');
-      return null;
+      throw err;
     }
   };
 

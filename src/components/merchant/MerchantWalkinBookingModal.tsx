@@ -3,6 +3,7 @@ import { useSaaS } from '../../context/SaaSContext';
 import { PaymentMethod } from '../../types';
 import { PlusCircle, User, Phone, Calendar, Clock, CheckCircle2, ShieldAlert, Loader2 } from 'lucide-react';
 import { ThaiDatePicker } from '../common/ThaiDatePicker';
+import { getBookingSubmitErrorMessage } from '../../lib/booking-error-message';
 
 export const MerchantWalkinBookingModal: React.FC = () => {
   const {
@@ -85,7 +86,8 @@ export const MerchantWalkinBookingModal: React.FC = () => {
     setSubmitError(null);
     setIsSubmitting(true);
     
-    const created = await createBooking({
+    try {
+      const created = await createBooking({
         customerId: isBlockMode ? 'BLOCK' : selectedCustomerId,
         serviceId: selectedServiceId,
         staffId: selectedStaffId || undefined,
@@ -97,18 +99,22 @@ export const MerchantWalkinBookingModal: React.FC = () => {
         customerName: isBlockMode ? 'งดรับจอง (Blocked)' : customerName,
         customerPhone: isBlockMode ? undefined : (customerPhone || undefined),
       });
-    setIsSubmitting(false);
 
-    if (!created) {
-      setSubmitError('ไม่สามารถสร้างการจองได้ กรุณาตรวจสอบลูกค้า เวลา และลองอีกครั้ง');
-      return;
+      if (!created) {
+        setSubmitError('ไม่สามารถสร้างการจองได้ กรุณาตรวจสอบลูกค้า เวลา และลองอีกครั้ง');
+        return;
+      }
+
+      setSuccessMsg(true);
+      setTimeout(() => {
+        setSuccessMsg(false);
+        setMerchantTab('calendar');
+      }, 1500);
+    } catch (error: unknown) {
+      setSubmitError(getBookingSubmitErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setSuccessMsg(true);
-    setTimeout(() => {
-      setSuccessMsg(false);
-      setMerchantTab('calendar');
-    }, 1500);
   };
 
   return (

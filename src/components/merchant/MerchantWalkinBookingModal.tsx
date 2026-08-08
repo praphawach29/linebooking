@@ -4,6 +4,7 @@ import { PaymentMethod } from '../../types';
 import { PlusCircle, User, Phone, Calendar, Clock, CheckCircle2, ShieldAlert, Loader2 } from 'lucide-react';
 import { ThaiDatePicker } from '../common/ThaiDatePicker';
 import { getBookingSubmitErrorMessage } from '../../lib/booking-error-message';
+import { toLocalDateStr } from '../../lib/date-utils';
 
 export const MerchantWalkinBookingModal: React.FC = () => {
   const {
@@ -23,7 +24,7 @@ export const MerchantWalkinBookingModal: React.FC = () => {
   const [selectedServiceId, setSelectedServiceId] = useState(services[0]?.id || '');
   const [selectedStaffId, setSelectedStaffId] = useState('');
   const [bookingDate, setBookingDate] = useState(
-    new Date().toISOString().split('T')[0]
+    toLocalDateStr(new Date())
   );
   const [startTime, setStartTime] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');

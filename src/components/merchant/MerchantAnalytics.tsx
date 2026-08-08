@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
+import { toLocalDateStr } from '../../lib/date-utils';
 import {
   BarChart3,
   TrendingUp,
@@ -62,7 +63,7 @@ export const MerchantAnalytics: React.FC = () => {
       for (let i = 6; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(d.getDate() - i);
-        const dateStr = d.toISOString().split('T')[0];
+        const dateStr = toLocalDateStr(d);
         const dayLabel = `${d.getDate()} ${d.toLocaleDateString('th-TH', { month: 'short' })}`;
 
         const dayBookings = tenantBookings.filter((b) => b.bookingDate === dateStr && b.status !== 'cancelled');
@@ -142,7 +143,7 @@ export const MerchantAnalytics: React.FC = () => {
     for (let i = 0; i < points; i++) {
       const d = new Date(start);
       d.setDate(d.getDate() + Math.floor((i * dayDiff) / points));
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = toLocalDateStr(d);
       const label = `${d.getDate()} ${d.toLocaleDateString('th-TH', { month: 'short' })}`;
 
       const dayBookings = tenantBookings.filter((b) => b.bookingDate === dateStr && b.status !== 'cancelled');

@@ -43,6 +43,7 @@ import { MerchantSubscriptionModal } from './MerchantSubscriptionModal';
 import { MerchantLoyaltyManager } from './MerchantLoyaltyManager';
 import { MerchantCheckInScanner } from './MerchantCheckInScanner';
 import { getTenantQuotaInfo, FREE_PLAN_MONTHLY_BOOKING_LIMIT } from '../../lib/quota-manager';
+import { toLocalDateStr } from '../../lib/date-utils';
 
 export const MerchantLayout: React.FC = () => {
   const { activeTenant, merchantTab, setMerchantTab, bookings, staffs, courts } = useSaaS();
@@ -59,7 +60,7 @@ export const MerchantLayout: React.FC = () => {
     }
   }, [authUser, navigate]);
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = toLocalDateStr(new Date());
   const todayBookingsCount = bookings.filter((b) => b.bookingDate === todayStr).length;
 
   const quotaInfo = activeTenant ? getTenantQuotaInfo(activeTenant, bookings, staffs, courts) : null;

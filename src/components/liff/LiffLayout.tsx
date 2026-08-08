@@ -28,6 +28,7 @@ import LiffPointHistory from './LiffPointHistory';
 import { useLiffProfile } from '../../hooks/useLiffProfile';
 import { autoAssignStaff, autoAssignResource } from './BookingStepEngine';
 import { Service, Staff, Court, Booking, SelectedAddon, PaymentMethod } from '../../types';
+import { toLocalDateStr } from '../../lib/date-utils';
 
 export type LiffStep =
   | 'home'
@@ -56,7 +57,7 @@ export const LiffLayout: React.FC = () => {
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [selectedCourt, setSelectedCourt] = useState<Court | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>(
-    new Date(Date.now() + 86400000).toISOString().split('T')[0]
+    toLocalDateStr(new Date(Date.now() + 86400000))
   );
   const [selectedTime, setSelectedTime] = useState<string>('10:00');
   const [selectedBookingHours, setSelectedBookingHours] = useState<number>(1);

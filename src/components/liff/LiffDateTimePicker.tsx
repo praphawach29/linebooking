@@ -20,6 +20,7 @@ import {
 import { SkeletonCard } from '../common/SkeletonCard';
 import { calculateServicePrice } from '../../lib/pricing-calculator';
 import { BookingApiError } from '../../lib/booking-api';
+import { toLocalDateStr } from '../../lib/date-utils';
 
 interface LiffDateTimePickerProps {
   service: Service;
@@ -129,7 +130,7 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
   const dateStrip = Array.from({ length: stripLength }).map((_, i) => {
     const d = new Date();
     d.setDate(d.getDate() + i);
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = toLocalDateStr(d);
     const isTooFar = i > maxAdvanceBookingDays;
     return {
       dateStr,

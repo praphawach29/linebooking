@@ -20,11 +20,12 @@ import {
   Printer
 } from 'lucide-react';
 import { MerchantBookingDetailModal } from './MerchantBookingDetailModal';
+import { toLocalDateStr } from '../../lib/date-utils';
 
 export const MerchantCalendarView: React.FC = () => {
   const { activeTenant, bookings, staffs, setMerchantTab } = useSaaS();
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = toLocalDateStr(new Date());
   const [currentDate, setCurrentDate] = useState<string>(todayStr);
   const [viewMode, setViewMode] = useState<'month' | 'day'>('month');
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -69,20 +70,20 @@ export const MerchantCalendarView: React.FC = () => {
     const now = new Date();
     setViewYear(now.getFullYear());
     setViewMonth(now.getMonth());
-    setCurrentDate(now.toISOString().split('T')[0]);
+    setCurrentDate(toLocalDateStr(now));
   };
 
   // Controls for Day Navigation
   const handlePrevDay = () => {
     const d = new Date(currentDate);
     d.setDate(d.getDate() - 1);
-    setCurrentDate(d.toISOString().split('T')[0]);
+    setCurrentDate(toLocalDateStr(d));
   };
 
   const handleNextDay = () => {
     const d = new Date(currentDate);
     d.setDate(d.getDate() + 1);
-    setCurrentDate(d.toISOString().split('T')[0]);
+    setCurrentDate(toLocalDateStr(d));
   };
 
   const formatDateThai = (dStr: string) => {

@@ -1,10 +1,15 @@
 import { Module } from '@nestjs/common';
-import { NotificationsModule } from './notifications.module';
+import { BullModule } from '@nestjs/bullmq';
 import { NotificationsProcessor } from './notifications.processor';
 import { LineMessagingClient } from './line-messaging.client';
+import { NOTIFICATIONS_QUEUE } from './notifications.types';
 
 @Module({
-  imports: [NotificationsModule],
+  imports: [
+    BullModule.registerQueue({
+      name: NOTIFICATIONS_QUEUE,
+    }),
+  ],
   providers: [NotificationsProcessor, LineMessagingClient],
 })
 export class NotificationsWorkerModule {}

@@ -45,4 +45,6 @@ export interface BookingResponseDto {
   checkedInAt?: string | null;
   completedAt?: string | null;
   createdAt: string;
+  pointsEarned?: number;
+  packageRemaining?: number;
 }

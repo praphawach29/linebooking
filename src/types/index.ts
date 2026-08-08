@@ -351,6 +351,31 @@ export interface Reward {
   createdAt: string;
 }
 
+export interface TenantLoyaltySettings {
+  tenantId: string;
+  pointStrategy: 'PER_VISIT' | 'AMOUNT_BASED' | 'DISABLED';
+  pointsPerVisit: number;
+  pointsPerCurrency: number;
+  currencyAmount: number;
+  enablePackageDeduction: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CustomerPackage {
+  id: string;
+  tenantId: string;
+  userId: string;
+  serviceId?: string | null;
+  packageName: string;
+  totalQuota: number;
+  usedQuota: number;
+  expiresAt?: string | null;
+  status: 'ACTIVE' | 'EXPIRED' | 'DEPLETED';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export type RewardRedemptionStatus = 'pending' | 'used' | 'expired';
 
 export interface RewardRedemption {

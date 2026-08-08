@@ -16,7 +16,9 @@ import {
   Plus,
   Minus,
   X,
-  Check
+  Check,
+  Settings,
+  Package
 } from 'lucide-react';
 
 export const MerchantLoyaltyManager: React.FC = () => {
@@ -28,9 +30,13 @@ export const MerchantLoyaltyManager: React.FC = () => {
     saveReward,
     deleteReward,
     adjustCustomerPoints,
+    loyaltySettings,
+    saveLoyaltySettings,
+    customerPackages,
+    addCustomerPackage,
   } = useSaaS();
 
-  const [activeSubTab, setActiveSubTab] = useState<'members' | 'rewards'>('members');
+  const [activeSubTab, setActiveSubTab] = useState<'members' | 'rewards' | 'settings'>('members');
   const [searchQuery, setSearchQuery] = useState('');
   const [editingReward, setEditingReward] = useState<Partial<Reward> | null>(null);
 
@@ -38,6 +44,21 @@ export const MerchantLoyaltyManager: React.FC = () => {
   const [pointAdjustUser, setPointAdjustUser] = useState<{ id: string; name: string; currentPoints: number } | null>(null);
   const [adjustPointsDelta, setAdjustPointsDelta] = useState<number>(50);
   const [adjustReason, setAdjustReason] = useState<string>('โบนัสพิเศษจากร้านค้า');
+
+  // Package Management Modal state
+  const [packageUser, setPackageUser] = useState<{ id: string; name: string } | null>(null);
+  const [newPackage, setNewPackage] = useState({ name: '', quota: 10, serviceId: '' });
+
+  // Settings State
+  const [editingSettings, setEditingSettings] = useState(false);
+  const [localSettings, setLocalSettings] = useState({
+    pointStrategy: loyaltySettings?.pointStrategy || 'DISABLED',
+    pointsPerVisit: loyaltySettings?.pointsPerVisit || 0,
+    pointsPerCurrency: loyaltySettings?.pointsPerCurrency || 0,
+    currencyAmount: loyaltySettings?.currencyAmount || 100,
+    enablePackageDeduction: loyaltySettings?.enablePackageDeduction || false
+  });
+
 
   // Derive registered unique customers from bookings & memberships
   const tenantBookings = bookings.filter((b) => !b.tenantId || b.tenantId === activeTenant.id);
@@ -176,6 +197,19 @@ export const MerchantLoyaltyManager: React.FC = () => {
             <Gift className="w-4 h-4 text-amber-500" />
             <span>🎁 ตั้งค่ารายการของรางวัล ({rewards.length})</span>
           </button>
+
+          <button
+            onClick={() => setActiveSubTab('settings')}
+            className={`px-4 py-2 rounded-xl font-bold transition-all flex items-center gap-2 ${
+              activeSubTab === 'settings'
+                ? 'bg-white text-emerald-700 shadow-xs font-black'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Settings className="w-4 h-4 text-slate-500" />
+            <span>⚙️ ตั้งค่า Loyalty & Packages</span>
+          </button>
+
         </div>
 
         {/* Search Box */}
@@ -242,6 +276,7 @@ export const MerchantLoyaltyManager: React.FC = () => {
                   <th className="p-3.5 text-center">ใช้บริการเสร็จ</th>
                   <th className="p-3.5 text-right">แต้มสะสม (Points)</th>
                   <th className="p-3.5 text-center">ปรับแต้ม</th>
+                  <th className="p-3.5 text-center">แพ็กเกจ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -293,6 +328,23 @@ export const MerchantLoyaltyManager: React.FC = () => {
                           <span>ปรับแต้ม</span>
                         </button>
                       </td>
+
+                      <td className="p-3.5 text-center">
+                        <div className="flex flex-col gap-1 items-center">
+                          {customerPackages.filter(p => p.userId === customer.id).map(p => (
+                            <span key={p.id} className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full whitespace-nowrap">
+                              {p.packageName} ({p.remainingQuota} ครั้ง)
+                            </span>
+                          ))}
+                          <button
+                            onClick={() => setPackageUser({ id: customer.id, name: customer.name })}
+                            className="text-[10px] text-emerald-600 hover:text-emerald-800 flex items-center gap-1 mt-1"
+                          >
+                            <Plus className="w-3 h-3" /> เพิ่มแพ็กเกจ
+                          </button>
+                        </div>
+                      </td>
+
                     </tr>
                   ))
                 )}
@@ -379,6 +431,98 @@ export const MerchantLoyaltyManager: React.FC = () => {
           )}
         </div>
       )}
+
+      
+      {/* TAB 3: SETTINGS */}
+      {activeSubTab === 'settings' && (
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs max-w-2xl">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <Settings className="w-5 h-5 text-slate-500" /> ตั้งค่า Loyalty & Packages
+            </h2>
+            {!editingSettings ? (
+              <button onClick={() => setEditingSettings(true)} className="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200">
+                แก้ไข
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <button onClick={() => setEditingSettings(false)} className="px-4 py-2 text-slate-500 font-bold hover:bg-slate-50 rounded-xl">ยกเลิก</button>
+                <button onClick={() => {
+                  saveLoyaltySettings(localSettings);
+                  setEditingSettings(false);
+                }} className="px-4 py-2 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700">
+                  บันทึก
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-5">
+            <div>
+              <label className="font-bold text-slate-700 mb-1 block">รูปแบบการให้แต้มสะสม</label>
+              <select 
+                disabled={!editingSettings}
+                value={localSettings.pointStrategy}
+                onChange={(e) => setLocalSettings({...localSettings, pointStrategy: e.target.value as any})}
+                className="w-full p-2.5 border border-slate-200 rounded-xl disabled:bg-slate-50"
+              >
+                <option value="DISABLED">ปิดใช้งานระบบแต้ม</option>
+                <option value="PER_VISIT">ให้แต้มตามจำนวนครั้งที่มาใช้บริการ</option>
+                <option value="AMOUNT_BASED">ให้แต้มตามยอดใช้จ่าย (บาท)</option>
+              </select>
+            </div>
+
+            {localSettings.pointStrategy === 'PER_VISIT' && (
+              <div>
+                <label className="font-bold text-slate-700 mb-1 block">ได้รับกี่แต้ม ต่อการมาใช้บริการ 1 ครั้ง</label>
+                <input 
+                  type="number" disabled={!editingSettings}
+                  value={localSettings.pointsPerVisit}
+                  onChange={(e) => setLocalSettings({...localSettings, pointsPerVisit: Number(e.target.value)})}
+                  className="w-full p-2.5 border border-slate-200 rounded-xl disabled:bg-slate-50"
+                />
+              </div>
+            )}
+
+            {localSettings.pointStrategy === 'AMOUNT_BASED' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="font-bold text-slate-700 mb-1 block">ยอดใช้จ่าย (บาท)</label>
+                  <input 
+                    type="number" disabled={!editingSettings}
+                    value={localSettings.currencyAmount}
+                    onChange={(e) => setLocalSettings({...localSettings, currencyAmount: Number(e.target.value)})}
+                    className="w-full p-2.5 border border-slate-200 rounded-xl disabled:bg-slate-50"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 mb-1 block">ได้รับแต้ม</label>
+                  <input 
+                    type="number" disabled={!editingSettings}
+                    value={localSettings.pointsPerCurrency}
+                    onChange={(e) => setLocalSettings({...localSettings, pointsPerCurrency: Number(e.target.value)})}
+                    className="w-full p-2.5 border border-slate-200 rounded-xl disabled:bg-slate-50"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+              <div>
+                <p className="font-bold text-slate-700">หักโควต้าแพ็กเกจอัตโนมัติ</p>
+                <p className="text-slate-500 text-[11px]">ระบบจะหักจำนวนครั้งในแพ็กเกจของลูกค้าเมื่อมีการเช็คอิน</p>
+              </div>
+              <input 
+                type="checkbox" disabled={!editingSettings}
+                checked={localSettings.enablePackageDeduction}
+                onChange={(e) => setLocalSettings({...localSettings, enablePackageDeduction: e.target.checked})}
+                className="w-5 h-5 text-emerald-600 rounded"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* EDIT / CREATE REWARD MODAL */}
       {editingReward && (
@@ -543,6 +687,66 @@ export const MerchantLoyaltyManager: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ADD PACKAGE MODAL */}
+      {packageUser && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-xl space-y-4 animate-in fade-in zoom-in duration-150 text-xs">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
+                <Package className="w-4 h-4 text-blue-500" />
+                <span>เพิ่มแพ็กเกจให้: {packageUser.name}</span>
+              </h3>
+              <button onClick={() => setPackageUser(null)} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="font-bold text-slate-700 mb-1 block">ชื่อแพ็กเกจ</label>
+                <input 
+                  type="text" required
+                  value={newPackage.name}
+                  onChange={(e) => setNewPackage({...newPackage, name: e.target.value})}
+                  placeholder="เช่น สปาหน้า 10 ครั้ง"
+                  className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20"
+                />
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 mb-1 block">จำนวนครั้ง (โควต้า)</label>
+                <input 
+                  type="number" required min={1}
+                  value={newPackage.quota}
+                  onChange={(e) => setNewPackage({...newPackage, quota: Number(e.target.value)})}
+                  className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20"
+                />
+              </div>
+            </div>
+            <div className="pt-2 flex justify-end gap-2">
+              <button type="button" onClick={() => setPackageUser(null)} className="px-4 py-2 rounded-xl text-slate-600 font-bold hover:bg-slate-100">ยกเลิก</button>
+              <button 
+                type="button" 
+                onClick={() => {
+                  if(!newPackage.name || newPackage.quota <= 0) return;
+                  addCustomerPackage({
+                    userId: packageUser.id,
+                    packageName: newPackage.name,
+                    totalQuota: newPackage.quota,
+                    usedQuota: 0,
+                    status: 'ACTIVE'
+                  });
+                  setPackageUser(null);
+                  setNewPackage({ name: '', quota: 10, serviceId: '' });
+                }} 
+                className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold flex items-center gap-1.5"
+              >
+                <Check className="w-4 h-4" /> ยืนยันเพิ่มแพ็กเกจ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

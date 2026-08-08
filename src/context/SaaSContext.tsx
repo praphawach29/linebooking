@@ -35,6 +35,8 @@ import {
   PointTransaction,
   Reward,
   RewardRedemption,
+  TenantLoyaltySettings,
+  CustomerPackage,
 } from '../types';
 import {
   INITIAL_TENANTS,
@@ -104,6 +106,8 @@ interface SaaSContextType {
   memberships: Membership[];
   pointTransactions: PointTransaction[];
   rewards: Reward[];
+  loyaltySettings: TenantLoyaltySettings | null;
+  customerPackages: CustomerPackage[];
   
   // Realtime
   lastRealtimeUpdate: number;
@@ -178,6 +182,8 @@ interface SaaSContextType {
   saveReward: (reward: Partial<Reward>) => void;
   deleteReward: (rewardId: string) => void;
   adjustCustomerPoints: (userId: string, pointsDelta: number, reason: string) => void;
+  saveLoyaltySettings: (settings: Partial<TenantLoyaltySettings>) => Promise<void>;
+  addCustomerPackage: (pkg: Omit<CustomerPackage, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
 }
 
 const generateUUID = (): string => {
@@ -280,9 +286,12 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [cancellationPolicies, setCancellationPolicies] = useState<CancellationPolicy[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [pointTransactions, setPointTransactions] = useState<PointTransaction[]>([]);
   const [rewards, setRewards] = useState<Reward[]>([]);
+  const [loyaltySettings, setLoyaltySettings] = useState<TenantLoyaltySettings | null>(null);
+  const [customerPackages, setCustomerPackages] = useState<CustomerPackage[]>([]);
 
   // Initial Data Fetching from Supabase
   useEffect(() => {
@@ -329,6 +338,8 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           { data: reviewsData },
           { data: rewardsData },
           { data: membershipsData },
+          { data: loyaltySettingsData },
+          { data: customerPackagesData }
         ] = await Promise.all([
           // If platform_admin: fetch ALL real tenants in Supabase!
           // If logged-in merchant: fetch by their specific tenant_id
@@ -355,6 +366,12 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           isAuthenticated
             ? supabase.from('memberships').select('*')
             : Promise.resolve({ data: [] }),
+          isAuthenticated && userTenantId
+            ? supabase.from('tenant_loyalty_settings').select('*').eq('tenant_id', userTenantId).single()
+            : Promise.resolve({ data: null, error: null }),
+          isAuthenticated && userTenantId
+            ? supabase.from('customer_packages').select('*').eq('tenant_id', userTenantId)
+            : Promise.resolve({ data: [] })
         ]);
 
         let fetchedTenants: Tenant[] = [];
@@ -447,7 +464,11 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (reviewsData) setReviews(camelizeKeys(reviewsData) as Review[]);
         if (rewardsData) setRewards(camelizeKeys(rewardsData) as Reward[]);
         if (membershipsData) setMemberships(camelizeKeys(membershipsData) as Membership[]);
+        
+        if (loyaltySettingsData) setLoyaltySettings(camelizeKeys(loyaltySettingsData) as TenantLoyaltySettings);
+        if (customerPackagesData) setCustomerPackages(camelizeKeys(customerPackagesData) as CustomerPackage[]);
 
+        setIsLoading(false);
       } catch (err: any) {
         console.error('Error fetching data from Supabase:', err);
         setError(err.message || 'Failed to fetch data');
@@ -1411,6 +1432,62 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
   };
 
+  const saveLoyaltySettings = async (settings: Partial<TenantLoyaltySettings>) => {
+    if (!activeTenantId) return;
+
+    const dataToSave = {
+      tenant_id: activeTenantId,
+      point_strategy: settings.pointStrategy,
+      points_per_visit: settings.pointsPerVisit,
+      points_per_currency: settings.pointsPerCurrency,
+      currency_amount: settings.currencyAmount,
+      enable_package_deduction: settings.enablePackageDeduction,
+      updated_at: new Date().toISOString()
+    };
+
+    setLoyaltySettings((prev) => ({
+      ...prev,
+      ...settings,
+      tenantId: activeTenantId,
+      pointStrategy: settings.pointStrategy || prev?.pointStrategy || 'DISABLED',
+      pointsPerVisit: settings.pointsPerVisit ?? prev?.pointsPerVisit ?? 0,
+      pointsPerCurrency: settings.pointsPerCurrency ?? prev?.pointsPerCurrency ?? 0,
+      currencyAmount: settings.currencyAmount ?? prev?.currencyAmount ?? 100,
+      enablePackageDeduction: settings.enablePackageDeduction ?? prev?.enablePackageDeduction ?? false
+    } as TenantLoyaltySettings));
+
+    const { error } = await supabase.from('tenant_loyalty_settings').upsert(dataToSave, { onConflict: 'tenant_id' });
+    if (error) console.error('Error saving loyalty settings:', error.message);
+  };
+
+  const addCustomerPackage = async (pkg: Omit<CustomerPackage, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (!activeTenantId) return;
+
+    const newId = generateUUID();
+    const newPkg: CustomerPackage = {
+      ...pkg,
+      id: newId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    setCustomerPackages((prev) => [...prev, newPkg]);
+
+    const { error } = await supabase.from('CustomerPackage').insert({
+      id: newId,
+      tenant_id: activeTenantId,
+      user_id: pkg.userId,
+      service_id: pkg.serviceId,
+      package_name: pkg.packageName,
+      total_quota: pkg.totalQuota,
+      used_quota: pkg.usedQuota,
+      expires_at: pkg.expiresAt,
+      status: pkg.status
+    });
+    
+    if (error) console.error('Error adding customer package:', error.message);
+  };
+
   return (
     <SaaSContext.Provider
       value={{
@@ -1432,6 +1509,8 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         memberships,
         pointTransactions,
         rewards: tenantRewards,
+        loyaltySettings,
+        customerPackages,
         lastRealtimeUpdate,
         setMerchantTab,
         switchTenant,
@@ -1464,6 +1543,8 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         saveReward,
         deleteReward,
         adjustCustomerPoints,
+        saveLoyaltySettings,
+        addCustomerPackage,
       }}
     >
       {children}

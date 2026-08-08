@@ -311,6 +311,26 @@ export const MerchantCheckInScanner: React.FC = () => {
                 <span>{result.startTime}-{result.endTime}</span>
               </div>
             </div>
+
+            {result.packageRemaining !== undefined && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 text-left flex items-start gap-3">
+                <ShieldCheck className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div>
+                  <p className="text-sm font-bold text-blue-900">ใช้แพ็กเกจ</p>
+                  <p className="text-xs font-semibold text-blue-700 mt-0.5">คงเหลือ {result.packageRemaining} ครั้ง</p>
+                </div>
+              </div>
+            )}
+
+            {result.pointsEarned ? (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4 text-left flex items-start gap-3">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 mt-0.5" />
+                <div>
+                  <p className="text-sm font-bold text-emerald-900">รับคะแนนสะสม</p>
+                  <p className="text-xs font-semibold text-emerald-700 mt-0.5">เพิ่ม {result.pointsEarned} แต้ม</p>
+                </div>
+              </div>
+            ) : null}
             
             <p className="text-sm font-bold text-emerald-700 bg-emerald-100 py-2 px-4 rounded-full inline-block">
               สถานะอัปเดตเรียบร้อย ระบบแจ้งเตือนไปยังลูกค้าแล้ว

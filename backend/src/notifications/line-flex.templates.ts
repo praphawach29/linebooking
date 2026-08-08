@@ -8,6 +8,8 @@ type BookingForFlex = {
   startTime: Date;
   endTime: Date;
   finalPrice: unknown;
+  pointsEarned?: number;
+  packageRemaining?: number;
 };
 
 const EVENT_COPY: Record<LineBookingEvent, { title: string; color: string }> = {
@@ -69,6 +71,28 @@ export function buildBookingFlexMessage(
       margin: 'md',
     },
   ];
+
+  if (booking.packageRemaining !== undefined) {
+    details.push({
+      type: 'text',
+      text: `ใช้แพ็กเกจแล้ว คงเหลือ ${booking.packageRemaining} ครั้ง`,
+      size: 'sm',
+      color: '#0284C7',
+      weight: 'bold',
+      margin: 'md',
+    } as any);
+  }
+
+  if (booking.pointsEarned) {
+    details.push({
+      type: 'text',
+      text: `ได้รับคะแนนสะสมเพิ่ม ${booking.pointsEarned} แต้ม`,
+      size: 'sm',
+      color: '#059669',
+      weight: 'bold',
+      margin: booking.packageRemaining !== undefined ? 'sm' : 'md',
+    } as any);
+  }
 
   const bubble: Record<string, unknown> = {
     type: 'bubble',

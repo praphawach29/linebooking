@@ -47,9 +47,10 @@ export class NotificationsProcessor extends WorkerHost implements OnModuleInit {
             liffId: true,
           },
         },
-        user: { select: { lineUserId: true } },
+        user: { select: { id: true, lineUserId: true } },
         booking: {
           select: {
+            id: true,
             ref_no: true,
             service_name: true,
             court_name: true,
@@ -79,9 +80,38 @@ export class NotificationsProcessor extends WorkerHost implements OnModuleInit {
     }
 
     try {
+      let pointsEarned: number | undefined;
+      let packageRemaining: number | undefined;
+
+      if (delivery.eventType === 'booking_checked_in') {
+        const pointTransaction = await this.prisma.pointTransaction.findFirst({
+          where: { bookingId: delivery.booking.id, type: 'EARNED' },
+        });
+        if (pointTransaction) {
+          pointsEarned = pointTransaction.points;
+        }
+
+        const recentlyUsedPackage = await this.prisma.customerPackage.findFirst({
+          where: {
+            userId: delivery.user.id,
+            updatedAt: { gte: new Date(Date.now() - 60000) },
+          },
+          orderBy: { updatedAt: 'desc' },
+        });
+        if (recentlyUsedPackage) {
+          packageRemaining = recentlyUsedPackage.totalQuota - recentlyUsedPackage.usedQuota;
+        }
+      }
+
+      const bookingForFlex = {
+        ...delivery.booking,
+        pointsEarned,
+        packageRemaining,
+      };
+
       const message = buildBookingFlexMessage(
         delivery.eventType as LineBookingEvent,
-        delivery.booking,
+        bookingForFlex,
         delivery.tenant.name,
         delivery.tenant.liffId,
       );

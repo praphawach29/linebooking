@@ -229,8 +229,8 @@ export const MerchantLoyaltyManager: React.FC = () => {
       {activeSubTab === 'members' && (
         <div className="space-y-4">
           {/* Summary Stat KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-            <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+            <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between col-span-2 md:col-span-1">
               <div>
                 <span className="text-[11px] text-slate-500 font-bold block">ลูกค้าสมาชิกในระบบ</span>
                 <span className="text-2xl font-black text-slate-900">{customerList.length} คน</span>
@@ -293,7 +293,7 @@ export const MerchantLoyaltyManager: React.FC = () => {
                         <img
                           src={
                             customer.avatar ||
-                            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'
+                            `https://ui-avatars.com/api/?name=${encodeURIComponent(customer.name)}&background=random`
                           }
                           alt={customer.name}
                           className="w-8 h-8 rounded-full object-cover border border-slate-200"

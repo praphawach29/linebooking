@@ -150,6 +150,7 @@ export const MerchantLayout: React.FC = () => {
   if (!activeTenant) {
     return (
       <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-slate-400 font-bold text-sm">
+        <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
         กำลังโหลดข้อมูลร้านค้า...
       </div>
     );

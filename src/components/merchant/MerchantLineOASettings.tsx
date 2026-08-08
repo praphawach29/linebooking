@@ -187,38 +187,50 @@ export const MerchantLineOASettings: React.FC = () => {
               <span className="text-[10px] font-bold px-2 py-1 bg-slate-100 text-slate-600 rounded-lg">รีเซ็ตทุกสิ้นเดือน</span>
             </div>
             
-            <div>
-              <div className="flex justify-between text-[11px] mb-1.5 font-bold">
-                <span className="text-slate-600">ใช้งานแล้ว {pushCount.toLocaleString()} ข้อความ</span>
-                <span className={quotaCritical ? 'text-rose-500' : 'text-emerald-600'}>
-                  {quotaRemainingText}
-                </span>
+            {quotaLoading && !quota ? (
+              <div className="space-y-2 py-0.5">
+                <div className="flex justify-between">
+                  <span className="h-3 w-32 rounded bg-slate-200 animate-pulse" />
+                  <span className="h-3 w-24 rounded bg-slate-200 animate-pulse" />
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div className="h-2 w-1/3 rounded-full bg-slate-200 animate-pulse" />
+                </div>
               </div>
-              <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                <div 
-                  className={'h-2 rounded-full ' + quotaBarClass}
-                  style={{ width: `${pushPercentage}%` }}
-                ></div>
+            ) : (
+              <div>
+                <div className="flex justify-between text-[11px] mb-1.5 font-bold">
+                  <span className="text-slate-600">ใช้งานแล้ว {pushCount.toLocaleString()} ข้อความ</span>
+                  <span className={quotaCritical ? 'text-rose-500' : 'text-emerald-600'}>
+                    {quotaRemainingText}
+                  </span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div
+                    className={'h-2 rounded-full ' + quotaBarClass}
+                    style={{ width: `${pushPercentage}%` }}
+                  ></div>
+                </div>
+                <div className="mt-2 flex items-start justify-between gap-3">
+                  <p className="text-[10px] text-slate-500">
+                    {quota?.source === 'line'
+                      ? 'ข้อมูลโควต้าจริงจาก LINE Messaging API ระบบ SaaS จะไม่ปิดการส่งอัตโนมัติ'
+                      : 'กำลังใช้ค่าประมาณ 300 ข้อความจนกว่าจะอ่านแพ็กเกจจริงจาก LINE ได้'}
+                    {quota && quota.warningLevel !== 'normal' && ' แจ้งเตือน: ใช้โควต้าแล้ว ' + quota.percentage + '%'}
+                    {quotaError && ' (' + quotaError + ')'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void loadQuota()}
+                    disabled={quotaLoading}
+                    title="อัปเดตโควต้า"
+                    className="w-7 h-7 shrink-0 inline-flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:text-emerald-600 disabled:opacity-50"
+                  >
+                    {quotaLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
               </div>
-              <div className="mt-2 flex items-start justify-between gap-3">
-                <p className="text-[10px] text-slate-500">
-                  {quota?.source === 'line'
-                    ? 'ข้อมูลโควต้าจริงจาก LINE Messaging API ระบบ SaaS จะไม่ปิดการส่งอัตโนมัติ'
-                    : 'กำลังใช้ค่าประมาณ 300 ข้อความจนกว่าจะอ่านแพ็กเกจจริงจาก LINE ได้'}
-                  {quota && quota.warningLevel !== 'normal' && ' แจ้งเตือน: ใช้โควต้าแล้ว ' + quota.percentage + '%'}
-                  {quotaError && ' (' + quotaError + ')'}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => void loadQuota()}
-                  disabled={quotaLoading}
-                  title="อัปเดตโควต้า"
-                  className="w-7 h-7 shrink-0 inline-flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:text-emerald-600 disabled:opacity-50"
-                >
-                  {quotaLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                </button>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* 24-Hour Reminder Toggle */}

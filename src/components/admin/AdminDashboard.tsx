@@ -69,10 +69,14 @@ export const AdminDashboard: React.FC = () => {
   const [savedGatewayMsg, setSavedGatewayMsg] = useState(false);
   const [gatewayError, setGatewayError] = useState<string | null>(null);
   const [invoices, setInvoices] = useState<SubscriptionInvoice[]>([]);
+  const [isLoadingInvoices, setIsLoadingInvoices] = useState(true);
+  const [isLoadingSlipCount, setIsLoadingSlipCount] = useState(true);
 
   // จำนวนสลิปรอตรวจ — ใช้ทำ badge บนเมนู โหลดตั้งแต่เข้าหน้า
   useEffect(() => {
-    countPendingSlips().then(setPendingSlipCount);
+    countPendingSlips()
+      .then(setPendingSlipCount)
+      .finally(() => setIsLoadingSlipCount(false));
   }, []);
 
   useEffect(() => {
@@ -86,7 +90,10 @@ export const AdminDashboard: React.FC = () => {
         .finally(() => { if (!cancelled) setIsLoadingGateway(false); });
     }
 
-    fetchInvoices().then(list => { if (!cancelled) setInvoices(list); });
+    setIsLoadingInvoices(true);
+    fetchInvoices()
+      .then(list => { if (!cancelled) setInvoices(list); })
+      .finally(() => { if (!cancelled) setIsLoadingInvoices(false); });
     return () => { cancelled = true; };
   }, [activeSubTab]);
 
@@ -284,7 +291,7 @@ export const AdminDashboard: React.FC = () => {
         )}
 
         {/* แดชบอร์ด: ทางลัดไปคิวสลิปที่รอตรวจ */}
-        {activeSubTab === 'overview' && pendingSlipCount > 0 && (
+        {activeSubTab === 'overview' && !isLoadingSlipCount && pendingSlipCount > 0 && (
           <button
             onClick={() => setActiveTab('slips')}
             className="w-full bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl px-5 py-4 flex items-center justify-between gap-3 hover:bg-amber-100 transition-colors text-left"
@@ -899,10 +906,16 @@ export const AdminDashboard: React.FC = () => {
                   <DollarSign className="w-4 h-4 text-emerald-600" />
                   ประวัติการชำระค่าแพ็กเกจล่าสุด (Subscription Invoices)
                 </h3>
-                <span className="text-xs text-slate-500 font-medium">{invoices.length} รายการ</span>
+                <span className="text-xs text-slate-500 font-medium">
+                  {isLoadingInvoices ? '...' : `${invoices.length} รายการ`}
+                </span>
               </div>
 
-              {invoices.length === 0 ? (
+              {isLoadingInvoices ? (
+                <div className="py-16 flex items-center justify-center gap-2 text-xs font-bold text-slate-500">
+                  <Activity className="w-4 h-4 animate-pulse" /> กำลังโหลดรายการใบแจ้งหนี้...
+                </div>
+              ) : invoices.length === 0 ? (
                 <p className="text-xs text-slate-400 py-6 text-center">
                   ยังไม่มีรายการชำระเงิน (หรือยังไม่ได้รัน migration 0004_platform_billing.sql)
                 </p>

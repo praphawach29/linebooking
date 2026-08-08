@@ -7,29 +7,38 @@ export class MembershipsService {
 
   
   async getMembershipWithPhoneFallback(tenantId: string, userId: string, phone?: string) {
-    // The authenticated LINE identity (userId, verified via ID token) is always
-    // the source of truth — try it first. Only fall back to matching by phone
-    // (e.g. a walk-in booking made before the customer ever logged into LINE)
-    // when there is no membership under the authenticated identity yet,
-    // otherwise a booking made under a different userId could shadow the
-    // customer's own up-to-date points/tier.
-    let membership = await this.prisma.membership.findUnique({
+    // A customer's real point history can end up under two different user
+    // records: the one tied to their authenticated LINE identity, and a
+    // separate phone-linked record if staff checked them in (e.g. a walk-in
+    // scan) before they ever opened the LIFF app and logged into LINE.
+    // Look up both candidates and trust whichever one actually holds the
+    // points, rather than assuming either is always authoritative.
+    const authMembership = await this.prisma.membership.findUnique({
       where: { tenantId_userId: { tenantId, userId } },
       include: { pointTransactions: { orderBy: { createdAt: 'desc' }, take: 10 } }
     });
 
-    if (!membership && phone) {
+    let phoneMembership = null;
+    if (phone) {
       const bookingWithPhone = await this.prisma.booking.findFirst({
         where: { tenantId, user_phone: phone, userId: { not: null } },
         orderBy: { createdAt: 'desc' }
       });
 
-      if (bookingWithPhone && bookingWithPhone.userId) {
-        membership = await this.prisma.membership.findUnique({
+      if (bookingWithPhone && bookingWithPhone.userId && bookingWithPhone.userId !== userId) {
+        phoneMembership = await this.prisma.membership.findUnique({
           where: { tenantId_userId: { tenantId, userId: bookingWithPhone.userId } },
           include: { pointTransactions: { orderBy: { createdAt: 'desc' }, take: 10 } }
         });
       }
+    }
+
+    let membership = authMembership;
+    if (
+      phoneMembership &&
+      (phoneMembership.totalPointsEarned || 0) > (authMembership?.totalPointsEarned || 0)
+    ) {
+      membership = phoneMembership;
     }
 
     if (!membership) {

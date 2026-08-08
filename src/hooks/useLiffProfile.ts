@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import liff from '@line/liff';
+import {
+  getCleanLiffRedirectUri,
+  isLineIdTokenSessionValid,
+} from '../lib/booking-auth';
 
 export interface LiffProfileData {
   lineUserId: string;
@@ -75,6 +79,27 @@ async function getOrInitLiff(targetLiffId: string): Promise<LiffProfileData> {
             hasIdToken: false,
             authCheckedOnce: true,
             error: 'ไม่พบ LINE ID token กรุณาตรวจสอบว่า LIFF เปิดใช้ scope openid แล้วเข้าสู่ระบบใหม่',
+          };
+        }
+        if (!isLineIdTokenSessionValid(targetLiffId, liff.getDecodedIDToken())) {
+          liff.logout();
+          cachedProfile = null;
+          try {
+            localStorage.removeItem(STORAGE_KEY);
+          } catch (e) {
+            // Ignore storage errors
+          }
+          liff.login({ redirectUri: getCleanLiffRedirectUri(window.location.href) });
+          return {
+            lineUserId: '',
+            displayName: 'ลูกค้า LINE User',
+            pictureUrl: '',
+            isLoggedIn: false,
+            isInClient,
+            isLoading: true,
+            isAuthorized: false,
+            hasIdToken: false,
+            authCheckedOnce: false,
           };
         }
         const userProfile = await liff.getProfile();
@@ -209,7 +234,7 @@ export function useLiffProfile(liffId?: string) {
 
   const login = useCallback(() => {
     if (!liff.isLoggedIn()) {
-      liff.login({ redirectUri: window.location.href });
+      liff.login({ redirectUri: getCleanLiffRedirectUri(window.location.href) });
     }
   }, []);
 
@@ -221,7 +246,7 @@ export function useLiffProfile(liffId?: string) {
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch (e) {}
-    window.location.reload();
+    window.location.replace(getCleanLiffRedirectUri(window.location.href));
   }, []);
 
   return { ...profile, login, logout };

@@ -48,7 +48,12 @@ describe('booking-client actor integration', () => {
       init: async () => undefined,
       isLoggedIn: () => true,
       login: () => undefined,
+      logout: () => undefined,
       getIDToken: () => 'verified-line-id-token',
+      getDecodedIDToken: () => ({
+        aud: '2001234567',
+        exp: Math.floor(Date.now() / 1000) + 3600,
+      }),
     };
 
     await getCustomerBookingsWithLiff({
@@ -74,7 +79,12 @@ describe('booking-client actor integration', () => {
       init: async () => undefined,
       isLoggedIn: () => true,
       login: () => undefined,
+      logout: () => undefined,
       getIDToken: () => 'verified-line-id-token',
+      getDecodedIDToken: () => ({
+        aud: '2001234567',
+        exp: Math.floor(Date.now() / 1000) + 3600,
+      }),
     };
 
     await createCustomerBookingWithLiff(

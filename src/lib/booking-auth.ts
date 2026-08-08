@@ -9,7 +9,13 @@ export interface LiffProfile {
 
 type BookingLiffClient = Pick<
   Liff,
-  'init' | 'isLoggedIn' | 'login' | 'getIDToken' | 'getProfile'
+  | 'init'
+  | 'isLoggedIn'
+  | 'login'
+  | 'logout'
+  | 'getIDToken'
+  | 'getDecodedIDToken'
+  | 'getProfile'
 >;
 
 export interface LineTokenOptions {
@@ -39,6 +45,52 @@ export class BookingAuthError extends Error {
 
 const initializedLiffIds = new Set<string>();
 
+const LINE_CALLBACK_PARAMS = [
+  'code',
+  'state',
+  'liffClientId',
+  'liffRedirectUri',
+  'error',
+  'error_description',
+];
+
+export function getCleanLiffRedirectUri(href: string): string {
+  const url = new URL(href);
+  LINE_CALLBACK_PARAMS.forEach((param) => url.searchParams.delete(param));
+  return url.toString();
+}
+
+export function isLineIdTokenSessionValid(
+  liffId: string,
+  decodedToken: { aud?: string; exp?: number } | null,
+  nowSeconds = Math.floor(Date.now() / 1000),
+): boolean {
+  if (!decodedToken?.aud || !decodedToken.exp) return false;
+  const expectedAudience = liffId.trim().split('-')[0];
+  return (
+    decodedToken.aud === expectedAudience &&
+    decodedToken.exp > nowSeconds + 30
+  );
+}
+
+function getDefaultRedirectUri(): string | undefined {
+  return typeof window === 'undefined'
+    ? undefined
+    : getCleanLiffRedirectUri(window.location.href);
+}
+
+function startLiffLogin(
+  client: BookingLiffClient,
+  redirectUri?: string,
+): never {
+  client.login({ redirectUri: redirectUri ?? getDefaultRedirectUri() });
+  throw new BookingAuthError(
+    'LIFF_LOGIN_REDIRECT_STARTED',
+    'LINE login is required before creating a booking',
+    'liff_login',
+  );
+}
+
 export async function getLineIdToken(
   liffId: string,
   options: LineTokenOptions = {},
@@ -59,16 +111,7 @@ export async function getLineIdToken(
   }
 
   if (!client.isLoggedIn()) {
-    client.login({
-      redirectUri:
-        options.redirectUri ??
-        (typeof window === 'undefined' ? undefined : window.location.href),
-    });
-    throw new BookingAuthError(
-      'LIFF_LOGIN_REDIRECT_STARTED',
-      'LINE login is required before creating a booking',
-      'liff_login',
-    );
+    return startLiffLogin(client, options.redirectUri);
   }
 
   const token = client.getIDToken();
@@ -78,6 +121,10 @@ export async function getLineIdToken(
       'LINE ID token is unavailable',
       'liff_login',
     );
+  }
+  if (!isLineIdTokenSessionValid(normalizedLiffId, client.getDecodedIDToken())) {
+    client.logout();
+    return startLiffLogin(client, options.redirectUri);
   }
   return token;
 }
@@ -102,16 +149,12 @@ export async function getLiffProfile(
   }
 
   if (!client.isLoggedIn()) {
-    client.login({
-      redirectUri:
-        options.redirectUri ??
-        (typeof window === 'undefined' ? undefined : window.location.href),
-    });
-    throw new BookingAuthError(
-      'LIFF_LOGIN_REDIRECT_STARTED',
-      'LINE login is required to view profile',
-      'liff_login',
-    );
+    return startLiffLogin(client, options.redirectUri);
+  }
+
+  if (!isLineIdTokenSessionValid(normalizedLiffId, client.getDecodedIDToken())) {
+    client.logout();
+    return startLiffLogin(client, options.redirectUri);
   }
 
   const profile = await client.getProfile();

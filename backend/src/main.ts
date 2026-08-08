@@ -4,7 +4,7 @@ import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   // Frontend คุยข้ามพอร์ต (Vite 3005/4000 → Nest 3000) จึงต้องเปิด CORS
   // ตั้ง CORS_ORIGINS ใน .env เป็นรายการโดเมนคั่นด้วย comma ตอนขึ้น production

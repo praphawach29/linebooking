@@ -7,9 +7,10 @@ import { SupabaseModule } from '../common/supabase/supabase.module';
 import { CustomerTenantGuard } from '../common/guards/customer-tenant.guard';
 import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard';
 import { TenantAccessGuard } from '../common/guards/tenant-access.guard';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [AuthModule, SupabaseModule],
+  imports: [AuthModule, SupabaseModule, NotificationsModule],
   controllers: [BookingsController],
   providers: [
     BookingsService,

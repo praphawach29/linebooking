@@ -13,6 +13,7 @@ import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { LineIdTokenGuard } from '../common/guards/line-id-token.guard';
 import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard';
 import { TenantAccessGuard } from '../common/guards/tenant-access.guard';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   BookingResponseDto,
   CreateCustomerBookingDto,
@@ -23,6 +24,7 @@ describe('BookingsController (Unit Tests)', () => {
   let controller: BookingsController;
   let bookingsService: jest.Mocked<BookingsService>;
   let availabilityService: jest.Mocked<AvailabilityService>;
+  let notificationsService: jest.Mocked<NotificationsService>;
 
   const tenantId = '00000000-0000-0000-0000-000000000001';
   const serviceId = '11111111-1111-1111-1111-111111111111';
@@ -69,6 +71,9 @@ describe('BookingsController (Unit Tests)', () => {
   const mockAvailabilityService = {
     calculateAvailability: jest.fn(),
   };
+  const mockNotificationsService = {
+    queueBookingEvent: jest.fn().mockResolvedValue(undefined),
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -78,6 +83,7 @@ describe('BookingsController (Unit Tests)', () => {
       providers: [
         { provide: BookingsService, useValue: mockBookingsService },
         { provide: AvailabilityService, useValue: mockAvailabilityService },
+        { provide: NotificationsService, useValue: mockNotificationsService },
       ],
     })
       .overrideGuard(LineIdTokenGuard)
@@ -91,6 +97,7 @@ describe('BookingsController (Unit Tests)', () => {
     controller = module.get<BookingsController>(BookingsController);
     bookingsService = module.get(BookingsService);
     availabilityService = module.get(AvailabilityService);
+    notificationsService = module.get(NotificationsService);
   });
 
   describe('GET /bookings/available-slots', () => {

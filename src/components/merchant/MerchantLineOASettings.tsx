@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
+import { getLineQuotaWithSession, type LineQuotaStatus } from '../../lib/line-notification-api';
 import {
   MessageSquare,
   Key,
@@ -14,7 +15,8 @@ import {
   Users,
   Smartphone,
   ExternalLink,
-  Loader2
+  Loader2,
+  RefreshCw
 } from 'lucide-react';
 
 export const MerchantLineOASettings: React.FC = () => {
@@ -36,11 +38,37 @@ export const MerchantLineOASettings: React.FC = () => {
     activeTenant.settings.lineBookingConfirmationEnabled ?? true
   );
 
-  const currentMonth = new Date().toISOString().slice(0, 7);
-  const isCurrentMonth = activeTenant.settings.linePushMessageMonth === currentMonth;
-  const pushCount = isCurrentMonth ? (activeTenant.settings.linePushMessageCount || 0) : 0;
-  const pushLimit = 300;
-  const pushPercentage = Math.min(100, Math.round((pushCount / pushLimit) * 100));
+  const [quota, setQuota] = useState<LineQuotaStatus | null>(null);
+  const [quotaLoading, setQuotaLoading] = useState(false);
+  const [quotaError, setQuotaError] = useState<string | null>(null);
+  const loadQuota = useCallback(async () => {
+    setQuotaLoading(true);
+    setQuotaError(null);
+    try {
+      setQuota(await getLineQuotaWithSession(activeTenant.id));
+    } catch (error) {
+      setQuotaError(error instanceof Error ? error.message : 'ไม่สามารถอ่านโควต้า LINE ได้');
+    } finally {
+      setQuotaLoading(false);
+    }
+  }, [activeTenant.id]);
+
+  useEffect(() => {
+    void loadQuota();
+  }, [loadQuota]);
+
+  const pushCount = quota?.usage ?? 0;
+  const pushLimit = quota?.limit;
+  const pushPercentage = Math.min(100, quota?.percentage ?? 0);
+  const quotaCritical = quota?.warningLevel === 'critical' || quota?.warningLevel === 'exceeded';
+  const quotaBarClass = quotaCritical
+    ? 'bg-rose-500'
+    : quota?.warningLevel === 'warning'
+      ? 'bg-amber-500'
+      : 'bg-emerald-500';
+  const quotaRemainingText = pushLimit === null || pushLimit === undefined
+    ? 'แพ็กเกจไม่จำกัด'
+    : (quota?.remaining ?? pushLimit).toLocaleString() + ' ข้อความคงเหลือ';
 
   // LINE Broadcast State
   const [broadcastTarget, setBroadcastTarget] = useState<'all' | 'active' | 'vip'>('all');
@@ -62,8 +90,8 @@ export const MerchantLineOASettings: React.FC = () => {
   const [saved, setSaved] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
 
-  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://linebooking-amber.vercel.app';
-  const webhookUrl = `${currentOrigin}/api/line/webhook?tenant=${activeTenant.slug}`;
+  const backendOrigin = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const webhookUrl = `${backendOrigin}/webhooks/line?tenant=${activeTenant.slug}`;
 
   const handleCopyWebhook = () => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
@@ -161,20 +189,35 @@ export const MerchantLineOASettings: React.FC = () => {
             
             <div>
               <div className="flex justify-between text-[11px] mb-1.5 font-bold">
-                <span className="text-slate-600">ใช้งานแล้ว {pushCount} ข้อความ</span>
-                <span className={pushCount >= pushLimit ? 'text-rose-500' : 'text-emerald-600'}>
-                  {pushLimit - pushCount} ข้อความคงเหลือ
+                <span className="text-slate-600">ใช้งานแล้ว {pushCount.toLocaleString()} ข้อความ</span>
+                <span className={quotaCritical ? 'text-rose-500' : 'text-emerald-600'}>
+                  {quotaRemainingText}
                 </span>
               </div>
               <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                 <div 
-                  className={`h-2 rounded-full ${pushCount >= pushLimit ? 'bg-rose-500' : 'bg-emerald-500'}`} 
+                  className={'h-2 rounded-full ' + quotaBarClass}
                   style={{ width: `${pushPercentage}%` }}
                 ></div>
               </div>
-              <p className="text-[10px] text-slate-500 mt-2">
-                * แพ็กเกจฟรีของ LINE อนุญาตให้ส่งข้อความแบบ Push ได้สูงสุด 300 ข้อความ/เดือน
-              </p>
+              <div className="mt-2 flex items-start justify-between gap-3">
+                <p className="text-[10px] text-slate-500">
+                  {quota?.source === 'line'
+                    ? 'ข้อมูลโควต้าจริงจาก LINE Messaging API ระบบ SaaS จะไม่ปิดการส่งอัตโนมัติ'
+                    : 'กำลังใช้ค่าประมาณ 300 ข้อความจนกว่าจะอ่านแพ็กเกจจริงจาก LINE ได้'}
+                  {quota && quota.warningLevel !== 'normal' && ' แจ้งเตือน: ใช้โควต้าแล้ว ' + quota.percentage + '%'}
+                  {quotaError && ' (' + quotaError + ')'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void loadQuota()}
+                  disabled={quotaLoading}
+                  title="อัปเดตโควต้า"
+                  className="w-7 h-7 shrink-0 inline-flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:text-emerald-600 disabled:opacity-50"
+                >
+                  {quotaLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                </button>
+              </div>
             </div>
           </div>
 

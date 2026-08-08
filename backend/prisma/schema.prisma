@@ -35,6 +35,8 @@ model Tenant {
   courts                             courts[]
   memberships                        Membership[]
   notifications                      Notification[]
+  lineMessageDeliveries              LineMessageDelivery[]
+  lineQuotaSnapshots                 LineQuotaSnapshot[]
   payment_methods                    payment_methods[]
   payment_slips                      payment_slips[]
   payments                           Payment[]
@@ -67,6 +69,7 @@ model User {
   bookings                                       Booking[]
   memberships                                    Membership[]
   notifications                                  Notification[]
+  lineMessageDeliveries                          LineMessageDelivery[]
   payment_slips_payment_slips_reviewed_byTousers payment_slips[]     @relation("payment_slips_reviewed_byTousers")
   payment_slips_payment_slips_uploaded_byTousers payment_slips[]     @relation("payment_slips_uploaded_byTousers")
   payments                                       Payment[]
@@ -190,6 +193,7 @@ model Booking {
   tenant             Tenant?            @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   user               User?              @relation(fields: [userId], references: [id], onUpdate: NoAction)
   notifications      Notification[]
+  lineMessageDeliveries LineMessageDelivery[]
   relatedPayments    Payment[]          @relation("BookingToPayment")
   point_transactions PointTransaction[]
   reviews            reviews[]
@@ -240,6 +244,49 @@ model Notification {
   user              User?     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("notifications")
+}
+
+model LineMessageDelivery {
+  id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  tenantId         String    @map("tenant_id") @db.Uuid
+  userId           String?   @map("user_id") @db.Uuid
+  bookingId        String?   @map("booking_id") @db.Uuid
+  eventType        String    @map("event_type")
+  status           String    @default("queued")
+  idempotencyKey   String    @unique @map("idempotency_key")
+  lineMessageCount Int       @default(1) @map("line_message_count")
+  lineRequestId    String?   @map("line_request_id")
+  attempts         Int       @default(0)
+  errorCode        String?   @map("error_code")
+  errorMessage     String?   @map("error_message")
+  scheduledAt      DateTime  @default(now()) @map("scheduled_at") @db.Timestamptz(6)
+  sentAt           DateTime? @map("sent_at") @db.Timestamptz(6)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user             User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  booking          Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt], map: "idx_line_deliveries_tenant_created")
+  @@index([bookingId], map: "idx_line_deliveries_booking")
+  @@index([status, scheduledAt], map: "idx_line_deliveries_status")
+  @@map("line_message_deliveries")
+}
+
+model LineQuotaSnapshot {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  period     String
+  quotaType  String   @map("quota_type")
+  quotaValue Int?     @map("quota_value")
+  totalUsage Int      @default(0) @map("total_usage")
+  fetchedAt  DateTime @default(now()) @map("fetched_at") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, period])
+  @@map("line_quota_snapshots")
 }
 
 model CancellationPolicy {

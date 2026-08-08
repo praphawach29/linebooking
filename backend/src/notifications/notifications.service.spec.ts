@@ -1,0 +1,48 @@
+import { NotificationsService } from './notifications.service';
+
+describe('NotificationsService LINE quota', () => {
+  const queue = { add: jest.fn() };
+  const prisma = {
+    tenant: { findUnique: jest.fn() },
+    lineQuotaSnapshot: { upsert: jest.fn(), findUnique: jest.fn() },
+    lineMessageDelivery: { aggregate: jest.fn() },
+  };
+  const lineClient = { getQuota: jest.fn() };
+  let service: NotificationsService;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    service = new NotificationsService(queue as any, prisma as any, lineClient as any);
+    prisma.tenant.findUnique.mockResolvedValue({ lineChannelAccessToken: 'token' });
+    prisma.lineQuotaSnapshot.upsert.mockImplementation(({ create }: any) => ({
+      ...create,
+      fetchedAt: new Date('2026-08-08T00:00:00Z'),
+    }));
+  });
+
+  it.each([
+    [69, 'normal'],
+    [70, 'notice'],
+    [85, 'warning'],
+    [95, 'critical'],
+    [100, 'exceeded'],
+  ])('classifies %s percent as %s without blocking', async (usage, warningLevel) => {
+    lineClient.getQuota.mockResolvedValue({ type: 'limited', value: 100, totalUsage: usage });
+
+    const result = await service.getLineQuotaStatus('tenant-id');
+
+    expect(result.warningLevel).toBe(warningLevel);
+    expect(result.sendingBlocked).toBe(false);
+    expect(result.remaining).toBe(Math.max(0, 100 - usage));
+  });
+
+  it('uses the paid LINE package limit instead of a fixed 300-message ceiling', async () => {
+    lineClient.getQuota.mockResolvedValue({ type: 'limited', value: 15000, totalUsage: 301 });
+
+    const result = await service.getLineQuotaStatus('tenant-id');
+
+    expect(result.limit).toBe(15000);
+    expect(result.remaining).toBe(14699);
+    expect(result.warningLevel).toBe('normal');
+  });
+});

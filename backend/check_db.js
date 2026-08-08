@@ -1,13 +1,17 @@
 const { Client } = require('pg');
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL is required');
+}
 const client = new Client({
-  connectionString: 'postgresql://postgres.kpodudqwcmsxhzjymldj:Praphawach291625@aws-0-ap-southeast-2.pooler.supabase.com:5432/postgres',
+  connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
 async function main() {
   await client.connect();
 
-  const JACK_LINE_USER_ID = 'U9979a81f3b985ddb72e87de9f47a0fb2';
+  const JACK_LINE_USER_ID = process.env.TEST_LINE_USER_ID;
+  if (!JACK_LINE_USER_ID) throw new Error('TEST_LINE_USER_ID is required');
 
   // Test get_my_bookings - what does it return?
   const rpcResult = await client.query(

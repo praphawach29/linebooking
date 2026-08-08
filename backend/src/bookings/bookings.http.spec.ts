@@ -18,6 +18,7 @@ import { BookingsService } from './bookings.service';
 import { LineIdTokenGuard } from '../common/guards/line-id-token.guard';
 import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard';
 import { TenantAccessGuard } from '../common/guards/tenant-access.guard';
+import { NotificationsService } from '../notifications/notifications.service';
 import { BookingResponseDto } from './dto';
 
 describe('BookingsController HTTP / Validation E2E Tests', () => {
@@ -139,6 +140,8 @@ describe('BookingsController HTTP / Validation E2E Tests', () => {
       .useValue(mockAvailabilityService)
       .overrideProvider(BookingsService)
       .useValue(mockBookingsService)
+      .overrideProvider(NotificationsService)
+      .useValue({ queueBookingEvent: jest.fn().mockResolvedValue(undefined) })
       .overrideGuard(LineIdTokenGuard)
       .useValue(mockLineIdTokenGuard)
       .overrideGuard(SupabaseAuthGuard)

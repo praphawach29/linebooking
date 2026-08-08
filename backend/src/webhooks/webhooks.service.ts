@@ -1,11 +1,16 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class WebhooksService {
   private readonly logger = new Logger(WebhooksService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async handleOmiseWebhook(payload: any) {
     this.logger.log(`Received Omise Webhook: ${payload.key}`);
@@ -27,13 +32,20 @@ export class WebhooksService {
 
         if (payment.bookingId) {
           // Update booking status
-          await this.prisma.booking.update({
+          const booking = await this.prisma.booking.update({
             where: { id: payment.bookingId },
             data: { 
               paymentStatus: 'paid',
               status: 'confirmed'
             },
           });
+          if (booking.tenantId) {
+            await this.notifications.queueBookingEvent(
+              booking.tenantId,
+              booking.id,
+              'booking_confirmed',
+            );
+          }
         }
 
         this.logger.log(`Payment and Booking confirmed for payment ID: ${payment.id}`);
@@ -43,7 +55,34 @@ export class WebhooksService {
     return { received: true };
   }
 
-  async handleLineWebhook(payload: any) {
+  async handleLineWebhook(
+    tenantSlug: string,
+    signature: string,
+    rawBody: Buffer | undefined,
+    payload: any,
+  ) {
+    const tenant = tenantSlug
+      ? await this.prisma.tenant.findUnique({
+          where: { slug: tenantSlug },
+          select: { lineChannelSecret: true },
+        })
+      : null;
+    if (!tenant?.lineChannelSecret || !signature || !rawBody) {
+      throw new UnauthorizedException('Invalid LINE webhook signature');
+    }
+
+    const expected = createHmac('sha256', tenant.lineChannelSecret)
+      .update(rawBody)
+      .digest('base64');
+    const expectedBytes = Buffer.from(expected);
+    const actualBytes = Buffer.from(signature);
+    if (
+      expectedBytes.length !== actualBytes.length ||
+      !timingSafeEqual(expectedBytes, actualBytes)
+    ) {
+      throw new UnauthorizedException('Invalid LINE webhook signature');
+    }
+
     this.logger.log(`Received LINE Webhook`);
     
     if (payload.events && Array.isArray(payload.events)) {

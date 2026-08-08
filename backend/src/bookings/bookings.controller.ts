@@ -28,12 +28,14 @@ import { CurrentCustomer } from '../common/decorators/current-customer.decorator
 import { LineIdTokenGuard } from '../common/guards/line-id-token.guard';
 import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard';
 import { TenantAccessGuard } from '../common/guards/tenant-access.guard';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Controller('bookings')
 export class BookingsController {
   constructor(
     private readonly bookingsService: BookingsService,
     private readonly availabilityService: AvailabilityService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   @Get('mine')
@@ -73,7 +75,7 @@ export class BookingsController {
     @CurrentCustomer() customer: { id: string },
     @Body() dto: CreateCustomerBookingDto,
   ): Promise<BookingResponseDto> {
-    return this.bookingsService.createBookingAtomic({
+    const booking = await this.bookingsService.createBookingAtomic({
       actor: 'customer',
       tenantId,
       customerUserId: customer.id,
@@ -87,6 +89,8 @@ export class BookingsController {
       customerPhone: dto.customerPhone,
       notes: dto.notes,
     });
+    await this.notificationsService.queueBookingEvent(tenantId, booking.id, 'booking_created');
+    return booking;
   }
 
   @Post('merchant')
@@ -95,7 +99,7 @@ export class BookingsController {
     @TenantId() tenantId: string,
     @Body() dto: CreateMerchantBookingDto,
   ): Promise<BookingResponseDto> {
-    return this.bookingsService.createBookingAtomic({
+    const booking = await this.bookingsService.createBookingAtomic({
       actor: 'merchant',
       tenantId,
       customerUserId: dto.customerId,
@@ -109,6 +113,8 @@ export class BookingsController {
       customerPhone: dto.customerPhone,
       notes: dto.notes,
     });
+    await this.notificationsService.queueBookingEvent(tenantId, booking.id, 'booking_created');
+    return booking;
   }
 
   @Patch(':id/cancel')
@@ -117,7 +123,9 @@ export class BookingsController {
     @TenantId() tenantId: string,
     @Param('id', new ParseUUIDPipe({ version: '4' })) bookingId: string,
   ) {
-    return this.bookingsService.cancelBookingAsMerchant(tenantId, bookingId);
+    const booking = await this.bookingsService.cancelBookingAsMerchant(tenantId, bookingId);
+    await this.notificationsService.queueBookingEvent(tenantId, bookingId, 'booking_cancelled');
+    return booking;
   }
 
   @Patch(':id/status')
@@ -127,12 +135,18 @@ export class BookingsController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) bookingId: string,
     @Body() dto: UpdateBookingStatusDto,
   ): Promise<BookingResponseDto> {
-    return this.bookingsService.updateBookingStatusAsMerchant(
+    const booking = await this.bookingsService.updateBookingStatusAsMerchant(
       tenantId,
       bookingId,
       dto.status,
       dto.reason,
     );
+    if (dto.status === 'confirmed') {
+      await this.notificationsService.queueBookingEvent(tenantId, bookingId, 'booking_confirmed');
+    } else if (dto.status === 'cancelled') {
+      await this.notificationsService.queueBookingEvent(tenantId, bookingId, 'booking_cancelled');
+    }
+    return booking;
   }
 
   @Patch(':id/reschedule')
@@ -142,11 +156,13 @@ export class BookingsController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) bookingId: string,
     @Body() dto: RescheduleBookingDto,
   ): Promise<BookingResponseDto> {
-    return this.bookingsService.rescheduleBookingAsMerchant(
+    const booking = await this.bookingsService.rescheduleBookingAsMerchant(
       tenantId,
       bookingId,
       dto.bookingDate,
       dto.startTime,
     );
+    await this.notificationsService.queueBookingEvent(tenantId, bookingId, 'booking_rescheduled');
+    return booking;
   }
 }

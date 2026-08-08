@@ -13,7 +13,6 @@ import {
   updateMerchantBookingStatusWithSession,
 } from '../lib/booking-client';
 import { mapBookingApiResponse } from '../lib/booking-mapper';
-import { sendLineBookingConfirmation } from '../utils/lineMessaging';
 import {
   Tenant,
   Service,
@@ -686,31 +685,6 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }));
   };
 
-    const handleLineBookingConfirmation = async (booking: Booking, tenant: Tenant, providedLineUserId?: string) => {
-      let recipientId = providedLineUserId;
-      if (!recipientId && booking.userId && booking.userId !== 'guest') {
-        try {
-          const { data } = await supabase.from('users').select('line_user_id').eq('id', booking.userId).single();
-          if (data?.line_user_id) recipientId = data.line_user_id;
-        } catch (err) {
-          console.warn('Could not fetch line_user_id for confirmation:', err);
-        }
-      }
-
-      const result = await sendLineBookingConfirmation(booking, tenant, recipientId);
-      if (result.success) {
-        const currentMonth = new Date().toISOString().slice(0, 7);
-        let newCount = tenant.settings.linePushMessageCount || 0;
-        if (tenant.settings.linePushMessageMonth !== currentMonth) {
-          newCount = 0;
-        }
-        updateTenantSettings({
-          linePushMessageCount: newCount + 1,
-          linePushMessageMonth: currentMonth
-        });
-      }
-    };
-
   const createBooking = async (data: {
     serviceId: string;
     staffId?: string;
@@ -828,9 +802,6 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setBookings((prev) => [savedBooking, ...prev]);
       setError(null);
       
-      // Trigger LINE message asynchronously
-      handleLineBookingConfirmation(savedBooking, activeTenant, lineProfile?.lineUserId).catch(console.error);
-      
       return savedBooking;
     } catch (err: unknown) {
       console.error('Booking API request failed:', err);
@@ -855,9 +826,6 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const updated = mapBookingApiResponse(response, service, staff, court);
       setBookings((prev) => prev.map((item) => (item.id === bookingId ? updated : item)));
 
-      if (status === 'confirmed' && existing.status !== 'confirmed') {
-        handleLineBookingConfirmation(updated, activeTenant).catch(console.error);
-      }
       setError(null);
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : 'Failed to update booking status');

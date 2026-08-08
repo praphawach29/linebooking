@@ -1,4 +1,6 @@
-import { Controller, Post, Body, Req, Headers, RawBodyRequest } from '@nestjs/common';
+import { Controller, Post, Body, Req, Headers, Query } from '@nestjs/common';
+import type { RawBodyRequest } from '@nestjs/common';
+import type { Request } from 'express';
 import { WebhooksService } from './webhooks.service';
 
 @Controller('webhooks')
@@ -13,9 +15,15 @@ export class WebhooksController {
   @Post('line')
   async handleLineWebhook(
     @Headers('x-line-signature') signature: string,
+    @Query('tenant') tenantSlug: string,
+    @Req() request: RawBodyRequest<Request>,
     @Body() payload: any,
   ) {
-    // In production, verify the LINE signature here
-    return this.webhooksService.handleLineWebhook(payload);
+    return this.webhooksService.handleLineWebhook(
+      tenantSlug,
+      signature,
+      request.rawBody,
+      payload,
+    );
   }
 }

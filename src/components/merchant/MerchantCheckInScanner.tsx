@@ -43,7 +43,7 @@ function getCheckInError(error: unknown): string {
 }
 
 export const MerchantCheckInScanner: React.FC = () => {
-  const { checkInBookingByCode } = useSaaS();
+  const { checkInBookingByCode, completeBooking } = useSaaS();
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const processingRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -94,7 +94,11 @@ export const MerchantCheckInScanner: React.FC = () => {
     setError(null);
     try {
       await stopScanner(true);
-      const booking = await checkInBookingByCode(code);
+      let booking = await checkInBookingByCode(code);
+      if (booking.status !== 'completed') {
+        await completeBooking(booking.id);
+        booking = { ...booking, status: 'completed' };
+      }
       setResult(booking);
       setManualCode("");
     } catch (submitError) {

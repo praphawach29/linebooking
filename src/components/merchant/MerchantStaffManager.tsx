@@ -623,8 +623,8 @@ export const MerchantStaffManager: React.FC = () => {
       {/* Edit / Create Court Modal */}
       {editingCourt && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-xl space-y-4 animate-in fade-in zoom-in duration-150 text-xs">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] shadow-xl animate-in fade-in zoom-in duration-150 text-xs flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-100 p-6 pb-3 shrink-0">
               <h3 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
                 <Trophy className="w-4 h-4 text-emerald-600" />
                 <span>{editingCourt.id ? 'แก้ไขข้อมูลสนาม' : 'เพิ่มสนาม/คอร์ทใหม่'}</span>
@@ -646,7 +646,7 @@ export const MerchantStaffManager: React.FC = () => {
                   setEditingCourt(null);
                 }
               }}
-              className="space-y-3"
+              className="space-y-3 overflow-y-auto px-6 pt-4 pb-6"
             >
               <div className="grid grid-cols-2 gap-3">
                 <div>

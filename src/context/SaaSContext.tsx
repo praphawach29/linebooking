@@ -1407,8 +1407,11 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const newPoints = Math.max(0, (existing?.points || 0) + pointsDelta);
     const newTotalEarned =
       pointsDelta > 0 ? (existing?.totalPointsEarned || 0) + pointsDelta : existing?.totalPointsEarned || 0;
+    // Mirrors computeMembershipTier() in backend/src/bookings/bookings.service.ts
+    // so manual point adjustments land on the same tier thresholds as automatic
+    // point-earning on check-in.
     const newTier: MembershipTier =
-      newTotalEarned >= 1000 ? 'Platinum' : newTotalEarned >= 500 ? 'Gold' : existing?.tier || 'Silver';
+      newTotalEarned >= 1000 ? 'Platinum' : newTotalEarned >= 500 ? 'Gold' : newTotalEarned >= 100 ? 'Silver' : 'Bronze';
 
     // Persist to Supabase so the change is reflected everywhere the `memberships`
     // table is read from (e.g. the LINE LIFF customer profile via the backend API),

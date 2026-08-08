@@ -16,6 +16,13 @@ import { ErrorCode } from '../common/constants/error-codes';
 
 type BookingPayload = Prisma.BookingGetPayload<Record<string, never>>;
 
+function computeMembershipTier(totalPointsEarned: number): string {
+  if (totalPointsEarned >= 1000) return 'Platinum';
+  if (totalPointsEarned >= 500) return 'Gold';
+  if (totalPointsEarned >= 100) return 'Silver';
+  return 'Bronze';
+}
+
 @Injectable()
 export class BookingsService {
   private readonly logger = new Logger(BookingsService.name);
@@ -155,14 +162,17 @@ export class BookingsService {
                     userId: booking.userId!,
                     points: pointsEarned,
                     totalPointsEarned: pointsEarned,
+                    tier: computeMembershipTier(pointsEarned),
                   },
                 });
               } else {
+                const newTotalPointsEarned = (membership.totalPointsEarned || 0) + pointsEarned;
                 membership = await tx.membership.update({
                   where: { id: membership.id },
                   data: {
                     points: { increment: pointsEarned },
                     totalPointsEarned: { increment: pointsEarned },
+                    tier: computeMembershipTier(newTotalPointsEarned),
                   },
                 });
               }

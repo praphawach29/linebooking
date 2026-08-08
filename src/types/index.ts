@@ -315,7 +315,7 @@ export interface AvailableSlot {
 // Member & Loyalty System Types
 // -----------------------------------------
 
-export type MembershipTier = 'Silver' | 'Gold' | 'Platinum';
+export type MembershipTier = 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
 
 export interface Membership {
   id: string;

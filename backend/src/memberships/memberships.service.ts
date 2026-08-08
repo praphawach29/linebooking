@@ -7,27 +7,29 @@ export class MembershipsService {
 
   
   async getMembershipWithPhoneFallback(tenantId: string, userId: string, phone?: string) {
-    let membership = null;
+    // The authenticated LINE identity (userId, verified via ID token) is always
+    // the source of truth — try it first. Only fall back to matching by phone
+    // (e.g. a walk-in booking made before the customer ever logged into LINE)
+    // when there is no membership under the authenticated identity yet,
+    // otherwise a booking made under a different userId could shadow the
+    // customer's own up-to-date points/tier.
+    let membership = await this.prisma.membership.findUnique({
+      where: { tenantId_userId: { tenantId, userId } },
+      include: { pointTransactions: { orderBy: { createdAt: 'desc' }, take: 10 } }
+    });
 
-    if (phone) {
+    if (!membership && phone) {
       const bookingWithPhone = await this.prisma.booking.findFirst({
         where: { tenantId, user_phone: phone, userId: { not: null } },
         orderBy: { createdAt: 'desc' }
       });
-      
+
       if (bookingWithPhone && bookingWithPhone.userId) {
         membership = await this.prisma.membership.findUnique({
           where: { tenantId_userId: { tenantId, userId: bookingWithPhone.userId } },
           include: { pointTransactions: { orderBy: { createdAt: 'desc' }, take: 10 } }
         });
       }
-    }
-
-    if (!membership) {
-      membership = await this.prisma.membership.findUnique({
-        where: { tenantId_userId: { tenantId, userId } },
-        include: { pointTransactions: { orderBy: { createdAt: 'desc' }, take: 10 } }
-      });
     }
 
     if (!membership) {

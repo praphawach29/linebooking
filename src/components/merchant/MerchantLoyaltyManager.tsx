@@ -291,10 +291,7 @@ export const MerchantLoyaltyManager: React.FC = () => {
                     <tr key={customer.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="p-3.5 flex items-center gap-3">
                         <img
-                          src={
-                            customer.avatar ||
-                            `https://ui-avatars.com/api/?name=${encodeURIComponent(customer.name)}&background=random`
-                          }
+                          src={getValidAvatar(customer.avatar, customer.name)}
                           alt={customer.name}
                           className="w-8 h-8 rounded-full object-cover border border-slate-200"
                         />

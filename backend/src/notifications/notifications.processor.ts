@@ -1,4 +1,4 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger, OnModuleInit } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
@@ -21,7 +21,16 @@ export class NotificationsProcessor extends WorkerHost implements OnModuleInit {
     this.logger.log(`LINE notification worker listening on queue ${NOTIFICATIONS_QUEUE}`);
   }
 
+  @OnWorkerEvent('failed')
+  onFailed(job: Job<{ deliveryId: string }> | undefined, error: Error): void {
+    this.logger.error(
+      `LINE notification job ${job?.id || 'unknown'} failed for delivery ${job?.data?.deliveryId || 'unknown'}: ${error.message}`,
+      error.stack,
+    );
+  }
+
   async process(job: Job<{ deliveryId: string }>): Promise<void> {
+    this.logger.log(`Processing LINE notification job ${job.id} for delivery ${job.data.deliveryId}`);
     if (job.name !== 'line-booking-event') return;
 
     const delivery = await this.prisma.lineMessageDelivery.findUnique({

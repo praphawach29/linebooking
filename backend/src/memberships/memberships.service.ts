@@ -1,9 +1,97 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { computeMembershipTier } from '../common/utils/membership-tier';
 
 @Injectable()
 export class MembershipsService {
   constructor(private prisma: PrismaService) {}
+
+  /**
+   * Merges a separate, phone-linked account (e.g. created by a walk-in
+   * check-in before the customer ever logged into LINE) into their
+   * authenticated LINE account, once the customer self-attests the phone
+   * number is theirs (e.g. saving it in their own profile). Only merges
+   * when the candidate has no LINE identity of its own — never merges two
+   * accounts that both have a verified lineUserId, since a shared phone
+   * doesn't prove they're the same person.
+   */
+  async linkPhoneAndMergeIdentity(authUserId: string, rawPhone: string) {
+    const phone = rawPhone.replace(/[\s-]/g, '');
+    if (!phone) return { merged: false };
+
+    return this.prisma.$transaction(async (tx) => {
+      const candidate = await tx.user.findFirst({
+        where: {
+          phone,
+          lineUserId: null,
+          mergedIntoUserId: null,
+          id: { not: authUserId },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (!candidate) {
+        await tx.user.update({ where: { id: authUserId }, data: { phone } });
+        return { merged: false };
+      }
+
+      await tx.booking.updateMany({
+        where: { userId: candidate.id },
+        data: { userId: authUserId },
+      });
+      await tx.customerPackage.updateMany({
+        where: { userId: candidate.id },
+        data: { userId: authUserId },
+      });
+
+      const candidateMemberships = await tx.membership.findMany({
+        where: { userId: candidate.id },
+      });
+
+      for (const walkinMembership of candidateMemberships) {
+        const authMembership = await tx.membership.findUnique({
+          where: {
+            tenantId_userId: { tenantId: walkinMembership.tenantId!, userId: authUserId },
+          },
+        });
+
+        if (!authMembership) {
+          await tx.membership.update({
+            where: { id: walkinMembership.id },
+            data: { userId: authUserId },
+          });
+          continue;
+        }
+
+        const mergedTotalPointsEarned =
+          (authMembership.totalPointsEarned || 0) + (walkinMembership.totalPointsEarned || 0);
+
+        await tx.pointTransaction.updateMany({
+          where: { membershipId: walkinMembership.id },
+          data: { membershipId: authMembership.id },
+        });
+
+        await tx.membership.update({
+          where: { id: authMembership.id },
+          data: {
+            points: (authMembership.points || 0) + (walkinMembership.points || 0),
+            totalPointsEarned: mergedTotalPointsEarned,
+            tier: computeMembershipTier(mergedTotalPointsEarned),
+          },
+        });
+
+        await tx.membership.delete({ where: { id: walkinMembership.id } });
+      }
+
+      await tx.user.update({
+        where: { id: candidate.id },
+        data: { mergedIntoUserId: authUserId, phone: null },
+      });
+      await tx.user.update({ where: { id: authUserId }, data: { phone } });
+
+      return { merged: true, mergedFromUserId: candidate.id };
+    });
+  }
 
   
   async getMembershipWithPhoneFallback(tenantId: string, userId: string, phone?: string) {

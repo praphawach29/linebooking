@@ -206,6 +206,26 @@ export function getCustomerMembership(
   );
 }
 
+export function linkCustomerPhone(
+  options: AuthenticatedBookingRequestOptions & { phone: string },
+): Promise<{ merged: boolean; mergedFromUserId?: string }> {
+  return requestJson(
+    '/customer/membership/link-phone',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${options.accessToken}`,
+        'x-tenant-id': options.tenantId,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ phone: options.phone }),
+      signal: options.signal,
+    },
+    'customer',
+    options,
+  );
+}
+
 export function createMerchantBooking(
   input: CreateMerchantBookingInput,
   options: AuthenticatedBookingRequestOptions,

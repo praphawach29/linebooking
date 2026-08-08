@@ -13,15 +13,9 @@ import { AvailabilityService } from './availability.service';
 import { CreateBookingCommand } from './dto/create-booking-command.dto';
 import { BookingResponseDto } from './dto/booking-response.dto';
 import { ErrorCode } from '../common/constants/error-codes';
+import { computeMembershipTier } from '../common/utils/membership-tier';
 
 type BookingPayload = Prisma.BookingGetPayload<Record<string, never>>;
-
-function computeMembershipTier(totalPointsEarned: number): string {
-  if (totalPointsEarned >= 1000) return 'Platinum';
-  if (totalPointsEarned >= 500) return 'Gold';
-  if (totalPointsEarned >= 100) return 'Silver';
-  return 'Bronze';
-}
 
 @Injectable()
 export class BookingsService {

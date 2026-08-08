@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
 import { useLiffProfile } from '../../hooks/useLiffProfile';
-import { getCustomerMembership } from '../../lib/booking-api';
+import { getCustomerMembership, linkCustomerPhone } from '../../lib/booking-api';
 import { Membership } from '../../types';
 import { Phone, Mail, Award, ShieldCheck, LogOut, ChevronRight, UserCheck, Edit3, Save, Check } from 'lucide-react';
 import liff from '@line/liff';
@@ -50,13 +50,25 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
       try {
         const token = liff.getIDToken();
         if (token) {
-          getCustomerMembership({
-            tenantId: activeTenant.id,
-            accessToken: token,
-            phone: phoneInput
-          }).then(mem => {
-            if (mem) setMembershipData(mem);
-          }).catch(console.error);
+          const fetchMembership = () =>
+            getCustomerMembership({
+              tenantId: activeTenant.id,
+              accessToken: token,
+              phone: phoneInput
+            }).then(mem => {
+              if (mem) setMembershipData(mem);
+            }).catch(console.error);
+
+          // If a phone was already saved from a previous visit, try merging in
+          // any separate walk-in-linked account before reading membership, so
+          // returning customers don't have to re-save their phone to trigger it.
+          if (phoneInput) {
+            linkCustomerPhone({ tenantId: activeTenant.id, accessToken: token, phone: phoneInput })
+              .catch(console.error)
+              .finally(fetchMembership);
+          } else {
+            fetchMembership();
+          }
         }
       } catch (err) {
         console.error("Failed to fetch membership:", err);
@@ -96,6 +108,37 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
 
     if (currentUser && updateCurrentUserContact) {
       updateCurrentUserContact({ phone: phoneInput, email: emailInput });
+    }
+
+    // The customer is self-attesting this phone number is theirs — safe point
+    // to merge in any separate account (e.g. a walk-in check-in scanned
+    // before they ever logged into LINE) that shares this phone, so their
+    // real point/tier history shows up under their LINE-authenticated account.
+    if (activeTenant && liffProfile.isLoggedIn && phoneInput) {
+      try {
+        const token = liff.getIDToken();
+        if (token) {
+          linkCustomerPhone({
+            tenantId: activeTenant.id,
+            accessToken: token,
+            phone: phoneInput,
+          })
+            .then((result) => {
+              if (result.merged) {
+                return getCustomerMembership({
+                  tenantId: activeTenant.id,
+                  accessToken: token,
+                  phone: phoneInput,
+                }).then((mem) => {
+                  if (mem) setMembershipData(mem);
+                });
+              }
+            })
+            .catch(console.error);
+        }
+      } catch (err) {
+        console.error('Failed to link phone:', err);
+      }
     }
 
     setIsEditingContact(false);

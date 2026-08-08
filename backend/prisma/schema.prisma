@@ -68,6 +68,7 @@ model User {
   createdAt                                      DateTime?           @default(now()) @map("created_at") @db.Timestamptz(6)
   auth_user_id                                   String?             @unique @db.Uuid
   email_verified                                 Boolean?            @default(false)
+  mergedIntoUserId                               String?             @map("merged_into_user_id") @db.Uuid
   bookings                                       Booking[]
   memberships                                    Membership[]
   notifications                                  Notification[]
@@ -81,8 +82,11 @@ model User {
   customerPackages                               CustomerPackage[]
   tenants_tenants_owner_user_idTousers           Tenant[]            @relation("tenants_owner_user_idTousers")
   tenants_users_tenant_idTotenants               Tenant?             @relation("users_tenant_idTotenants", fields: [tenant_id], references: [id], onUpdate: NoAction)
+  mergedIntoUser                                 User?               @relation("UserMergedInto", fields: [mergedIntoUserId], references: [id], onUpdate: NoAction)
+  mergedFromUsers                                User[]              @relation("UserMergedInto")
 
   @@index([auth_user_id], map: "idx_users_auth_user_id")
+  @@index([mergedIntoUserId], map: "idx_users_merged_into_user_id")
   @@map("users")
 }
 

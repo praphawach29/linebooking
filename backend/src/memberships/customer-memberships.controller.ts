@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards, Query, BadRequestException } from '@nestjs/common';
 import { MembershipsService } from './memberships.service';
 import { LineIdTokenGuard } from '../common/guards/line-id-token.guard';
 import { TenantId } from '../common/decorators/tenant-id.decorator';
@@ -16,5 +16,16 @@ export class CustomerMembershipsController {
     @Query('phone') phone?: string,
   ) {
     return this.membershipsService.getMembershipWithPhoneFallback(tenantId, customer.id, phone);
+  }
+
+  @Post('link-phone')
+  async linkPhone(
+    @CurrentCustomer() customer: { id: string },
+    @Body('phone') phone?: string,
+  ) {
+    if (!phone || !phone.trim()) {
+      throw new BadRequestException('phone is required');
+    }
+    return this.membershipsService.linkPhoneAndMergeIdentity(customer.id, phone);
   }
 }

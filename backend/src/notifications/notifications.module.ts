@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
+import { NotificationsProcessor } from './notifications.processor';
 import { LineMessagingClient } from './line-messaging.client';
 import { NOTIFICATIONS_QUEUE } from './notifications.types';
 import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard';
@@ -16,6 +17,7 @@ import { TenantAccessGuard } from '../common/guards/tenant-access.guard';
   controllers: [NotificationsController],
   providers: [
     NotificationsService,
+    ...(process.env.NODE_ENV === 'test' ? [] : [NotificationsProcessor]),
     LineMessagingClient,
     SupabaseAuthGuard,
     TenantAccessGuard,

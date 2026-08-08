@@ -10,7 +10,6 @@ import { MerchantModule } from './merchant/merchant.module';
 import { MembershipsModule } from './memberships/memberships.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { NotificationsModule } from './notifications/notifications.module';
-import { NotificationsWorkerModule } from './notifications/notifications-worker.module';
 import { BillingModule } from './billing/billing.module';
 import { SupabaseModule } from './common/supabase/supabase.module';
 
@@ -40,7 +39,7 @@ function getRedisConnection() {
     BullModule.forRoot({
       connection: getRedisConnection(),
     }),
-    AuthModule, PrismaModule, ServicesModule, BookingsModule, MerchantModule, MembershipsModule, WebhooksModule, NotificationsModule, NotificationsWorkerModule, SupabaseModule, BillingModule
+    AuthModule, PrismaModule, ServicesModule, BookingsModule, MerchantModule, MembershipsModule, WebhooksModule, NotificationsModule, SupabaseModule, BillingModule
   ],
   controllers: [AppController],
   providers: [AppService],

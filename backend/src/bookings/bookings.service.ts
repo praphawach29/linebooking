@@ -85,6 +85,47 @@ export class BookingsService {
     return this.toBookingResponse(updated);
   }
 
+  async checkInBookingAsMerchant(
+    tenantId: string,
+    rawCode: string,
+  ): Promise<BookingResponseDto> {
+    const refNo = rawCode
+      .trim()
+      .replace(/^CHECKIN-/i, '')
+      .replace(/^#/, '')
+      .trim()
+      .toUpperCase();
+
+    if (!/^BK-[A-Z0-9-]+$/.test(refNo)) {
+      throw new BadRequestException({
+        statusCode: 400,
+        code: ErrorCode.VALIDATION_FAILED,
+        message: 'Invalid check-in QR code',
+      });
+    }
+
+    const booking = await this.prisma.booking.findFirst({
+      where: { ref_no: refNo, tenantId },
+    });
+    if (!booking) {
+      throw new NotFoundException({
+        statusCode: 404,
+        code: ErrorCode.BOOKING_NOT_FOUND,
+        message: 'Booking not found for this tenant',
+      });
+    }
+
+    if (booking.status === 'checked_in') {
+      return this.toBookingResponse(booking);
+    }
+
+    return this.updateBookingStatusAsMerchant(
+      tenantId,
+      booking.id,
+      'checked_in',
+    );
+  }
+
   async rescheduleBookingAsMerchant(
     tenantId: string,
     bookingId: string,

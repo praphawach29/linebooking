@@ -1,4 +1,5 @@
 import {
+  checkInMerchantBooking,
   createCustomerBooking,
   createMerchantBooking,
   getCustomerBookings,
@@ -86,6 +87,20 @@ export async function updateMerchantBookingStatusWithSession(
 ): Promise<BookingApiResponse> {
   const accessToken = await getMerchantAccessToken(options.sessionProvider);
   return updateMerchantBookingStatus(bookingId, input, {
+    tenantId: options.tenantId,
+    accessToken,
+    apiUrl: options.apiUrl,
+    fetcher: options.fetcher,
+    signal: options.signal,
+  });
+}
+
+export async function checkInMerchantBookingWithSession(
+  code: string,
+  options: MerchantBookingClientOptions,
+): Promise<BookingApiResponse> {
+  const accessToken = await getMerchantAccessToken(options.sessionProvider);
+  return checkInMerchantBooking(code, {
     tenantId: options.tenantId,
     accessToken,
     apiUrl: options.apiUrl,

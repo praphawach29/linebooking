@@ -5,3 +5,4 @@ export * from './booking-response.dto';
 export * from './create-booking-command.dto';
 export * from './update-booking-status.dto';
 export * from './reschedule-booking.dto';
+export * from './check-in-booking.dto';

@@ -219,6 +219,27 @@ export function updateMerchantBookingStatus(
   );
 }
 
+export function checkInMerchantBooking(
+  code: string,
+  options: AuthenticatedBookingRequestOptions,
+): Promise<BookingApiResponse> {
+  return requestJson<BookingApiResponse>(
+    '/bookings/check-in',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${options.accessToken}`,
+        'Content-Type': 'application/json',
+        'x-tenant-id': options.tenantId,
+      },
+      body: JSON.stringify({ code }),
+      signal: options.signal,
+    },
+    'merchant',
+    options,
+  );
+}
+
 export function rescheduleMerchantBooking(
   bookingId: string,
   input: { bookingDate: string; startTime: string },

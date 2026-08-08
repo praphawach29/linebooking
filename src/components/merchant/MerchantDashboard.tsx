@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
 import { Booking } from '../../types';
 import {
@@ -15,8 +15,11 @@ import {
   Loader2,
   BarChart2,
   LayoutList,
+  RefreshCw,
+  Send,
 } from 'lucide-react';
 import { MerchantBookingDetailModal } from './MerchantBookingDetailModal';
+import { getLineQuotaWithSession, type LineQuotaStatus } from '../../lib/line-notification-api';
 
 const formatThaiDate = (dateStr: string) => {
   if (!dateStr) return '';
@@ -32,6 +35,23 @@ export const MerchantDashboard: React.FC = () => {
   const [filterMode, setFilterMode] = useState<'today' | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [lineQuota, setLineQuota] = useState<LineQuotaStatus | null>(null);
+  const [lineQuotaLoading, setLineQuotaLoading] = useState(false);
+
+  const loadLineQuota = useCallback(async () => {
+    setLineQuotaLoading(true);
+    try {
+      setLineQuota(await getLineQuotaWithSession(activeTenant.id));
+    } catch (error) {
+      console.error('Failed to load LINE quota:', error);
+    } finally {
+      setLineQuotaLoading(false);
+    }
+  }, [activeTenant.id]);
+
+  useEffect(() => {
+    void loadLineQuota();
+  }, [loadLineQuota]);
 
   const getLocalDateString = (d: Date = new Date()) => {
     const year = d.getFullYear();
@@ -139,7 +159,7 @@ export const MerchantDashboard: React.FC = () => {
       </div>
 
       {/* KPI Stats Grid */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-6">
+      <div className="grid grid-cols-2 xl:grid-cols-5 gap-3 sm:gap-6">
         
         <div className="premium-card p-4 sm:p-6 flex flex-col justify-between">
           <div className="flex items-start justify-between mb-3 sm:mb-4 gap-2">
@@ -211,6 +231,48 @@ export const MerchantDashboard: React.FC = () => {
             </p>
             <p className="text-[10px] sm:text-xs text-primary font-bold mt-1.5 sm:mt-2 leading-tight">
               รวมมัดจำ & หน้าร้าน
+            </p>
+          </div>
+        </div>
+
+        <div className="premium-card p-4 sm:p-6 flex flex-col justify-between">
+          <div className="flex items-start justify-between mb-3 sm:mb-4 gap-2">
+            <span className="text-xs sm:text-sm font-bold text-slate-500 leading-tight">
+              LINE Push เดือนนี้
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => void loadLineQuota()}
+                disabled={lineQuotaLoading}
+                className="p-2 text-slate-400 hover:text-emerald-600 disabled:opacity-50 transition-colors"
+                title="อัปเดตยอดส่ง LINE"
+                aria-label="อัปเดตยอดส่ง LINE"
+              >
+                <RefreshCw className={`w-4 h-4 ${lineQuotaLoading ? 'animate-spin' : ''}`} />
+              </button>
+              <div className="p-2 sm:p-3 bg-cyan-50 text-cyan-700 rounded-xl sm:rounded-2xl shadow-inner shrink-0">
+                <Send className="w-4 h-4 sm:w-6 sm:h-6" />
+              </div>
+            </div>
+          </div>
+          <div>
+            <p className="text-xl sm:text-3xl font-black text-foreground truncate">
+              {lineQuotaLoading && !lineQuota ? '...' : (lineQuota?.usage ?? 0).toLocaleString()}
+              <span className="text-xs sm:text-base font-bold text-slate-400">
+                {' / '}{lineQuota?.limit == null ? 'ไม่จำกัด' : lineQuota.limit.toLocaleString()}
+              </span>
+            </p>
+            {lineQuota?.limit != null && (
+              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2">
+                <div
+                  className={`h-full rounded-full ${(lineQuota.percentage ?? 0) >= 90 ? 'bg-red-500' : (lineQuota.percentage ?? 0) >= 75 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                  style={{ width: `${Math.min(lineQuota.percentage ?? 0, 100)}%` }}
+                />
+              </div>
+            )}
+            <p className="text-[10px] sm:text-xs text-slate-500 mt-1.5 sm:mt-2 font-medium leading-tight">
+              {lineQuota?.source === 'line' ? 'ข้อมูลโควตาจริงจาก LINE' : 'ข้อมูลจากประวัติการส่งในระบบ'}
             </p>
           </div>
         </div>

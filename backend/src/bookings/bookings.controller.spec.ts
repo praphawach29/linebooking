@@ -64,6 +64,7 @@ describe('BookingsController (Unit Tests)', () => {
     getCustomerBookings: jest.fn(),
     createBookingAtomic: jest.fn(),
     cancelBookingAsMerchant: jest.fn(),
+    checkInBookingAsMerchant: jest.fn(),
     updateBookingStatusAsMerchant: jest.fn(),
     rescheduleBookingAsMerchant: jest.fn(),
   };
@@ -379,6 +380,10 @@ describe('BookingsController (Unit Tests)', () => {
         GUARDS_METADATA,
         BookingsController.prototype.updateMerchantBookingStatus,
       ) as unknown[];
+      const checkInGuards = Reflect.getMetadata(
+        GUARDS_METADATA,
+        BookingsController.prototype.checkInMerchantBooking,
+      ) as unknown[];
       const rescheduleGuards = Reflect.getMetadata(
         GUARDS_METADATA,
         BookingsController.prototype.rescheduleMerchantBooking,
@@ -392,6 +397,7 @@ describe('BookingsController (Unit Tests)', () => {
         TenantAccessGuard,
       ]);
       expect(statusGuards).toEqual([SupabaseAuthGuard, TenantAccessGuard]);
+      expect(checkInGuards).toEqual([SupabaseAuthGuard, TenantAccessGuard]);
       expect(rescheduleGuards).toEqual([
         SupabaseAuthGuard,
         TenantAccessGuard,

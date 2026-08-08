@@ -6,6 +6,7 @@ import {
   type BookingApiResponse,
 } from '../lib/booking-api';
 import {
+  checkInMerchantBookingWithSession,
   createCustomerBookingWithLiff,
   createMerchantBookingWithSession,
   getCustomerBookingsWithLiff,
@@ -66,6 +67,7 @@ type MerchantTab =
   | 'dashboard'
   | 'calendar'
   | 'walkin'
+  | 'checkin'
   | 'shop_settings'
   | 'services'
   | 'staffs'
@@ -74,7 +76,9 @@ type MerchantTab =
   | 'analytics'
   | 'settings'
   | 'booking_settings'
+  | 'booking_flow'
   | 'line_settings'
+  | 'loyalty'
   | 'reviews'
   | 'onboarding';
 
@@ -131,6 +135,7 @@ interface SaaSContextType {
     status: BookingStatus,
     reason?: string
   ) => Promise<void>;
+  checkInBookingByCode: (code: string) => Promise<Booking>;
   rescheduleBooking: (
     bookingId: string,
     newDate: string,
@@ -833,6 +838,31 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const checkInBookingByCode = async (code: string): Promise<Booking> => {
+    if (!activeTenant) throw new Error('No active tenant');
+
+    try {
+      const response = await checkInMerchantBookingWithSession(code, {
+        tenantId: activeTenant.id,
+      });
+      const service = services.find((item) => item.id === response.serviceId);
+      const staff = staffs.find((item) => item.id === response.staffId);
+      const court = courts.find((item) => item.id === response.courtId);
+      const checkedIn = mapBookingApiResponse(response, service, staff, court);
+      setBookings((prev) => {
+        const exists = prev.some((item) => item.id === checkedIn.id);
+        return exists
+          ? prev.map((item) => (item.id === checkedIn.id ? checkedIn : item))
+          : [checkedIn, ...prev];
+      });
+      setError(null);
+      return checkedIn;
+    } catch (checkInError) {
+      setError(checkInError instanceof Error ? checkInError.message : 'Failed to check in booking');
+      throw checkInError;
+    }
+  };
+
   const rescheduleBooking = async (
     bookingId: string,
     newDate: string,
@@ -1396,6 +1426,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         getAvailableSlots,
         createBooking,
         updateBookingStatus,
+        checkInBookingByCode,
         rescheduleBooking,
         saveService,
         deleteService,

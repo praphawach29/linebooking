@@ -16,6 +16,7 @@ import {
 } from './availability.service';
 import {
   BookingResponseDto,
+  CheckInBookingDto,
   CreateCustomerBookingDto,
   CreateMerchantBookingDto,
   GetAvailableSlotsQueryDto,
@@ -126,6 +127,15 @@ export class BookingsController {
     const booking = await this.bookingsService.cancelBookingAsMerchant(tenantId, bookingId);
     await this.notificationsService.queueBookingEvent(tenantId, bookingId, 'booking_cancelled');
     return booking;
+  }
+
+  @Post('check-in')
+  @UseGuards(SupabaseAuthGuard, TenantAccessGuard)
+  async checkInMerchantBooking(
+    @TenantId() tenantId: string,
+    @Body() dto: CheckInBookingDto,
+  ): Promise<BookingResponseDto> {
+    return this.bookingsService.checkInBookingAsMerchant(tenantId, dto.code);
   }
 
   @Patch(':id/status')

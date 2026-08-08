@@ -24,6 +24,7 @@ import {
   Crown,
   ChevronLeft,
   ChevronRight,
+  ScanLine,
 } from 'lucide-react';
 import { MerchantDashboard } from './MerchantDashboard';
 import { MerchantCalendarView } from './MerchantCalendarView';
@@ -40,6 +41,7 @@ import { MerchantReviews } from './MerchantReviews';
 import { MerchantShopSettings } from './MerchantShopSettings';
 import { MerchantSubscriptionModal } from './MerchantSubscriptionModal';
 import { MerchantLoyaltyManager } from './MerchantLoyaltyManager';
+import { MerchantCheckInScanner } from './MerchantCheckInScanner';
 import { getTenantQuotaInfo, FREE_PLAN_MONTHLY_BOOKING_LIMIT } from '../../lib/quota-manager';
 
 export const MerchantLayout: React.FC = () => {
@@ -109,6 +111,7 @@ export const MerchantLayout: React.FC = () => {
         { tab: 'dashboard', icon: LayoutDashboard, label: 'แดชบอร์ด', badge: todayBookingsCount },
         { tab: 'calendar', icon: Calendar, label: 'ปฏิทินคิวงาน' },
         { tab: 'walkin', icon: PlusCircle, label: 'เพิ่มคิว Walk-in' },
+        { tab: 'checkin', icon: ScanLine, label: 'สแกนเช็กอิน' },
       ],
     },
     {
@@ -381,6 +384,7 @@ export const MerchantLayout: React.FC = () => {
         {merchantTab === 'dashboard' && <MerchantDashboard />}
         {merchantTab === 'calendar' && <MerchantCalendarView />}
         {merchantTab === 'walkin' && <MerchantWalkinBookingModal />}
+        {merchantTab === 'checkin' && <MerchantCheckInScanner />}
         {merchantTab === 'shop_settings' && <MerchantShopSettings />}
         {merchantTab === 'services' && <MerchantServiceManager />}
         {merchantTab === 'staffs' && <MerchantStaffManager />}

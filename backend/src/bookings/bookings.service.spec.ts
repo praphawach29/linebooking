@@ -201,6 +201,48 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
       expect(result.status).toBe('confirmed');
     });
 
+    it('checks in a confirmed booking from its tenant-scoped QR code', async () => {
+      const confirmedBooking = { ...mockCreatedBooking, status: 'confirmed' };
+      prisma.booking.findFirst.mockResolvedValue(confirmedBooking);
+      prisma.booking.update.mockResolvedValueOnce({
+        ...confirmedBooking,
+        status: 'checked_in',
+        checkedInAt: new Date('2026-08-03T03:00:00Z'),
+      });
+
+      const result = await service.checkInBookingAsMerchant(
+        tenantId,
+        `CHECKIN-${mockCreatedBooking.ref_no}`,
+      );
+
+      expect(prisma.booking.findFirst).toHaveBeenNthCalledWith(1, {
+        where: { ref_no: mockCreatedBooking.ref_no, tenantId },
+      });
+      expect(prisma.booking.update).toHaveBeenCalledWith({
+        where: { id: mockCreatedBooking.id },
+        data: expect.objectContaining({
+          status: 'checked_in',
+          checkedInAt: expect.any(Date),
+        }),
+      });
+      expect(result.status).toBe('checked_in');
+    });
+
+    it('returns an already checked-in booking without writing again', async () => {
+      prisma.booking.findFirst.mockResolvedValueOnce({
+        ...mockCreatedBooking,
+        status: 'checked_in',
+      });
+
+      const result = await service.checkInBookingAsMerchant(
+        tenantId,
+        mockCreatedBooking.ref_no,
+      );
+
+      expect(result.status).toBe('checked_in');
+      expect(prisma.booking.update).not.toHaveBeenCalled();
+    });
+
     it('reschedules atomically and excludes the current booking from conflicts', async () => {
       mockTx.booking.findFirst.mockResolvedValueOnce(mockCreatedBooking);
       mockTx.booking.update.mockResolvedValueOnce({

@@ -17,20 +17,22 @@ export interface VerifiedLineProfile {
 const LINE_USER_ID_REGEX = /^U[0-9a-f]{32}$/i;
 
 /**
- * Derives LINE Login Channel ID from tenant.lineChannelId or prefix of tenant.liffId
+ * Derives the LINE Login Channel ID from the LIFF ID. A tenant's
+ * lineChannelId may belong to its Messaging API channel, which cannot verify
+ * an ID token issued by the separate LINE Login channel.
  */
 export function getLineChannelIdFromTenant(tenant: {
   lineChannelId?: string | null;
   liffId?: string | null;
 }): string | null {
-  if (tenant.lineChannelId && tenant.lineChannelId.trim()) {
-    return tenant.lineChannelId.trim();
-  }
   if (tenant.liffId && tenant.liffId.includes('-')) {
     const prefix = tenant.liffId.split('-')[0].trim();
     if (/^\d+$/.test(prefix)) {
       return prefix;
     }
+  }
+  if (tenant.lineChannelId && tenant.lineChannelId.trim()) {
+    return tenant.lineChannelId.trim();
   }
   return null;
 }

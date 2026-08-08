@@ -41,18 +41,26 @@ describe('LineIdentityService', () => {
   });
 
   describe('getLineChannelIdFromTenant', () => {
-    it('should prefer lineChannelId if configured', () => {
+    it('should prefer the LINE Login channel from liffId over a Messaging API channel ID', () => {
       const channelId = getLineChannelIdFromTenant({
         lineChannelId: '2006123456',
         liffId: '2009999999-AbCdEfGh',
       });
-      expect(channelId).toBe('2006123456');
+      expect(channelId).toBe('2009999999');
     });
 
     it('should derive channelId from liffId prefix if lineChannelId is missing', () => {
       const channelId = getLineChannelIdFromTenant({
         lineChannelId: null,
         liffId: '2006123456-AbCdEfGh',
+      });
+      expect(channelId).toBe('2006123456');
+    });
+
+    it('should fall back to lineChannelId when liffId is missing or malformed', () => {
+      const channelId = getLineChannelIdFromTenant({
+        lineChannelId: '2006123456',
+        liffId: 'invalid-liff-id',
       });
       expect(channelId).toBe('2006123456');
     });

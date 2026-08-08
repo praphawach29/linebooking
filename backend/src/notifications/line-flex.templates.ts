@@ -17,13 +17,11 @@ const EVENT_COPY: Record<LineBookingEvent, { title: string; color: string }> = {
   booking_cancelled: { title: 'ยกเลิกการจองแล้ว', color: '#DC2626' },
 };
 
+// Prisma maps PostgreSQL `time` values to a Date anchored at 1970-01-01 UTC.
+// The UTC fields are the intended wall-clock booking time, not an instant to
+// convert into the tenant timezone.
 const time = (value: Date) =>
-  new Intl.DateTimeFormat('th-TH', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-    timeZone: 'Asia/Bangkok',
-  }).format(value);
+  `${String(value.getUTCHours()).padStart(2, '0')}:${String(value.getUTCMinutes()).padStart(2, '0')}`;
 
 export function buildBookingFlexMessage(
   event: LineBookingEvent,
@@ -34,7 +32,7 @@ export function buildBookingFlexMessage(
   const copy = EVENT_COPY[event];
   const date = new Intl.DateTimeFormat('th-TH', {
     dateStyle: 'long',
-    timeZone: 'Asia/Bangkok',
+    timeZone: 'UTC',
   }).format(booking.bookingDate);
   const details = [
     { type: 'text', text: booking.service_name || 'บริการ', weight: 'bold', size: 'md', wrap: true },

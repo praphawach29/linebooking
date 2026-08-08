@@ -19,7 +19,8 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
   useEffect(() => {
     if (activeTenant && liffProfile.isLoggedIn) {
       // Use the LINE ID Token to fetch latest membership from API
-      liff.getIDToken().then(token => {
+      try {
+        const token = liff.getIDToken();
         if (token) {
           getCustomerMembership({
             tenantId: activeTenant.id,
@@ -28,7 +29,9 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
             if (mem) setMembershipData(mem);
           }).catch(console.error);
         }
-      }).catch(console.error);
+      } catch (err) {
+        console.error("Failed to fetch membership:", err);
+      }
     }
   }, [activeTenant, liffProfile.isLoggedIn]);
 

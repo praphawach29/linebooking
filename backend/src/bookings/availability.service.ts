@@ -182,7 +182,7 @@ export class AvailabilityService {
       slotIntervalMinutes = service.durationMinutes;
     }
 
-    let selectedCourt: { id: string; name: string } | null = null;
+    let selectedCourt: { id: string; name: string; operating_schedule: any } | null = null;
     if (courtId) {
       const court = await db.courts.findFirst({
         where: {
@@ -191,7 +191,7 @@ export class AvailabilityService {
           is_active: true,
           OR: [{ service_id: serviceId }, { service_id: null }],
         },
-        select: { id: true, name: true },
+        select: { id: true, name: true, operating_schedule: true },
       });
 
       if (!court) {
@@ -253,29 +253,79 @@ export class AvailabilityService {
       });
     }
 
-    // Fetch Business Hours for dayOfWeek
-    const businessHours = await db.businessHours.findFirst({
-      where: { tenantId, dayOfWeek },
+    // Blackout dates take precedence over everything else — tenant-wide,
+    // service-specific, or (if a court was chosen) court-specific closures.
+    const blackoutMatch = await db.blackoutDate.findFirst({
+      where: {
+        tenantId,
+        startDate: { lte: bookingDateObj },
+        endDate: { gte: bookingDateObj },
+        OR: [
+          { scope: 'tenant' },
+          { scope: 'service', serviceId },
+          ...(selectedCourt ? [{ scope: 'court', courtId: selectedCourt.id }] : []),
+        ],
+      },
     });
 
-    if (!businessHours || businessHours.isOpen !== true) {
+    if (blackoutMatch) {
       throw new BadRequestException({
         statusCode: 400,
         code: ErrorCode.BOOKING_OUTSIDE_BUSINESS_HOURS,
-        message: 'Business is closed on the selected date',
+        message: blackoutMatch.reason
+          ? `Booking is closed on this date: ${blackoutMatch.reason}`
+          : 'Booking is closed on this date (holiday)',
       });
     }
 
-    const openTimeStr = this.formatTimeString(businessHours.openTime);
-    const closeTimeStr = this.formatTimeString(businessHours.closeTime);
-    const openMinutes = this.timeToMinutes(openTimeStr);
-    const closeMinutes = this.timeToMinutes(closeTimeStr);
+    // A court's own custom schedule wins over the service's, which wins over
+    // the tenant's default business_hours. Both were previously UI-only and
+    // never actually consulted here.
+    type CustomSchedule = { isCustom?: boolean; days?: number[]; startTime?: string; endTime?: string } | null | undefined;
+    const courtSchedule = selectedCourt?.operating_schedule as CustomSchedule;
+    const serviceSchedule = service.operatingSchedule as CustomSchedule;
+    const customSchedule =
+      courtSchedule?.isCustom === true ? courtSchedule : serviceSchedule?.isCustom === true ? serviceSchedule : null;
+
+    let openMinutes: number;
+    let closeMinutes: number;
+
+    if (customSchedule) {
+      const days = Array.isArray(customSchedule.days) ? customSchedule.days : [];
+      if (!days.includes(dayOfWeek)) {
+        throw new BadRequestException({
+          statusCode: 400,
+          code: ErrorCode.BOOKING_OUTSIDE_BUSINESS_HOURS,
+          message: 'Closed on the selected date for this service/court',
+        });
+      }
+      openMinutes = this.timeToMinutes(customSchedule.startTime || '08:00');
+      closeMinutes = this.timeToMinutes(customSchedule.endTime || '22:00');
+    } else {
+      // Fetch Business Hours for dayOfWeek — only needed as the fallback when
+      // no custom service/court schedule applies.
+      const businessHours = await db.businessHours.findFirst({
+        where: { tenantId, dayOfWeek },
+      });
+
+      if (!businessHours || businessHours.isOpen !== true) {
+        throw new BadRequestException({
+          statusCode: 400,
+          code: ErrorCode.BOOKING_OUTSIDE_BUSINESS_HOURS,
+          message: 'Business is closed on the selected date',
+        });
+      }
+      const openTimeStr = this.formatTimeString(businessHours.openTime);
+      const closeTimeStr = this.formatTimeString(businessHours.closeTime);
+      openMinutes = this.timeToMinutes(openTimeStr);
+      closeMinutes = this.timeToMinutes(closeTimeStr);
+    }
 
     if (openMinutes >= closeMinutes) {
       throw new BadRequestException({
         statusCode: 400,
         code: ErrorCode.BOOKING_OUTSIDE_BUSINESS_HOURS,
-        message: 'Business open time must be earlier than close time',
+        message: 'Open time must be earlier than close time',
       });
     }
 

@@ -27,6 +27,24 @@ export interface Court {
   operatingSchedule?: OperatingSchedule; // ตารางเวลาเฉพาะของสนามนี้
 }
 
+export type BlackoutScope = 'tenant' | 'service' | 'court';
+
+/**
+ * วันหยุดล่วงหน้า/ปิดปรับปรุง — ปิดรับจองทั้งวันในช่วงวันที่กำหนด
+ * ตามขอบเขต (ทั้งร้าน / เฉพาะบริการหลัก / เฉพาะสนาม)
+ */
+export interface BlackoutDate {
+  id: string;
+  tenantId: string;
+  scope: BlackoutScope;
+  serviceId?: string | null;
+  courtId?: string | null;
+  startDate: string; // YYYY-MM-DD
+  endDate: string;   // YYYY-MM-DD
+  reason?: string | null;
+  createdAt?: string;
+}
+
 export type BookingPresetTemplate = 'EXPRESS_QUEUE' | 'SERVICE_AND_STAFF' | 'RESOURCE_AND_SLOT' | 'CUSTOM';
 export type PaymentMode = 'NO_PAYMENT' | 'DEPOSIT_ONLY' | 'FULL_PAYMENT';
 

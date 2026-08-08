@@ -31,6 +31,7 @@ describe('AvailabilityService', () => {
     staffService: { findFirst: jest.fn(), findMany: jest.fn() },
     staffSchedule: { findMany: jest.fn() },
     booking: { findMany: jest.fn() },
+    blackoutDate: { findFirst: jest.fn() },
   };
 
   beforeEach(async () => {
@@ -1051,5 +1052,161 @@ describe('AvailabilityService', () => {
       '10:00',
       '11:00',
     ]);
+  });
+
+  // --- Blackout dates & per-service/court custom operating schedules ---
+
+  it('rejects the whole date when a tenant-wide blackout date covers it', async () => {
+    prisma.tenant.findUnique.mockResolvedValueOnce({
+      id: tenantId,
+      isActive: true,
+      settings: { bookingFlowMode: 'service_time_only' },
+    });
+    prisma.service.findFirst.mockResolvedValueOnce({
+      id: serviceId,
+      isActive: true,
+      durationMinutes: 60,
+      bufferMinutes: 0,
+      maxCapacity: 1,
+      operatingSchedule: null,
+    });
+    prisma.blackoutDate.findFirst.mockResolvedValueOnce({
+      id: 'bd-1',
+      scope: 'tenant',
+      reason: 'ปิดปรับปรุงร้าน',
+    });
+
+    let error: any;
+    try {
+      await service.calculateAvailability(tenantId, validBookingDate, serviceId);
+    } catch (err) {
+      error = err;
+    }
+
+    expect(error).toBeInstanceOf(BadRequestException);
+    expect(error.getResponse().code).toBe(ErrorCode.BOOKING_OUTSIDE_BUSINESS_HOURS);
+    expect(error.getResponse().message).toContain('ปิดปรับปรุงร้าน');
+    // Should short-circuit before ever consulting business_hours
+    expect(prisma.businessHours.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('only matches blackout dates in scope: an unrelated service blackout does not block this service', async () => {
+    const otherServiceId = '55555555-5555-5555-5555-555555555555';
+    prisma.tenant.findUnique.mockResolvedValueOnce({
+      id: tenantId,
+      isActive: true,
+      settings: { bookingFlowMode: 'service_time_only' },
+    });
+    prisma.service.findFirst.mockResolvedValueOnce({
+      id: serviceId,
+      isActive: true,
+      durationMinutes: 60,
+      bufferMinutes: 0,
+      maxCapacity: 1,
+      operatingSchedule: null,
+    });
+    // The mocked query itself isn't scope-filtered here (that's Prisma's job at
+    // the real DB), so simulate Prisma correctly returning no match for this
+    // service's blackout query.
+    prisma.blackoutDate.findFirst.mockResolvedValueOnce(null);
+    prisma.businessHours.findFirst.mockResolvedValueOnce({
+      isOpen: true,
+      openTime: '08:00',
+      closeTime: '10:00',
+    });
+    prisma.booking.findMany.mockResolvedValueOnce([]);
+
+    const result = await service.calculateAvailability(tenantId, validBookingDate, serviceId);
+    expect(result.slots.some((s) => s.available)).toBe(true);
+    void otherServiceId;
+  });
+
+  it('uses a custom per-service operating schedule instead of tenant business_hours when isCustom is true', async () => {
+    prisma.tenant.findUnique.mockResolvedValueOnce({
+      id: tenantId,
+      isActive: true,
+      settings: { bookingFlowMode: 'service_time_only' },
+    });
+    prisma.service.findFirst.mockResolvedValueOnce({
+      id: serviceId,
+      isActive: true,
+      durationMinutes: 60,
+      bufferMinutes: 0,
+      maxCapacity: 1,
+      // Saturday (dayOfWeek 6, matches validBookingDate) 10:00-11:00, narrower
+      // than whatever tenant business_hours would say, and safely after the
+      // fixed "now" of 08:00 Bangkok so slots aren't filtered out as past.
+      operatingSchedule: { isCustom: true, days: [6], startTime: '10:00', endTime: '11:00' },
+    });
+    prisma.blackoutDate.findFirst.mockResolvedValueOnce(null);
+    prisma.booking.findMany.mockResolvedValueOnce([]);
+
+    const result = await service.calculateAvailability(tenantId, validBookingDate, serviceId);
+
+    expect(prisma.businessHours.findFirst).not.toHaveBeenCalled();
+    expect(result.slots.map((s) => s.startTime)).toEqual(['10:00']);
+    expect(result.slots.every((s) => s.available)).toBe(true);
+  });
+
+  it('treats a day not listed in the custom schedule as closed, even if tenant business_hours is open', async () => {
+    prisma.tenant.findUnique.mockResolvedValueOnce({
+      id: tenantId,
+      isActive: true,
+      settings: { bookingFlowMode: 'service_time_only' },
+    });
+    prisma.service.findFirst.mockResolvedValueOnce({
+      id: serviceId,
+      isActive: true,
+      durationMinutes: 60,
+      bufferMinutes: 0,
+      maxCapacity: 1,
+      // Custom schedule only open Mondays (1) — validBookingDate is a Saturday (6)
+      operatingSchedule: { isCustom: true, days: [1], startTime: '08:00', endTime: '20:00' },
+    });
+    prisma.blackoutDate.findFirst.mockResolvedValueOnce(null);
+
+    let error: any;
+    try {
+      await service.calculateAvailability(tenantId, validBookingDate, serviceId);
+    } catch (err) {
+      error = err;
+    }
+
+    expect(error).toBeInstanceOf(BadRequestException);
+    expect(error.getResponse().code).toBe(ErrorCode.BOOKING_OUTSIDE_BUSINESS_HOURS);
+  });
+
+  it('prefers a custom court schedule over the service schedule when a court is selected', async () => {
+    const courtId = '66666666-6666-6666-6666-666666666666';
+    prisma.tenant.findUnique.mockResolvedValueOnce({
+      id: tenantId,
+      isActive: true,
+      settings: { bookingFlowMode: 'sports_court_time' },
+    });
+    prisma.service.findFirst.mockResolvedValueOnce({
+      id: serviceId,
+      isActive: true,
+      durationMinutes: 60,
+      bufferMinutes: 0,
+      maxCapacity: 1,
+      operatingSchedule: { isCustom: true, days: [6], startTime: '06:00', endTime: '09:00' },
+    });
+    prisma.courts.findFirst.mockResolvedValueOnce({
+      id: courtId,
+      name: 'Court 1',
+      operating_schedule: { isCustom: true, days: [6], startTime: '14:00', endTime: '16:00' },
+    });
+    prisma.blackoutDate.findFirst.mockResolvedValueOnce(null);
+    prisma.booking.findMany.mockResolvedValueOnce([]);
+
+    const result = await service.calculateAvailability(
+      tenantId,
+      validBookingDate,
+      serviceId,
+      undefined,
+      { courtId },
+    );
+
+    expect(result.slots.map((s) => s.startTime)).toEqual(['14:00', '15:00']);
   });
 });

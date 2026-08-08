@@ -37,6 +37,7 @@ import {
   RewardRedemption,
   TenantLoyaltySettings,
   CustomerPackage,
+  BlackoutDate,
 } from '../types';
 import {
   INITIAL_TENANTS,
@@ -108,6 +109,7 @@ interface SaaSContextType {
   rewards: Reward[];
   loyaltySettings: TenantLoyaltySettings | null;
   customerPackages: CustomerPackage[];
+  blackoutDates: BlackoutDate[];
   
   // Realtime
   lastRealtimeUpdate: number;
@@ -159,6 +161,8 @@ interface SaaSContextType {
   deleteStaff: (staffId: string) => void;
   saveCourt: (court: Partial<Court>) => void;
   deleteCourt: (courtId: string) => void;
+  addBlackoutDate: (data: Omit<BlackoutDate, 'id' | 'tenantId' | 'createdAt'>) => Promise<void>;
+  deleteBlackoutDate: (id: string) => Promise<void>;
   updateTenantSettings: (settings: Partial<Tenant['settings']>, tenantInfo?: Partial<Tenant>) => void;
   updateTenant: (tenantId: string, updates: Partial<Tenant>) => Promise<void>;
   updateCurrentUserContact: (contact: { phone?: string; email?: string }) => Promise<boolean>;
@@ -292,6 +296,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [loyaltySettings, setLoyaltySettings] = useState<TenantLoyaltySettings | null>(null);
   const [customerPackages, setCustomerPackages] = useState<CustomerPackage[]>([]);
+  const [blackoutDates, setBlackoutDates] = useState<BlackoutDate[]>([]);
 
   // Initial Data Fetching from Supabase
   useEffect(() => {
@@ -339,7 +344,8 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           { data: rewardsData },
           { data: membershipsData },
           { data: loyaltySettingsData },
-          { data: customerPackagesData }
+          { data: customerPackagesData },
+          { data: blackoutDatesData }
         ] = await Promise.all([
           // If platform_admin: fetch ALL real tenants in Supabase!
           // If logged-in merchant: fetch by their specific tenant_id
@@ -371,7 +377,8 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             : Promise.resolve({ data: null, error: null }),
           isAuthenticated && userTenantId
             ? supabase.from('customer_packages').select('*').eq('tenant_id', userTenantId)
-            : Promise.resolve({ data: [] })
+            : Promise.resolve({ data: [] }),
+          supabase.from('blackout_dates').select('*')
         ]);
 
         let fetchedTenants: Tenant[] = [];
@@ -467,6 +474,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         if (loyaltySettingsData) setLoyaltySettings(camelizeKeys(loyaltySettingsData) as TenantLoyaltySettings);
         if (customerPackagesData) setCustomerPackages(camelizeKeys(customerPackagesData) as CustomerPackage[]);
+        if (blackoutDatesData) setBlackoutDates(camelizeKeys(blackoutDatesData) as BlackoutDate[]);
 
         setIsLoading(false);
       } catch (err: any) {
@@ -591,6 +599,10 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const tenantCourts = useMemo(() => {
     return activeTenant ? courts.filter((c) => c.tenantId === activeTenant.id) : [];
   }, [courts, activeTenant]);
+
+  const tenantBlackoutDates = useMemo(() => {
+    return activeTenant ? blackoutDates.filter((b) => b.tenantId === activeTenant.id) : [];
+  }, [blackoutDates, activeTenant]);
 
   const tenantBookings = useMemo(() => {
     return activeTenant ? bookings.filter((b) => b.tenantId === activeTenant.id) : [];
@@ -944,6 +956,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       isActive: true,
       sortOrder: serviceData.sortOrder || services.length + 1,
       timePricingRules: serviceData.timePricingRules || [],
+      operatingSchedule: serviceData.operatingSchedule,
     };
 
     setServices((prev) => {
@@ -969,6 +982,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       category: newService.category,
       is_active: true,
       sort_order: newService.sortOrder,
+      operating_schedule: newService.operatingSchedule ?? null,
     };
 
     if (newService.timePricingRules) {
@@ -1134,6 +1148,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=500&auto=format&fit=crop&q=80',
       extraPricePerHour: courtData.extraPricePerHour || 0,
       isActive: courtData.isActive ?? true,
+      operatingSchedule: courtData.operatingSchedule,
     };
 
     setCourts((prev) => {
@@ -1155,6 +1170,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       image_url: newCourt.imageUrl,
       extra_price_per_hour: newCourt.extraPricePerHour,
       is_active: newCourt.isActive,
+      operating_schedule: newCourt.operatingSchedule ?? null,
     };
 
     const { error } = await supabase.from('courts').upsert(dbRow);
@@ -1165,6 +1181,34 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setCourts((prev) => prev.filter((c) => c.id !== courtId));
     const { error } = await supabase.from('courts').delete().eq('id', courtId);
     if (error) console.error('Error deleting court from Supabase:', error.message);
+  };
+
+  const addBlackoutDate = async (data: Omit<BlackoutDate, 'id' | 'tenantId' | 'createdAt'>) => {
+    if (!activeTenantId) return;
+
+    const row = {
+      tenant_id: activeTenantId,
+      scope: data.scope,
+      service_id: data.scope === 'service' ? data.serviceId : null,
+      court_id: data.scope === 'court' ? data.courtId : null,
+      start_date: data.startDate,
+      end_date: data.endDate,
+      reason: data.reason || null,
+    };
+
+    const { data: inserted, error } = await supabase.from('blackout_dates').insert(row).select().single();
+    if (error) {
+      console.error('Error adding blackout date to Supabase:', error.message);
+      return;
+    }
+
+    setBlackoutDates((prev) => [camelizeKeys(inserted) as BlackoutDate, ...prev]);
+  };
+
+  const deleteBlackoutDate = async (id: string) => {
+    setBlackoutDates((prev) => prev.filter((b) => b.id !== id));
+    const { error } = await supabase.from('blackout_dates').delete().eq('id', id);
+    if (error) console.error('Error deleting blackout date from Supabase:', error.message);
   };
 
   const updateTenantSettings = async (
@@ -1537,6 +1581,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         rewards: tenantRewards,
         loyaltySettings,
         customerPackages,
+        blackoutDates: tenantBlackoutDates,
         lastRealtimeUpdate,
         setMerchantTab,
         switchTenant,
@@ -1553,6 +1598,8 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         deleteStaff,
         saveCourt,
         deleteCourt,
+        addBlackoutDate,
+        deleteBlackoutDate,
         updateTenantSettings,
         updateTenant,
         updateCurrentUserContact,

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
 import { Settings, Save, Plus, Trash2, ShieldAlert, Clock, CalendarDays } from 'lucide-react';
 import { CancellationPolicy } from '../../types';
+import { MerchantBlackoutDates } from './MerchantBlackoutDates';
 
 export const MerchantBookingSettings: React.FC = () => {
   const { activeTenant, updateTenantSettings, cancellationPolicies, updateCancellationPolicies } = useSaaS();
@@ -371,6 +372,8 @@ export const MerchantBookingSettings: React.FC = () => {
           )}
         </div>
       </form>
+
+      <MerchantBlackoutDates />
     </div>
   );
 };

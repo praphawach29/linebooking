@@ -187,6 +187,24 @@ export function getCustomerBookings(
   );
 }
 
+export function getCustomerMembership(
+  options: AuthenticatedBookingRequestOptions,
+): Promise<any> {
+  return requestJson<any>(
+    '/customer/membership',
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${options.accessToken}`,
+        'x-tenant-id': options.tenantId,
+      },
+      signal: options.signal,
+    },
+    'customer',
+    options,
+  );
+}
+
 export function createMerchantBooking(
   input: CreateMerchantBookingInput,
   options: AuthenticatedBookingRequestOptions,

@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
 import { useLiffProfile } from '../../hooks/useLiffProfile';
+import { getCustomerMembership } from '../../lib/booking-api';
+import { Membership } from '../../types';
 import { Phone, Mail, Award, ShieldCheck, LogOut, ChevronRight, UserCheck, Edit3, Save, Check } from 'lucide-react';
+import liff from '@line/liff';
 
 interface LiffProfileProps {
   onNavigate?: (step: 'rewards' | 'point_history') => void;
@@ -10,6 +13,24 @@ interface LiffProfileProps {
 export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
   const { currentUser, activeTenant, bookings, fetchMembership, updateCurrentUserContact } = useSaaS();
   const liffProfile = useLiffProfile(activeTenant?.liffId);
+
+  const [membershipData, setMembershipData] = useState<Membership | null>(null);
+
+  useEffect(() => {
+    if (activeTenant && liffProfile.isLoggedIn) {
+      // Use the LINE ID Token to fetch latest membership from API
+      liff.getIDToken().then(token => {
+        if (token) {
+          getCustomerMembership({
+            tenantId: activeTenant.id,
+            accessToken: token
+          }).then(mem => {
+            if (mem) setMembershipData(mem);
+          }).catch(console.error);
+        }
+      }).catch(console.error);
+    }
+  }, [activeTenant, liffProfile.isLoggedIn]);
 
   const [phoneInput, setPhoneInput] = useState<string>(() => {
     try {
@@ -45,7 +66,7 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
 
   const userBookings = bookings.filter((b) => b.userId === currentUser?.id || b.userPhone === phoneInput);
   const completedCount = userBookings.filter((b) => b.status === 'completed').length;
-  const membership = currentUser ? fetchMembership(currentUser.id) : undefined;
+  const membership = membershipData || (currentUser ? fetchMembership(currentUser.id) : undefined);
   const points = membership?.points || 0;
   const tierDisplay = membership?.tier 
     ? membership.tier.charAt(0).toUpperCase() + membership.tier.slice(1) 

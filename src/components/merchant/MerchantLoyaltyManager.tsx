@@ -73,13 +73,21 @@ export const MerchantLoyaltyManager: React.FC = () => {
   // Map unique customer list
   const uniqueUserMap = new Map<string, { id: string; name: string; phone: string; avatar?: string }>();
   tenantBookings.forEach((b) => {
-    if (b.userId && !uniqueUserMap.has(b.userId)) {
-      uniqueUserMap.set(b.userId, {
-        id: b.userId,
-        name: b.userName || 'ลูกค้า',
-        phone: b.userPhone || '-',
-        avatar: b.userAvatar,
-      });
+    if (b.userId) {
+      if (!uniqueUserMap.has(b.userId)) {
+        uniqueUserMap.set(b.userId, {
+          id: b.userId,
+          name: b.userName || 'Unknown',
+          phone: b.userPhone || '-',
+          avatar: b.userAvatar,
+        });
+      } else {
+        // Update avatar if we find a booking with one and we don't have one yet
+        const existing = uniqueUserMap.get(b.userId)!;
+        if (!existing.avatar && b.userAvatar) {
+          existing.avatar = b.userAvatar;
+        }
+      }
     }
   });
 
@@ -237,9 +245,9 @@ export const MerchantLoyaltyManager: React.FC = () => {
         <div className="space-y-4">
           {/* Summary Stat KPI Cards */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-            <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between col-span-2 md:col-span-1">
+            <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between">
               <div>
-                <span className="text-[11px] text-slate-500 font-bold block">ลูกค้าสมาชิกในระบบ</span>
+                <span className="text-[11px] text-slate-500 font-bold block">สมาชิกระบบทั้งหมด</span>
                 <span className="text-2xl font-black text-slate-900">{customerList.length} คน</span>
               </div>
               <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
@@ -249,7 +257,7 @@ export const MerchantLoyaltyManager: React.FC = () => {
 
             <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between">
               <div>
-                <span className="text-[11px] text-slate-500 font-bold block">แต้มสะสมรวมทั้งร้าน</span>
+                <span className="text-[11px] text-slate-500 font-bold block">แต้มรวมทั้งหมด</span>
                 <span className="text-2xl font-black text-amber-500">
                   {customerList.reduce((sum, c) => sum + c.points, 0).toLocaleString()} pts
                 </span>
@@ -259,9 +267,9 @@ export const MerchantLoyaltyManager: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+            <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between col-span-2 md:col-span-1">
               <div>
-                <span className="text-[11px] text-slate-500 font-bold block">คิวบริการที่สำเร็จแล้ว</span>
+                <span className="text-[11px] text-slate-500 font-bold block">ลูกค้าบริการสำเร็จสะสม</span>
                 <span className="text-2xl font-black text-blue-600">
                   {customerList.reduce((sum, c) => sum + c.completedCount, 0)} ครั้ง
                 </span>
@@ -564,7 +572,7 @@ export const MerchantLoyaltyManager: React.FC = () => {
                   type="number"
                   required
                   min={1}
-                  value={editingReward.pointsRequired !== undefined ? editingReward.pointsRequired : 100}
+                  value={editingReward.pointsRequired ?? ''}
                   onChange={(e) =>
                     setEditingReward({ ...editingReward, pointsRequired: (e.target.value === '' ? '' : Number(e.target.value)) as any })
                   }
@@ -652,7 +660,7 @@ export const MerchantLoyaltyManager: React.FC = () => {
                 <label className="font-bold text-slate-700 mb-1 block">จำนวนแต้มที่ต้องการปรับ (+ / -) *</label>
                 <input
                   type="number"
-                  value={adjustPointsDelta}
+                  value={adjustPointsDelta ?? ''}
                   onChange={(e) => setAdjustPointsDelta((e.target.value === '' ? '' : Number(e.target.value)) as any)}
                   placeholder="เช่น 50 หรือ -50"
                   className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono font-bold text-sm"

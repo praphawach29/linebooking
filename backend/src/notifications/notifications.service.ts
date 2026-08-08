@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
@@ -11,7 +11,7 @@ import {
 } from './notifications.types';
 
 @Injectable()
-export class NotificationsService {
+export class NotificationsService implements OnModuleInit {
   private readonly logger = new Logger(NotificationsService.name);
 
   constructor(
@@ -19,6 +19,23 @@ export class NotificationsService {
     private readonly prisma: PrismaService,
     private readonly lineClient: LineMessagingClient,
   ) {}
+
+  async onModuleInit(): Promise<void> {
+    const queued = await this.prisma.lineMessageDelivery.findMany({
+      where: { status: 'queued', scheduledAt: { lte: new Date() } },
+      orderBy: { scheduledAt: 'asc' },
+      take: 500,
+      select: { id: true },
+    });
+
+    for (const delivery of queued) {
+      await this.enqueueDelivery(delivery.id);
+    }
+
+    if (queued.length > 0) {
+      this.logger.log(`Recovered ${queued.length} queued LINE deliveries`);
+    }
+  }
 
   async queueBookingEvent(
     tenantId: string,
@@ -53,22 +70,26 @@ export class NotificationsService {
         select: { id: true, status: true },
       });
 
-      await this.notificationQueue.add(
-        'line-booking-event',
-        { deliveryId: delivery.id },
-        {
-          jobId: delivery.id,
-          attempts: 3,
-          backoff: { type: 'exponential', delay: 3000 },
-          removeOnComplete: 200,
-          removeOnFail: 500,
-        },
-      );
+      await this.enqueueDelivery(delivery.id);
     } catch (error) {
       this.logger.error(
         `Unable to queue LINE event ${eventType} for booking ${bookingId}: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
+  }
+
+  private async enqueueDelivery(deliveryId: string): Promise<void> {
+    await this.notificationQueue.add(
+      'line-booking-event',
+      { deliveryId },
+      {
+        jobId: deliveryId,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 3000 },
+        removeOnComplete: 200,
+        removeOnFail: 500,
+      },
+    );
   }
 
   async getLineQuotaStatus(tenantId: string): Promise<LineQuotaStatus> {

@@ -5,7 +5,7 @@ describe('NotificationsService LINE quota', () => {
   const prisma = {
     tenant: { findUnique: jest.fn() },
     lineQuotaSnapshot: { upsert: jest.fn(), findUnique: jest.fn() },
-    lineMessageDelivery: { aggregate: jest.fn() },
+    lineMessageDelivery: { aggregate: jest.fn(), findMany: jest.fn() },
   };
   const lineClient = { getQuota: jest.fn() };
   let service: NotificationsService;
@@ -14,10 +14,28 @@ describe('NotificationsService LINE quota', () => {
     jest.clearAllMocks();
     service = new NotificationsService(queue as any, prisma as any, lineClient as any);
     prisma.tenant.findUnique.mockResolvedValue({ lineChannelAccessToken: 'token' });
+    prisma.lineMessageDelivery.findMany.mockResolvedValue([]);
     prisma.lineQuotaSnapshot.upsert.mockImplementation(({ create }: any) => ({
       ...create,
       fetchedAt: new Date('2026-08-08T00:00:00Z'),
     }));
+  });
+
+  it('requeues durable deliveries that were left queued', async () => {
+    prisma.lineMessageDelivery.findMany.mockResolvedValue([
+      { id: 'delivery-1' },
+      { id: 'delivery-2' },
+    ]);
+
+    await service.onModuleInit();
+
+    expect(queue.add).toHaveBeenCalledTimes(2);
+    expect(queue.add).toHaveBeenNthCalledWith(
+      1,
+      'line-booking-event',
+      { deliveryId: 'delivery-1' },
+      expect.objectContaining({ jobId: 'delivery-1', attempts: 3 }),
+    );
   });
 
   it.each([

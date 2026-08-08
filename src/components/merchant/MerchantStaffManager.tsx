@@ -432,7 +432,7 @@ export const MerchantStaffManager: React.FC = () => {
       {/* Edit / Add Staff Modal */}
       {editingStaff && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-white max-w-lg w-full rounded-3xl shadow-2xl p-6 border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white max-w-lg w-full rounded-3xl shadow-2xl p-6 border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
                 <Users className="w-4 h-4 text-emerald-600" />
@@ -646,7 +646,7 @@ export const MerchantStaffManager: React.FC = () => {
                   setEditingCourt(null);
                 }
               }}
-              className="space-y-3 overflow-y-auto px-6 pt-4 pb-6"
+              className="space-y-3 overflow-y-auto custom-scrollbar px-6 pt-4 pb-6"
             >
               <div className="grid grid-cols-2 gap-3">
                 <div>

@@ -359,6 +359,28 @@ describe('BookingsController (Unit Tests)', () => {
       );
     });
 
+    it('queues a customer notification after merchant check-in', async () => {
+      bookingsService.checkInBookingAsMerchant.mockResolvedValueOnce({
+        id: bookingId,
+        status: 'checked_in',
+      } as never);
+
+      const result = await controller.checkInMerchantBooking(tenantId, {
+        code: 'CHECKIN-BK-TEST',
+      });
+
+      expect(bookingsService.checkInBookingAsMerchant).toHaveBeenCalledWith(
+        tenantId,
+        'CHECKIN-BK-TEST',
+      );
+      expect(notificationsService.queueBookingEvent).toHaveBeenCalledWith(
+        tenantId,
+        bookingId,
+        'booking_checked_in',
+      );
+      expect(result.status).toBe('checked_in');
+    });
+
     it('binds the intended authentication and tenant guards to each endpoint', () => {
       const customerGuards = Reflect.getMetadata(
         GUARDS_METADATA,
@@ -398,10 +420,7 @@ describe('BookingsController (Unit Tests)', () => {
       ]);
       expect(statusGuards).toEqual([SupabaseAuthGuard, TenantAccessGuard]);
       expect(checkInGuards).toEqual([SupabaseAuthGuard, TenantAccessGuard]);
-      expect(rescheduleGuards).toEqual([
-        SupabaseAuthGuard,
-        TenantAccessGuard,
-      ]);
+      expect(rescheduleGuards).toEqual([SupabaseAuthGuard, TenantAccessGuard]);
     });
   });
 });

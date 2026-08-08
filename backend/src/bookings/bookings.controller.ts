@@ -90,7 +90,11 @@ export class BookingsController {
       customerPhone: dto.customerPhone,
       notes: dto.notes,
     });
-    await this.notificationsService.queueBookingEvent(tenantId, booking.id, 'booking_created');
+    await this.notificationsService.queueBookingEvent(
+      tenantId,
+      booking.id,
+      'booking_created',
+    );
     return booking;
   }
 
@@ -114,7 +118,11 @@ export class BookingsController {
       customerPhone: dto.customerPhone,
       notes: dto.notes,
     });
-    await this.notificationsService.queueBookingEvent(tenantId, booking.id, 'booking_created');
+    await this.notificationsService.queueBookingEvent(
+      tenantId,
+      booking.id,
+      'booking_created',
+    );
     return booking;
   }
 
@@ -124,8 +132,15 @@ export class BookingsController {
     @TenantId() tenantId: string,
     @Param('id', new ParseUUIDPipe({ version: '4' })) bookingId: string,
   ) {
-    const booking = await this.bookingsService.cancelBookingAsMerchant(tenantId, bookingId);
-    await this.notificationsService.queueBookingEvent(tenantId, bookingId, 'booking_cancelled');
+    const booking = await this.bookingsService.cancelBookingAsMerchant(
+      tenantId,
+      bookingId,
+    );
+    await this.notificationsService.queueBookingEvent(
+      tenantId,
+      bookingId,
+      'booking_cancelled',
+    );
     return booking;
   }
 
@@ -135,7 +150,16 @@ export class BookingsController {
     @TenantId() tenantId: string,
     @Body() dto: CheckInBookingDto,
   ): Promise<BookingResponseDto> {
-    return this.bookingsService.checkInBookingAsMerchant(tenantId, dto.code);
+    const booking = await this.bookingsService.checkInBookingAsMerchant(
+      tenantId,
+      dto.code,
+    );
+    await this.notificationsService.queueBookingEvent(
+      tenantId,
+      booking.id,
+      'booking_checked_in',
+    );
+    return booking;
   }
 
   @Patch(':id/status')
@@ -152,9 +176,17 @@ export class BookingsController {
       dto.reason,
     );
     if (dto.status === 'confirmed') {
-      await this.notificationsService.queueBookingEvent(tenantId, bookingId, 'booking_confirmed');
+      await this.notificationsService.queueBookingEvent(
+        tenantId,
+        bookingId,
+        'booking_confirmed',
+      );
     } else if (dto.status === 'cancelled') {
-      await this.notificationsService.queueBookingEvent(tenantId, bookingId, 'booking_cancelled');
+      await this.notificationsService.queueBookingEvent(
+        tenantId,
+        bookingId,
+        'booking_cancelled',
+      );
     }
     return booking;
   }
@@ -172,7 +204,11 @@ export class BookingsController {
       dto.bookingDate,
       dto.startTime,
     );
-    await this.notificationsService.queueBookingEvent(tenantId, bookingId, 'booking_rescheduled');
+    await this.notificationsService.queueBookingEvent(
+      tenantId,
+      bookingId,
+      'booking_rescheduled',
+    );
     return booking;
   }
 }

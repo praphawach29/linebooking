@@ -105,6 +105,9 @@ interface SaaSContextType {
   pointTransactions: PointTransaction[];
   rewards: Reward[];
   
+  // Realtime
+  lastRealtimeUpdate: number;
+  
   // Actions
   setMerchantTab: (tab: MerchantTab) => void;
   switchTenant: (tenantId: string) => void;
@@ -222,6 +225,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [activeTenantId, setActiveTenantId] = useState<string | null>(null);
+  const [lastRealtimeUpdate, setLastRealtimeUpdate] = useState<number>(Date.now());
 
   // Persistent Merchant Tab (sync with URL query string ?tab=... & localStorage)
   const [merchantTab, setMerchantTabState] = useState<MerchantTab>(() => {
@@ -344,7 +348,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           // even if RLS policies are inconsistent between migrations
           isAuthenticated && userTenantId
             ? supabase.from('bookings').select('*').eq('tenant_id', userTenantId).order('created_at', { ascending: false })
-            : Promise.resolve({ data: [] }),
+            : Promise.resolve({ data: null }), // Fix: use null to avoid wiping customer bookings
           supabase.from('cancellation_policies').select('*'),
           supabase.from('reviews').select('*'),
           supabase.from('rewards').select('*'),
@@ -480,6 +484,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         { event: '*', schema: 'public', table: 'tenants' },
         () => {
           fetchData(true);
+          setLastRealtimeUpdate(Date.now());
         }
       )
       .on(
@@ -487,6 +492,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         { event: '*', schema: 'public', table: 'bookings' },
         () => {
           fetchData(true);
+          setLastRealtimeUpdate(Date.now());
         }
       )
       .subscribe();
@@ -1426,6 +1432,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         memberships,
         pointTransactions,
         rewards: tenantRewards,
+        lastRealtimeUpdate,
         setMerchantTab,
         switchTenant,
         getAvailableSlots,

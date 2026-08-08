@@ -13,6 +13,7 @@ type BookingForFlex = {
 const EVENT_COPY: Record<LineBookingEvent, { title: string; color: string }> = {
   booking_created: { title: 'รับคำขอจองแล้ว', color: '#D97706' },
   booking_confirmed: { title: 'ยืนยันการจองแล้ว', color: '#059669' },
+  booking_checked_in: { title: 'เช็กอินเรียบร้อยแล้ว', color: '#0F766E' },
   booking_rescheduled: { title: 'เลื่อนเวลาจองแล้ว', color: '#2563EB' },
   booking_cancelled: { title: 'ยกเลิกการจองแล้ว', color: '#DC2626' },
 };
@@ -35,12 +36,38 @@ export function buildBookingFlexMessage(
     timeZone: 'UTC',
   }).format(booking.bookingDate);
   const details = [
-    { type: 'text', text: booking.service_name || 'บริการ', weight: 'bold', size: 'md', wrap: true },
-    { type: 'text', text: `${date} เวลา ${time(booking.startTime)} - ${time(booking.endTime)} น.`, size: 'sm', color: '#475569', wrap: true },
+    {
+      type: 'text',
+      text: booking.service_name || 'บริการ',
+      weight: 'bold',
+      size: 'md',
+      wrap: true,
+    },
+    {
+      type: 'text',
+      text: `${date} เวลา ${time(booking.startTime)} - ${time(booking.endTime)} น.`,
+      size: 'sm',
+      color: '#475569',
+      wrap: true,
+    },
     ...(booking.court_name
-      ? [{ type: 'text', text: `สนาม: ${booking.court_name}`, size: 'sm', color: '#475569', wrap: true }]
+      ? [
+          {
+            type: 'text',
+            text: `สนาม: ${booking.court_name}`,
+            size: 'sm',
+            color: '#475569',
+            wrap: true,
+          },
+        ]
       : []),
-    { type: 'text', text: `รหัสจอง #${booking.ref_no}`, size: 'xs', color: '#64748B', margin: 'md' },
+    {
+      type: 'text',
+      text: `รหัสจอง #${booking.ref_no}`,
+      size: 'xs',
+      color: '#64748B',
+      margin: 'md',
+    },
   ];
 
   const bubble: Record<string, unknown> = {
@@ -51,11 +78,30 @@ export function buildBookingFlexMessage(
       backgroundColor: copy.color,
       paddingAll: '18px',
       contents: [
-        { type: 'text', text: tenantName, color: '#FFFFFF', size: 'sm', weight: 'bold' },
-        { type: 'text', text: copy.title, color: '#FFFFFF', size: 'xl', weight: 'bold', margin: 'sm' },
+        {
+          type: 'text',
+          text: tenantName,
+          color: '#FFFFFF',
+          size: 'sm',
+          weight: 'bold',
+        },
+        {
+          type: 'text',
+          text: copy.title,
+          color: '#FFFFFF',
+          size: 'xl',
+          weight: 'bold',
+          margin: 'sm',
+        },
       ],
     },
-    body: { type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '18px', contents: details },
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      spacing: 'sm',
+      paddingAll: '18px',
+      contents: details,
+    },
   };
 
   if (liffId) {
@@ -63,12 +109,18 @@ export function buildBookingFlexMessage(
       type: 'box',
       layout: 'vertical',
       paddingAll: '14px',
-      contents: [{
-        type: 'button',
-        style: 'primary',
-        color: '#059669',
-        action: { type: 'uri', label: 'ดูรายการจอง', uri: `https://liff.line.me/${liffId}` },
-      }],
+      contents: [
+        {
+          type: 'button',
+          style: 'primary',
+          color: '#059669',
+          action: {
+            type: 'uri',
+            label: 'ดูรายการจอง',
+            uri: `https://liff.line.me/${liffId}`,
+          },
+        },
+      ],
     };
   }
 

@@ -38,6 +38,7 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking, li
     reviews,
     fetchMyBookings,
     currentUser,
+    lastRealtimeUpdate,
   } = useSaaS();
 
   const [myBookings, setMyBookings] = useState<Booking[]>([]);
@@ -58,7 +59,7 @@ export const LiffMyBookings: React.FC<LiffMyBookingsProps> = ({ onNewBooking, li
     return () => {
       cancelled = true;
     };
-  }, [currentUser?.lineUserId, lineUserId]);
+  }, [currentUser?.lineUserId, lineUserId, lastRealtimeUpdate]);
 
   // Always render the customer-specific RPC result, even when it returns zero rows.
   const visibleBookings = (isLoadingMine ? [] : myBookings).filter(b => !activeTenant || b.tenantId === activeTenant.id);

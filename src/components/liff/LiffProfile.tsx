@@ -16,6 +16,7 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
 
   const [membershipData, setMembershipData] = useState<Membership | null>(null);
   const [myBookings, setMyBookings] = useState<any[]>([]);
+  const [isStatsLoading, setIsStatsLoading] = useState<boolean>(true);
 
   const [phoneInput, setPhoneInput] = useState<string>(() => {
     try {
@@ -41,12 +42,16 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
 
   useEffect(() => {
     if (activeTenant && liffProfile.isLoggedIn) {
-      // Fetch bookings history
-      fetchMyBookings(liffProfile.lineUserId, phoneInput).then(bks => {
-        if (bks) setMyBookings(bks);
-      }).catch(console.error);
-      
+      setIsStatsLoading(true);
+
+      const bookingsPromise = fetchMyBookings(liffProfile.lineUserId, phoneInput)
+        .then(bks => {
+          if (bks) setMyBookings(bks);
+        })
+        .catch(console.error);
+
       // Use the LINE ID Token to fetch latest membership from API
+      let membershipPromise: Promise<unknown> = Promise.resolve();
       try {
         const token = liff.getIDToken();
         if (token) {
@@ -62,17 +67,19 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
           // If a phone was already saved from a previous visit, try merging in
           // any separate walk-in-linked account before reading membership, so
           // returning customers don't have to re-save their phone to trigger it.
-          if (phoneInput) {
-            linkCustomerPhone({ tenantId: activeTenant.id, accessToken: token, phone: phoneInput })
-              .catch(console.error)
-              .finally(fetchMembership);
-          } else {
-            fetchMembership();
-          }
+          membershipPromise = phoneInput
+            ? linkCustomerPhone({ tenantId: activeTenant.id, accessToken: token, phone: phoneInput })
+                .catch(console.error)
+                .finally(fetchMembership)
+            : fetchMembership();
         }
       } catch (err) {
         console.error("Failed to fetch membership:", err);
       }
+
+      Promise.allSettled([bookingsPromise, membershipPromise]).finally(() => setIsStatsLoading(false));
+    } else {
+      setIsStatsLoading(false);
     }
   }, [activeTenant, liffProfile.isLoggedIn, liffProfile.lineUserId]);
 
@@ -208,20 +215,32 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-white border border-slate-200/80 rounded-2xl p-3.5 text-center shadow-sm">
           <span className="text-[11px] text-slate-500 block font-bold mb-1">การจองทั้งหมด</span>
-          <span className="text-xl font-black text-slate-900">{userBookings.length}</span>
+          {isStatsLoading ? (
+            <span className="block h-6 w-8 mx-auto rounded-md bg-slate-200 animate-pulse" />
+          ) : (
+            <span className="text-xl font-black text-slate-900">{userBookings.length}</span>
+          )}
         </div>
 
         <div className="bg-white border border-slate-200/80 rounded-2xl p-3.5 text-center shadow-sm">
           <span className="text-[11px] text-slate-500 block font-bold mb-1">ใช้บริการแล้ว</span>
-          <span className="text-xl font-black text-emerald-600">{completedCount}</span>
+          {isStatsLoading ? (
+            <span className="block h-6 w-8 mx-auto rounded-md bg-slate-200 animate-pulse" />
+          ) : (
+            <span className="text-xl font-black text-emerald-600">{completedCount}</span>
+          )}
         </div>
 
-        <div 
+        <div
           className="bg-white border border-slate-200/80 rounded-2xl p-3.5 text-center relative overflow-hidden cursor-pointer active:scale-95 transition-transform shadow-sm"
           onClick={() => onNavigate?.('rewards')}
         >
           <span className="text-[11px] text-slate-500 block font-bold mb-1">คะแนนสะสม</span>
-          <span className="text-xl font-black text-amber-500">{points.toLocaleString()} <span className="text-xs font-mono">P</span></span>
+          {isStatsLoading ? (
+            <span className="block h-6 w-10 mx-auto rounded-md bg-slate-200 animate-pulse" />
+          ) : (
+            <span className="text-xl font-black text-amber-500">{points.toLocaleString()} <span className="text-xs font-mono">P</span></span>
+          )}
         </div>
       </div>
 
@@ -295,7 +314,11 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
             </div>
             <div className="flex-1">
               <span className="text-[11px] text-slate-400 block font-bold mb-0.5">ระดับสมาชิกสโมสร</span>
-              <span className="font-black text-amber-600 text-xs">{tierLabel}</span>
+              {isStatsLoading ? (
+                <span className="block h-4 w-24 rounded-md bg-slate-200 animate-pulse" />
+              ) : (
+                <span className="font-black text-amber-600 text-xs">{tierLabel}</span>
+              )}
               <span className="block text-[10px] text-slate-400 font-medium">({activeTenant?.name || 'JackSports'})</span>
             </div>
           </div>

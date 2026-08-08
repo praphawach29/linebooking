@@ -35,10 +35,30 @@ export class NotificationsProcessor extends WorkerHost implements OnModuleInit {
 
     const delivery = await this.prisma.lineMessageDelivery.findUnique({
       where: { id: job.data.deliveryId },
-      include: {
-        tenant: true,
-        user: true,
-        booking: true,
+      select: {
+        id: true,
+        status: true,
+        eventType: true,
+        tenant: {
+          select: {
+            name: true,
+            settings: true,
+            lineChannelAccessToken: true,
+            liffId: true,
+          },
+        },
+        user: { select: { lineUserId: true } },
+        booking: {
+          select: {
+            ref_no: true,
+            service_name: true,
+            court_name: true,
+            bookingDate: true,
+            startTime: true,
+            endTime: true,
+            finalPrice: true,
+          },
+        },
       },
     });
     if (!delivery || delivery.status === 'sent' || delivery.status.startsWith('skipped_')) return;

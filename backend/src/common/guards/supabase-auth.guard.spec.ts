@@ -17,6 +17,8 @@ describe('SupabaseAuthGuard', () => {
   const originalFetch = global.fetch;
   const originalSupabaseUrl = process.env.SUPABASE_URL;
   const originalAnonKey = process.env.SUPABASE_ANON_KEY;
+  const originalViteSupabaseUrl = process.env.VITE_SUPABASE_URL;
+  const originalViteAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
 
   const context = {
     switchToHttp: () => ({ getRequest: () => request }),
@@ -30,6 +32,8 @@ describe('SupabaseAuthGuard', () => {
     delete request.appUser;
     process.env.SUPABASE_URL = 'https://project-ref.supabase.co';
     process.env.SUPABASE_ANON_KEY = 'test-anon-key';
+    delete process.env.VITE_SUPABASE_URL;
+    delete process.env.VITE_SUPABASE_ANON_KEY;
     guard = new SupabaseAuthGuard(db as unknown as SupabaseService);
   });
 
@@ -37,6 +41,8 @@ describe('SupabaseAuthGuard', () => {
     global.fetch = originalFetch;
     process.env.SUPABASE_URL = originalSupabaseUrl;
     process.env.SUPABASE_ANON_KEY = originalAnonKey;
+    process.env.VITE_SUPABASE_URL = originalViteSupabaseUrl;
+    process.env.VITE_SUPABASE_ANON_KEY = originalViteAnonKey;
   });
 
   it('rejects requests without a Supabase access token', async () => {
@@ -110,6 +116,39 @@ describe('SupabaseAuthGuard', () => {
         headers: {
           Authorization: 'Bearer valid-merchant-token',
           apikey: 'test-anon-key',
+        },
+      },
+    );
+  });
+
+  it('accepts Railway VITE Supabase variables as a compatibility fallback', async () => {
+    delete process.env.SUPABASE_URL;
+    delete process.env.SUPABASE_ANON_KEY;
+    process.env.VITE_SUPABASE_URL = 'https://vite-project.supabase.co';
+    process.env.VITE_SUPABASE_ANON_KEY = 'vite-anon-key';
+    request.headers.authorization = 'Bearer valid-vite-token';
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        id: 'auth-user-id',
+        email: 'merchant@example.com',
+      }),
+    });
+    db.selectOne.mockResolvedValue({
+      id: 'db-user-id',
+      role: 'merchant_admin',
+      tenant_id: assignedTenantId,
+      email: 'merchant@example.com',
+    });
+    db.select.mockResolvedValue([]);
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://vite-project.supabase.co/auth/v1/user',
+      {
+        headers: {
+          Authorization: 'Bearer valid-vite-token',
+          apikey: 'vite-anon-key',
         },
       },
     );

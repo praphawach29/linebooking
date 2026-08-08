@@ -7,6 +7,10 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
+import {
+  getSupabaseAnonKey,
+  getSupabaseUrl,
+} from '../supabase/supabase-env';
 import { ErrorCode } from '../constants/error-codes';
 
 export interface AppUser {
@@ -64,8 +68,8 @@ export class SupabaseAuthGuard implements CanActivate {
   }
 
   private async resolveUser(token: string): Promise<AppUser> {
-    const url = process.env.SUPABASE_URL;
-    const anonKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const url = getSupabaseUrl();
+    const anonKey = getSupabaseAnonKey();
     if (!url || !anonKey) {
       throw new InternalServerErrorException({
         statusCode: 500,

@@ -7,6 +7,10 @@ import {
 import { HttpService } from '@nestjs/axios';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  getSupabaseAnonKey,
+  getSupabaseUrl,
+} from '../common/supabase/supabase-env';
 import { LineLoginDto } from './dto/line-login.dto';
 import { firstValueFrom } from 'rxjs';
 import * as jwt from 'jsonwebtoken';
@@ -122,9 +126,8 @@ export class AuthService {
       : '';
     if (!token) throw new UnauthorizedException('Access token is required');
 
-    const url = process.env.SUPABASE_URL;
-    const apiKey =
-      process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const url = getSupabaseUrl();
+    const apiKey = getSupabaseAnonKey();
     if (!url || !apiKey) {
       throw new InternalServerErrorException(
         'Supabase authentication is not configured',

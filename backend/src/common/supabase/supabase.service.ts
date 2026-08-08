@@ -1,4 +1,5 @@
 import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
+import { getSupabaseUrl } from './supabase-env';
 
 /**
  * SupabaseService — เรียก Supabase REST (PostgREST) ด้วย service role key
@@ -13,7 +14,7 @@ export class SupabaseService {
   private readonly logger = new Logger(SupabaseService.name);
 
   get isConfigured(): boolean {
-    return !!(process.env.SUPABASE_URL && this.adminKey);
+    return !!(getSupabaseUrl() && this.adminKey);
   }
 
   private get adminKey(): string | undefined {
@@ -44,7 +45,7 @@ export class SupabaseService {
       return null;
     }
 
-    const res = await fetch(`${process.env.SUPABASE_URL}/rest/v1/${path}`, {
+    const res = await fetch(`${getSupabaseUrl()}/rest/v1/${path}`, {
       method,
       headers: this.headers(extraHeaders),
       body: body ? JSON.stringify(body) : undefined,

@@ -1403,33 +1403,56 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const adjustCustomerPoints = async (userId: string, pointsDelta: number, reason: string) => {
     if (!activeTenantId) return;
 
-    setMemberships((prev) => {
-      const existing = prev.find((m) => m.userId === userId && m.tenantId === activeTenantId);
-      if (existing) {
-        const newPoints = Math.max(0, existing.points + pointsDelta);
-        const newTotalEarned = pointsDelta > 0 ? existing.totalPointsEarned + pointsDelta : existing.totalPointsEarned;
-        const newTier: MembershipTier =
-          newTotalEarned >= 1000 ? 'Platinum' : newTotalEarned >= 500 ? 'Gold' : 'Silver';
+    const existing = memberships.find((m) => m.userId === userId && m.tenantId === activeTenantId);
+    const newPoints = Math.max(0, (existing?.points || 0) + pointsDelta);
+    const newTotalEarned =
+      pointsDelta > 0 ? (existing?.totalPointsEarned || 0) + pointsDelta : existing?.totalPointsEarned || 0;
+    const newTier: MembershipTier =
+      newTotalEarned >= 1000 ? 'Platinum' : newTotalEarned >= 500 ? 'Gold' : existing?.tier || 'Silver';
 
-        return prev.map((m) =>
-          m.id === existing.id
-            ? { ...m, points: newPoints, totalPointsEarned: newTotalEarned, tier: newTier, updatedAt: new Date().toISOString() }
-            : m
-        );
-      } else {
-        const newMem: Membership = {
-          id: `mem-${Date.now()}`,
-          tenantId: activeTenantId,
-          userId,
-          points: Math.max(0, pointsDelta),
-          totalPointsEarned: Math.max(0, pointsDelta),
-          tier: pointsDelta >= 1000 ? 'Platinum' : pointsDelta >= 500 ? 'Gold' : 'Silver',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        return [newMem, ...prev];
+    // Persist to Supabase so the change is reflected everywhere the `memberships`
+    // table is read from (e.g. the LINE LIFF customer profile via the backend API),
+    // not just in this browser's local state.
+    const { data, error } = await supabase
+      .from('memberships')
+      .upsert(
+        {
+          ...(existing ? { id: existing.id } : {}),
+          tenant_id: activeTenantId,
+          user_id: userId,
+          points: newPoints,
+          total_points_earned: newTotalEarned,
+          tier: newTier,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'tenant_id,user_id' }
+      )
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adjusting customer points in Supabase:', error.message);
+      return;
+    }
+
+    const updatedMembership = camelizeKeys(data) as Membership;
+    setMemberships((prev) => {
+      const idx = prev.findIndex((m) => m.id === updatedMembership.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = updatedMembership;
+        return next;
       }
+      return [updatedMembership, ...prev];
     });
+
+    const { error: txError } = await supabase.from('point_transactions').insert({
+      membership_id: updatedMembership.id,
+      points: pointsDelta,
+      type: pointsDelta >= 0 ? 'ADJUST_ADD' : 'ADJUST_DEDUCT',
+      description: reason,
+    });
+    if (txError) console.error('Error logging point transaction:', txError.message);
   };
 
   const saveLoyaltySettings = async (settings: Partial<TenantLoyaltySettings>) => {

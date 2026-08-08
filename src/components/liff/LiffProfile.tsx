@@ -83,9 +83,11 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
   const completedCount = userBookings.filter((b) => b.status === 'completed' || b.status === 'checked_in').length;
   const membership = membershipData || (currentUser ? fetchMembership(currentUser.id) : undefined);
   const points = membership?.points || 0;
-  const tierDisplay = membership?.tier 
-    ? membership.tier.charAt(0).toUpperCase() + membership.tier.slice(1) 
-    : 'Bronze';
+  const tierRaw = membership?.tier || 'Bronze';
+  const tierDisplay = tierRaw.charAt(0).toUpperCase() + tierRaw.slice(1).toLowerCase();
+  const tierLabel = tierRaw.toLowerCase() === 'platinum' || tierRaw.toLowerCase() === 'vip'
+    ? `VIP ${tierDisplay}`
+    : `${tierDisplay} Member`;
 
   const handleSaveContact = () => {
     try {
@@ -250,7 +252,7 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
             </div>
             <div className="flex-1">
               <span className="text-[11px] text-slate-400 block font-bold mb-0.5">ระดับสมาชิกสโมสร</span>
-              <span className="font-black text-amber-600 text-xs">VIP {tierDisplay} Member</span>
+              <span className="font-black text-amber-600 text-xs">{tierLabel}</span>
               <span className="block text-[10px] text-slate-400 font-medium">({activeTenant?.name || 'JackSports'})</span>
             </div>
           </div>

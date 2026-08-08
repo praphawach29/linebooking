@@ -173,7 +173,7 @@ interface SaaSContextType {
    * ดึงคิวของลูกค้าคนหนึ่ง (หน้า LIFF)
    * หลัง migration 0007 ตาราง bookings อ่านสาธารณะไม่ได้แล้ว ต้องผ่าน RPC ที่คืนเฉพาะของเจ้าตัว
    */
-  fetchMyBookings: (lineUserId?: string) => Promise<Booking[]>;
+  fetchMyBookings: (lineUserId?: string, phone?: string) => Promise<Booking[]>;
 
   // Loyalty & Reward Actions
   fetchMembership: (userId: string) => Membership | undefined;
@@ -605,7 +605,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [rewards, activeTenant]);
 
   /** Load this customer history through the LINE-authenticated backend API. */
-  const fetchMyBookings = async (lineUserId?: string): Promise<Booking[]> => {
+  const fetchMyBookings = async (lineUserId?: string, phone?: string): Promise<Booking[]> => {
     let lineId = lineUserId || currentUser?.lineUserId;
     if (!lineId) {
       try {

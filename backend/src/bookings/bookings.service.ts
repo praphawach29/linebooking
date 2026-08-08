@@ -28,9 +28,17 @@ export class BookingsService {
   async getCustomerBookings(
     tenantId: string,
     customerUserId: string,
+    phone?: string,
   ): Promise<BookingResponseDto[]> {
+    const orConditions: any[] = [{ userId: customerUserId }];
+    if (phone) {
+      orConditions.push({ user_phone: phone });
+    }
     const bookings = await this.prisma.booking.findMany({
-      where: { tenantId, userId: customerUserId },
+      where: { 
+        tenantId, 
+        OR: orConditions
+      },
       orderBy: [{ bookingDate: 'desc' }, { startTime: 'desc' }],
       take: 100,
     });

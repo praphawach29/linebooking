@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, UseGuards, Query } from '@nestjs/common';
 import { MembershipsService } from './memberships.service';
 import { LineIdTokenGuard } from '../common/guards/line-id-token.guard';
 import { TenantId } from '../common/decorators/tenant-id.decorator';
@@ -13,7 +13,8 @@ export class CustomerMembershipsController {
   async getMyMembership(
     @TenantId() tenantId: string,
     @CurrentCustomer() customer: { id: string },
+    @Query('phone') phone?: string,
   ) {
-    return this.membershipsService.getMembership(tenantId, customer.id);
+    return this.membershipsService.getMembershipWithPhoneFallback(tenantId, customer.id, phone);
   }
 }

@@ -5,6 +5,53 @@ import { PrismaService } from '../prisma/prisma.service';
 export class MembershipsService {
   constructor(private prisma: PrismaService) {}
 
+  
+  async getMembershipWithPhoneFallback(tenantId: string, userId: string, phone?: string) {
+    let membership = null;
+
+    if (phone) {
+      const bookingWithPhone = await this.prisma.booking.findFirst({
+        where: { tenantId, user_phone: phone, userId: { not: null } },
+        orderBy: { createdAt: 'desc' }
+      });
+      
+      if (bookingWithPhone && bookingWithPhone.userId) {
+        membership = await this.prisma.membership.findUnique({
+          where: { tenantId_userId: { tenantId, userId: bookingWithPhone.userId } },
+          include: { pointTransactions: { orderBy: { createdAt: 'desc' }, take: 10 } }
+        });
+      }
+    }
+
+    if (!membership) {
+      membership = await this.prisma.membership.findUnique({
+        where: { tenantId_userId: { tenantId, userId } },
+        include: { pointTransactions: { orderBy: { createdAt: 'desc' }, take: 10 } }
+      });
+    }
+
+    if (!membership) {
+      membership = await this.prisma.membership.create({
+        data: {
+          tenantId,
+          userId,
+          tier: 'bronze',
+          points: 0,
+          totalPointsEarned: 0,
+        },
+        include: {
+          pointTransactions: true,
+        },
+      });
+    }
+
+    return {
+      ...membership,
+      pointTransactions: membership.pointTransactions || [],
+    };
+  }
+
+
   async getMembership(tenantId: string, userId: string) {
     let membership = await this.prisma.membership.findUnique({
       where: {

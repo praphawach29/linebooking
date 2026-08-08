@@ -128,6 +128,7 @@ interface BookingRequestOptions {
 interface AuthenticatedBookingRequestOptions extends BookingRequestOptions {
   tenantId: string;
   accessToken: string;
+  phone?: string;
 }
 
 const inFlightCreates = new Map<string, Promise<BookingApiResponse>>();
@@ -173,7 +174,7 @@ export function getCustomerBookings(
   options: AuthenticatedBookingRequestOptions,
 ): Promise<BookingApiResponse[]> {
   return requestJson<BookingApiResponse[]>(
-    '/bookings/mine',
+    options.phone ? `/bookings/mine?phone=${encodeURIComponent(options.phone)}` : '/bookings/mine',
     {
       method: 'GET',
       headers: {
@@ -191,7 +192,7 @@ export function getCustomerMembership(
   options: AuthenticatedBookingRequestOptions,
 ): Promise<any> {
   return requestJson<any>(
-    '/customer/membership',
+    options.phone ? `/customer/membership?phone=${encodeURIComponent(options.phone)}` : '/customer/membership',
     {
       method: 'GET',
       headers: {

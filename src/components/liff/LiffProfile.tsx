@@ -17,30 +17,6 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
   const [membershipData, setMembershipData] = useState<Membership | null>(null);
   const [myBookings, setMyBookings] = useState<any[]>([]);
 
-  useEffect(() => {
-    if (activeTenant && liffProfile.isLoggedIn) {
-      // Fetch bookings history
-      fetchMyBookings(liffProfile.lineUserId).then(bks => {
-        if (bks) setMyBookings(bks);
-      }).catch(console.error);
-      
-      // Use the LINE ID Token to fetch latest membership from API
-      try {
-        const token = liff.getIDToken();
-        if (token) {
-          getCustomerMembership({
-            tenantId: activeTenant.id,
-            accessToken: token
-          }).then(mem => {
-            if (mem) setMembershipData(mem);
-          }).catch(console.error);
-        }
-      } catch (err) {
-        console.error("Failed to fetch membership:", err);
-      }
-    }
-  }, [activeTenant, liffProfile.isLoggedIn, liffProfile.lineUserId]);
-
   const [phoneInput, setPhoneInput] = useState<string>(() => {
     try {
       const saved = localStorage.getItem('liff_customer_contact');
@@ -63,6 +39,32 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
     return currentUser?.email || '';
   });
 
+  useEffect(() => {
+    if (activeTenant && liffProfile.isLoggedIn) {
+      // Fetch bookings history
+      fetchMyBookings(liffProfile.lineUserId, phoneInput).then(bks => {
+        if (bks) setMyBookings(bks);
+      }).catch(console.error);
+      
+      // Use the LINE ID Token to fetch latest membership from API
+      try {
+        const token = liff.getIDToken();
+        if (token) {
+          getCustomerMembership({
+            tenantId: activeTenant.id,
+            accessToken: token,
+            phone: phoneInput
+          }).then(mem => {
+            if (mem) setMembershipData(mem);
+          }).catch(console.error);
+        }
+      } catch (err) {
+        console.error("Failed to fetch membership:", err);
+      }
+    }
+  }, [activeTenant, liffProfile.isLoggedIn, liffProfile.lineUserId]);
+
+
   const [isEditingContact, setIsEditingContact] = useState<boolean>(false);
   const [saveToast, setSaveToast] = useState<boolean>(false);
 
@@ -76,7 +78,7 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
   // Determine which bookings to count: use the fetched ones if available, otherwise fallback to global context filtered by phone
   const userBookings = myBookings.length > 0 
     ? myBookings 
-    : bookings.filter((b) => b.userId === currentUser?.id || b.userPhone === phoneInput);
+    : bookings.filter((b) => b.userId === currentUser?.id || b.phoneInput === phoneInput);
   
   const completedCount = userBookings.filter((b) => b.status === 'completed' || b.status === 'checked_in').length;
   const membership = membershipData || (currentUser ? fetchMembership(currentUser.id) : undefined);

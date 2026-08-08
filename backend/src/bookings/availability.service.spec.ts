@@ -1004,4 +1004,52 @@ describe('AvailabilityService', () => {
     expect(result.slots.every((slot) => slot.courtId === courtId)).toBe(true);
     expect(prisma.staffService.findMany).not.toHaveBeenCalled();
   });
+
+  it('uses service duration as the slot interval for legacy court flows', async () => {
+    const courtId = '44444444-4444-4444-8444-444444444444';
+    prisma.tenant.findUnique.mockResolvedValueOnce({
+      id: tenantId,
+      isActive: true,
+      settings: {
+        bookingFlowMode: null,
+        enableCourtSelection: true,
+        bookingFlowConfig: { slotIntervalMinutes: 30 },
+      },
+    });
+    prisma.service.findFirst.mockResolvedValueOnce({
+      id: serviceId,
+      name: 'Court rental',
+      isActive: true,
+      durationMinutes: 60,
+      bufferMinutes: 0,
+      maxCapacity: 1,
+      price: 1200,
+    });
+    prisma.courts.findFirst.mockResolvedValueOnce({
+      id: courtId,
+      name: 'Court 3',
+    });
+    prisma.businessHours.findFirst.mockResolvedValueOnce({
+      isOpen: true,
+      openTime: '08:00',
+      closeTime: '12:00',
+    });
+    prisma.booking.findMany.mockResolvedValueOnce([]);
+
+    const result = await service.calculateAvailability(
+      tenantId,
+      validBookingDate,
+      serviceId,
+      undefined,
+      { courtId },
+    );
+
+    expect(result.slotIntervalMinutes).toBe(60);
+    expect(result.slots.map((slot) => slot.startTime)).toEqual([
+      '08:00',
+      '09:00',
+      '10:00',
+      '11:00',
+    ]);
+  });
 });

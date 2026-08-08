@@ -119,10 +119,10 @@ export class AvailabilityService {
       });
     }
 
-    const slotIntervalMinutes =
+    let slotIntervalMinutes =
       settings.slotIntervalMinutes !== undefined && settings.slotIntervalMinutes !== null
         ? Number(settings.slotIntervalMinutes)
-        : 30;
+        : Number(settings.bookingFlowConfig?.slotIntervalMinutes ?? 30);
 
     const minLeadTimeHours =
       settings.minLeadTimeHours !== undefined && settings.minLeadTimeHours !== null
@@ -170,6 +170,16 @@ export class AvailabilityService {
         code: ErrorCode.SERVICE_INACTIVE,
         message: 'Service is currently inactive',
       });
+    }
+
+    // Court bookings are sold in service-duration units. The legacy modular
+    // flow stored an implicit 30-minute interval that was never merchant-editable.
+    if (
+      bookingFlowMode === 'sports_court_time' &&
+      (settings.slotIntervalMinutes === undefined ||
+        settings.slotIntervalMinutes === null)
+    ) {
+      slotIntervalMinutes = service.durationMinutes;
     }
 
     let selectedCourt: { id: string; name: string } | null = null;

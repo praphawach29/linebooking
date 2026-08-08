@@ -1,5 +1,5 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Logger, OnModuleInit } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildBookingFlexMessage } from './line-flex.templates';
@@ -7,7 +7,7 @@ import { LineMessagingApiError, LineMessagingClient } from './line-messaging.cli
 import { LineBookingEvent, NOTIFICATIONS_QUEUE } from './notifications.types';
 
 @Processor(NOTIFICATIONS_QUEUE)
-export class NotificationsProcessor extends WorkerHost {
+export class NotificationsProcessor extends WorkerHost implements OnModuleInit {
   private readonly logger = new Logger(NotificationsProcessor.name);
 
   constructor(
@@ -15,6 +15,10 @@ export class NotificationsProcessor extends WorkerHost {
     private readonly lineClient: LineMessagingClient,
   ) {
     super();
+  }
+
+  onModuleInit(): void {
+    this.logger.log(`LINE notification worker listening on queue ${NOTIFICATIONS_QUEUE}`);
   }
 
   async process(job: Job<{ deliveryId: string }>): Promise<void> {

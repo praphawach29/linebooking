@@ -1,14 +1,25 @@
 import React, { useState } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
 import { BlackoutScope } from '../../types';
-import { CalendarOff, Plus, Trash2 } from 'lucide-react';
+import { CalendarOff, Plus, Trash2, Info } from 'lucide-react';
 import { toLocalDateStr } from '../../lib/date-utils';
-
-const scopeLabel = (scope: BlackoutScope) =>
-  scope === 'tenant' ? 'ทั้งร้าน' : scope === 'service' ? 'บริการหลัก' : 'สนาม/คอร์ท';
+import { getTenantTerminology } from '../../lib/tenant-terminology';
 
 export const MerchantBlackoutDates: React.FC = () => {
-  const { services, courts, blackoutDates, addBlackoutDate, deleteBlackoutDate } = useSaaS();
+  const { activeTenant, services, courts, blackoutDates, addBlackoutDate, deleteBlackoutDate } = useSaaS();
+
+  // Every business has services, so "tenant"/"service" scope always apply.
+  // The 3rd scope (a bookable resource — a court for sports venues, a
+  // room for a clinic, etc.) only makes sense — and only shows — for
+  // businesses that actually use resource/court booking. The label comes
+  // from the same centralized terminology map the booking flow itself
+  // uses, so a new business type never requires touching this component.
+  const terminology = getTenantTerminology(activeTenant);
+  const hasResources = courts.length > 0;
+  const resourceScopeLabel = `เฉพาะ${terminology.resourceName}`;
+
+  const scopeLabel = (scope: BlackoutScope) =>
+    scope === 'tenant' ? 'ทั้งร้าน' : scope === 'service' ? 'บริการหลัก' : terminology.resourceName;
 
   const today = toLocalDateStr(new Date());
   const [scope, setScope] = useState<BlackoutScope>('tenant');
@@ -27,9 +38,9 @@ export const MerchantBlackoutDates: React.FC = () => {
       return services.find((s) => s.id === b.serviceId)?.name || 'บริการที่ถูกลบไปแล้ว';
     }
     if (b.scope === 'court') {
-      return courts.find((c) => c.id === b.courtId)?.name || 'สนามที่ถูกลบไปแล้ว';
+      return courts.find((c) => c.id === b.courtId)?.name || `${terminology.resourceName}ที่ถูกลบไปแล้ว`;
     }
-    return 'ทุกบริการ/ทุกสนาม';
+    return `ทุกบริการ/ทุก${terminology.resourceName}`;
   };
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -45,7 +56,7 @@ export const MerchantBlackoutDates: React.FC = () => {
       return;
     }
     if (scope === 'court' && !courtId) {
-      setFormError('กรุณาเลือกสนาม/คอร์ทที่ต้องการปิดรับจอง');
+      setFormError(`กรุณาเลือก${terminology.resourceName}ที่ต้องการปิดรับจอง`);
       return;
     }
 
@@ -74,10 +85,22 @@ export const MerchantBlackoutDates: React.FC = () => {
         <div>
           <h3 className="text-lg font-bold text-slate-800">วันหยุดล่วงหน้า (ปิดรับจอง)</h3>
           <p className="text-sm text-slate-500">
-            ปิดรับจองทั้งวันในช่วงวันที่กำหนด — เลือกได้ทั้งร้าน เฉพาะบริการหลัก หรือเฉพาะสนาม/คอร์ท
+            ปิดรับจองทั้งวันในช่วงวันที่กำหนด — เลือกได้ทั้งร้าน เฉพาะบริการหลัก
+            {hasResources ? ` หรือ${resourceScopeLabel}` : ''}
           </p>
         </div>
       </div>
+
+      {!hasResources && (
+        <div className="mb-4 p-3.5 bg-blue-50 text-blue-800 rounded-xl border border-blue-200 text-xs flex gap-2.5">
+          <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <p>
+            ถ้าต้องการให้{terminology.resourceName}คนใดคนหนึ่งหยุดเป็นวันๆ ไป (เช่น ลาพักร้อน) ให้ตั้งค่าที่หน้า
+            "บริการ &amp; ส่วนเสริม" → แก้ไขข้อมูล/เวลาทำงานของ{terminology.resourceName}คนนั้นแทน —
+            ส่วนนี้ใช้สำหรับปิดรับจองทั้งร้านหรือทั้งบริการเท่านั้น
+          </p>
+        </div>
+      )}
 
       <form onSubmit={handleAdd} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -94,7 +117,7 @@ export const MerchantBlackoutDates: React.FC = () => {
             >
               <option value="tenant">ปิดทั้งร้าน</option>
               <option value="service">เฉพาะบริการหลัก</option>
-              <option value="court">เฉพาะสนาม/คอร์ท</option>
+              {hasResources && <option value="court">{resourceScopeLabel}</option>}
             </select>
           </div>
 
@@ -114,15 +137,15 @@ export const MerchantBlackoutDates: React.FC = () => {
             </div>
           )}
 
-          {scope === 'court' && (
+          {scope === 'court' && hasResources && (
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">เลือกสนาม/คอร์ท</label>
+              <label className="block text-sm font-bold text-slate-700 mb-1">เลือก{terminology.resourceName}</label>
               <select
                 className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-sm"
                 value={courtId}
                 onChange={(e) => setCourtId(e.target.value)}
               >
-                <option value="">-- เลือกสนาม --</option>
+                <option value="">-- เลือก{terminology.resourceName} --</option>
                 {courts.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}

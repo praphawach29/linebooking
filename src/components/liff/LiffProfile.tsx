@@ -10,6 +10,16 @@ interface LiffProfileProps {
   onNavigate?: (step: 'rewards' | 'point_history') => void;
 }
 
+// Phone-merge check only needs to run once per phone number, not on every
+// page load — it's a full backend transaction, not a cheap read.
+const LINKED_PHONE_KEY = 'liff_phone_linked_v1';
+const getLinkedPhone = (): string | null => {
+  try { return localStorage.getItem(LINKED_PHONE_KEY); } catch { return null; }
+};
+const setLinkedPhone = (phone: string) => {
+  try { localStorage.setItem(LINKED_PHONE_KEY, phone); } catch {}
+};
+
 export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
   const { currentUser, activeTenant, bookings, fetchMembership, updateCurrentUserContact, fetchMyBookings } = useSaaS();
   const liffProfile = useLiffProfile(activeTenant?.liffId);
@@ -55,23 +65,30 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
       try {
         const token = liff.getIDToken();
         if (token) {
-          const fetchMembership = () =>
+          const fetchMembershipNow = () =>
             getCustomerMembership({
               tenantId: activeTenant.id,
               accessToken: token,
               phone: phoneInput
             }).then(mem => {
               if (mem) setMembershipData(mem);
-            }).catch(console.error);
+            });
 
-          // If a phone was already saved from a previous visit, try merging in
-          // any separate walk-in-linked account before reading membership, so
-          // returning customers don't have to re-save their phone to trigger it.
-          membershipPromise = phoneInput
-            ? linkCustomerPhone({ tenantId: activeTenant.id, accessToken: token, phone: phoneInput })
-                .catch(console.error)
-                .finally(fetchMembership)
-            : fetchMembership();
+          // Fetch membership immediately — don't make the page wait on the
+          // phone-merge check below, which is a full backend transaction and
+          // only ever needs to run once per phone number.
+          membershipPromise = fetchMembershipNow().catch(console.error);
+
+          if (phoneInput && getLinkedPhone() !== phoneInput) {
+            linkCustomerPhone({ tenantId: activeTenant.id, accessToken: token, phone: phoneInput })
+              .then((result) => {
+                setLinkedPhone(phoneInput);
+                // Accounts were merged — silently refresh membership with the
+                // now-corrected numbers, without blocking the initial render.
+                if (result.merged) return fetchMembershipNow();
+              })
+              .catch(console.error);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch membership:", err);
@@ -131,6 +148,7 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
             phone: phoneInput,
           })
             .then((result) => {
+              setLinkedPhone(phoneInput);
               if (result.merged) {
                 return getCustomerMembership({
                   tenantId: activeTenant.id,

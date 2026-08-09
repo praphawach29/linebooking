@@ -48,6 +48,23 @@ export interface BlackoutDate {
 export type BookingPresetTemplate = 'EXPRESS_QUEUE' | 'SERVICE_AND_STAFF' | 'RESOURCE_AND_SLOT' | 'CUSTOM';
 export type PaymentMode = 'NO_PAYMENT' | 'DEPOSIT_ONLY' | 'FULL_PAYMENT';
 
+/**
+ * คำศัพท์ที่ใช้เรียก "บริการหลัก" และ "หน่วยที่ลูกค้าเลือกจอง" (ช่าง/สนาม/แพทย์/โต๊ะ ฯลฯ)
+ * ทั่วทั้งแอป — มีค่า default ตาม businessType และร้านค้าปรับแต่งเองได้ผ่าน settings.terminology
+ */
+export interface TenantTerminology {
+  /** สิ่งที่เรียกว่า "บริการหลัก" เช่น "บริการ", "ประเภทกีฬา", "ทรีตเมนต์", "รายการตรวจ" */
+  serviceLabel: string;
+  resourceName: string;
+  resourceSelectTitle: string;
+  resourceSelectDesc: string;
+  autoAssignTitle: string;
+  autoAssignDesc: string;
+  selectedResourceLabel: string;
+  autoAssignedText: string;
+  durationLabel: string;
+}
+
 export interface BookingFlowConfig {
   presetTemplate: BookingPresetTemplate;
   paymentMode: PaymentMode;
@@ -73,7 +90,7 @@ export interface Tenant {
   phone: string;
   email: string;
   address: string;
-  businessType: 'spa' | 'barbershop' | 'clinic' | 'salon' | 'sports' | 'other';
+  businessType: 'spa' | 'barbershop' | 'clinic' | 'salon' | 'sports' | 'fitness' | 'restaurant' | 'education' | 'other';
   plan: TenantPlan;
   planExpiresAt?: string;
   /** Set by server when the shop is first created. Used to calculate 14-day trial window. */
@@ -110,6 +127,8 @@ export interface Tenant {
     enableCourtSelection?: boolean;
     resourceTerm?: string;
     bookingFlowConfig?: BookingFlowConfig;
+    /** Merchant-customized overrides for wording — see TenantTerminology / getTenantTerminology() */
+    terminology?: Partial<TenantTerminology>;
   };
   createdAt: string;
 }

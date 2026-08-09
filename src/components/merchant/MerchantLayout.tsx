@@ -44,9 +44,11 @@ import { MerchantLoyaltyManager } from './MerchantLoyaltyManager';
 import { MerchantCheckInScanner } from './MerchantCheckInScanner';
 import { getTenantQuotaInfo, FREE_PLAN_MONTHLY_BOOKING_LIMIT } from '../../lib/quota-manager';
 import { toLocalDateStr } from '../../lib/date-utils';
+import { getTenantTerminology } from '../../lib/tenant-terminology';
 
 export const MerchantLayout: React.FC = () => {
   const { activeTenant, merchantTab, setMerchantTab, bookings, staffs, courts } = useSaaS();
+  const terminology = getTenantTerminology(activeTenant);
   const { signOut, authUser } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -119,8 +121,8 @@ export const MerchantLayout: React.FC = () => {
       title: 'ตั้งค่าหน้าร้าน & บริการ',
       items: [
         { tab: 'shop_settings', icon: Store, label: 'ข้อมูลร้านค้า & โลโก้' },
-        { tab: 'services', icon: Scissors, label: 'บริการ & ส่วนเสริม' },
-        { tab: 'staffs', icon: Users, label: activeTenant?.businessType === 'sports' ? 'สนาม/คอร์ท (Courts)' : 'ทีมช่าง (Staffs)' },
+        { tab: 'services', icon: Scissors, label: `${terminology.serviceLabel} & ส่วนเสริม` },
+        { tab: 'staffs', icon: Users, label: activeTenant?.businessType === 'sports' ? `${terminology.resourceName} (Courts)` : `ทีม${terminology.resourceName} (Staffs)` },
       ],
     },
     {

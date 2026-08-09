@@ -3,6 +3,7 @@ import { useSaaS } from '../../context/SaaSContext';
 import { Service, ServiceAddon, TimePricingRule, OperatingSchedule } from '../../types';
 import { getServicePriceRangeText } from '../../lib/pricing-calculator';
 import { summarizeBusinessHours, isOperatingScheduleMissingDays } from '../../lib/business-hours-summary';
+import { getTenantTerminology } from '../../lib/tenant-terminology';
 import {
   Scissors,
   Plus,
@@ -70,6 +71,7 @@ export const MerchantServiceManager: React.FC = () => {
     bookings,
     businessHours,
   } = useSaaS();
+  const terminology = getTenantTerminology(activeTenant);
 
   const [activeTab, setActiveTab] = useState<'services' | 'addons'>('services');
   const [editingService, setEditingService] = useState<Partial<Service> | null>(null);
@@ -154,10 +156,10 @@ export const MerchantServiceManager: React.FC = () => {
         <div>
           <h1 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
             <Scissors className="w-5 h-5 text-emerald-600" />
-            เมนูบริการ & บริการเสริม (Service & Add-on Catalog)
+            เมนู{terminology.serviceLabel} & บริการเสริม (Service & Add-on Catalog)
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            จัดการบริการหลักและบริการเสริมสำหรับให้ลูกค้าเลือกใน LIFF Booking Flow
+            จัดการ{terminology.serviceLabel}และบริการเสริมสำหรับให้ลูกค้าเลือกใน LIFF Booking Flow
           </p>
         </div>
 
@@ -169,7 +171,7 @@ export const MerchantServiceManager: React.FC = () => {
               className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-2xl shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 transition-colors"
             >
               <Plus className="w-4 h-4" />
-              <span>+ เพิ่มบริการหลัก</span>
+              <span>+ เพิ่ม{terminology.serviceLabel}</span>
             </button>
           ) : (
             <button
@@ -196,7 +198,7 @@ export const MerchantServiceManager: React.FC = () => {
           }`}
         >
           <Scissors className="w-4 h-4 text-emerald-600" />
-          <span>บริการหลัก ({services.length})</span>
+          <span>{terminology.serviceLabel} ({services.length})</span>
         </button>
 
         <button
@@ -397,7 +399,7 @@ export const MerchantServiceManager: React.FC = () => {
           <div className="bg-white max-w-lg w-full max-h-[90vh] rounded-3xl shadow-2xl p-6 border border-slate-200 flex flex-col justify-between my-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
               <h3 className="font-bold text-sm text-slate-900">
-                {editingService.id ? 'แก้ไขบริการหลัก' : 'เพิ่มบริการหลักใหม่'}
+                {editingService.id ? `แก้ไข${terminology.serviceLabel}` : `เพิ่ม${terminology.serviceLabel}ใหม่`}
               </h3>
               <button
                 type="button"
@@ -410,7 +412,7 @@ export const MerchantServiceManager: React.FC = () => {
 
             <form onSubmit={handleSaveService} className="flex-1 overflow-y-auto no-scrollbar space-y-3.5 my-2 pr-1">
               <div>
-                <label className="block text-slate-700 font-bold mb-1">ชื่อบริการ *</label>
+                <label className="block text-slate-700 font-bold mb-1">ชื่อ{terminology.serviceLabel} *</label>
                 <input
                   type="text"
                   required
@@ -425,7 +427,7 @@ export const MerchantServiceManager: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2 space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="block text-slate-700 font-bold">หมวดหมู่บริการ *</label>
+                    <label className="block text-slate-700 font-bold">หมวดหมู่{terminology.serviceLabel} *</label>
                     <span className="text-[10px] text-slate-400 font-medium">พิมพ์เอง หรือเลือกจากชิป</span>
                   </div>
 
@@ -813,7 +815,7 @@ export const MerchantServiceManager: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">คำอธิบายบริการ</label>
+                <label className="block text-slate-700 font-bold mb-1">คำอธิบาย{terminology.serviceLabel}</label>
                 <textarea
                   value={editingService.description || ''}
                   onChange={(e) => setEditingService({ ...editingService, description: e.target.value })}
@@ -828,7 +830,7 @@ export const MerchantServiceManager: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <label className="font-bold text-slate-700 text-xs flex items-center gap-1.5">
                     <Clock className="w-4 h-4 text-emerald-600" />
-                    ตารางเวลาให้บริการเฉพาะของบริการนี้
+                    ตารางเวลาให้บริการเฉพาะของ{terminology.serviceLabel}นี้
                   </label>
                   <div
                     onClick={() => {
@@ -859,7 +861,7 @@ export const MerchantServiceManager: React.FC = () => {
                 {courts.some((c) => c.serviceId === editingService.id) && (
                   <p className="text-[10px] text-slate-400 flex items-start gap-1 -mt-1">
                     <span>ℹ️</span>
-                    <span>ถ้าสนาม/คอร์ทในบริการนี้มีการตั้งเวลาเฉพาะของตัวเองไว้ด้วย เวลาของสนามจะมีผลเหนือเวลาที่ตั้งตรงนี้</span>
+                    <span>ถ้า{terminology.resourceName}ใน{terminology.serviceLabel}นี้มีการตั้งเวลาเฉพาะของตัวเองไว้ด้วย เวลาของ{terminology.resourceName}จะมีผลเหนือเวลาที่ตั้งตรงนี้</span>
                   </p>
                 )}
 
@@ -943,7 +945,7 @@ export const MerchantServiceManager: React.FC = () => {
                   type="submit"
                   className="flex-1 py-2.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm text-xs"
                 >
-                  บันทึกบริการ
+                  บันทึก{terminology.serviceLabel}
                 </button>
               </div>
             </form>

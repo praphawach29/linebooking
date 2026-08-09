@@ -26,6 +26,7 @@ import {
 import { getTenantQuotaInfo } from '../../lib/quota-manager';
 import { MerchantSubscriptionModal } from './MerchantSubscriptionModal';
 import { summarizeBusinessHours, isOperatingScheduleMissingDays } from '../../lib/business-hours-summary';
+import { getTenantTerminology } from '../../lib/tenant-terminology';
 
 const PRESET_COURT_IMAGES = [
   { label: 'สนามฟุตบอล ⚽', url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=500&auto=format&fit=crop&q=60' },
@@ -54,6 +55,7 @@ const DEFAULT_OPERATING_SCHEDULE: OperatingSchedule = {
 
 export const MerchantStaffManager: React.FC = () => {
   const { activeTenant, staffs, services, saveStaff, deleteStaff, bookings, courts, saveCourt, deleteCourt, setMerchantTab, businessHours } = useSaaS();
+  const terminology = getTenantTerminology(activeTenant);
   const [activeTab, setActiveTab] = useState<'courts' | 'staffs'>(
     activeTenant?.businessType === 'sports' ? 'courts' : 'staffs'
   );
@@ -149,7 +151,7 @@ export const MerchantStaffManager: React.FC = () => {
             }`}
           >
             <Trophy className="w-4 h-4 text-emerald-600" />
-            <span>🏟️ จัดการสนาม / คอร์ท ({courts.length})</span>
+            <span>🏟️ จัดการ{terminology.resourceName} ({courts.length})</span>
           </button>
 
           <button
@@ -186,7 +188,7 @@ export const MerchantStaffManager: React.FC = () => {
             className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-2xl shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 transition-colors"
           >
             <PlusCircle className="w-4 h-4" />
-            <span>+ เพิ่มสนามใหม่</span>
+            <span>+ เพิ่ม{terminology.resourceName}ใหม่</span>
           </button>
         ) : (
           <button
@@ -206,9 +208,9 @@ export const MerchantStaffManager: React.FC = () => {
           {courts.length === 0 ? (
             <div className="col-span-full bg-white p-12 rounded-3xl border border-slate-200 text-center space-y-3">
               <Trophy className="w-12 h-12 text-slate-300 mx-auto" />
-              <p className="font-bold text-slate-600 text-sm">ยังไม่มีสนามในระบบ</p>
+              <p className="font-bold text-slate-600 text-sm">ยังไม่มี{terminology.resourceName}ในระบบ</p>
               <p className="text-slate-400 text-xs">
-                กดปุ่ม "+ เพิ่มสนามใหม่" ด้านบนเพื่อสร้างรายการสนาม (เช่น สนามฟุตซอล 1, คอร์ทแบดมินตัน A)
+                กดปุ่ม "+ เพิ่ม{terminology.resourceName}ใหม่" ด้านบนเพื่อสร้างรายการ{terminology.resourceName}
               </p>
             </div>
           ) : (
@@ -307,7 +309,7 @@ export const MerchantStaffManager: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => {
-                        if (confirm(`คุณต้องการลบสนาม "${court.name}" ใช่หรือไม่?`)) {
+                        if (confirm(`คุณต้องการลบ${terminology.resourceName} "${court.name}" ใช่หรือไม่?`)) {
                           deleteCourt(court.id);
                         }
                       }}
@@ -630,7 +632,7 @@ export const MerchantStaffManager: React.FC = () => {
             <div className="flex items-center justify-between border-b border-slate-100 p-6 pb-3 shrink-0">
               <h3 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
                 <Trophy className="w-4 h-4 text-emerald-600" />
-                <span>{editingCourt.id ? 'แก้ไขข้อมูลสนาม' : 'เพิ่มสนาม/คอร์ทใหม่'}</span>
+                <span>{editingCourt.id ? `แก้ไขข้อมูล${terminology.resourceName}` : `เพิ่ม${terminology.resourceName}ใหม่`}</span>
               </h3>
               <button
                 type="button"
@@ -659,7 +661,7 @@ export const MerchantStaffManager: React.FC = () => {
             >
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 mb-1 block">ชื่อสนาม *</label>
+                  <label className="font-bold text-slate-700 mb-1 block">ชื่อ{terminology.resourceName} *</label>
                   <input
                     type="text"
                     required
@@ -671,7 +673,7 @@ export const MerchantStaffManager: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 mb-1 block">รหัสสนาม (Code) *</label>
+                  <label className="font-bold text-slate-700 mb-1 block">รหัส{terminology.resourceName} (Code) *</label>
                   <input
                     type="text"
                     required
@@ -722,7 +724,7 @@ export const MerchantStaffManager: React.FC = () => {
                 ) : (
                   <div className="bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs space-y-2">
                     <p className="text-amber-800 font-medium">
-                      ⚠️ ยังไม่มีรายการบริการในระบบ กรุณาสร้างบริการหลัก (เช่น เช่าสนามหญ้าเทียม, คอร์ทแบดมินตัน) ก่อนสร้างสนามย่อย
+                      ⚠️ ยังไม่มีรายการ{terminology.serviceLabel}ในระบบ กรุณาสร้าง{terminology.serviceLabel}ก่อนสร้าง{terminology.resourceName}
                     </p>
                     <button
                       type="button"
@@ -741,13 +743,7 @@ export const MerchantStaffManager: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 mb-1 block flex items-center justify-between text-xs">
-                    <span>
-                      {activeTenant?.businessType === 'sports'
-                        ? 'ประเภทสนาม / คอร์ท'
-                        : activeTenant?.businessType === 'spa' || activeTenant?.businessType === 'salon' || activeTenant?.businessType === 'clinic'
-                        ? 'ประเภทห้อง / เตียงบริการ'
-                        : 'ประเภทสถานที่ / โต๊ะ'}
-                    </span>
+                    <span>ประเภท{terminology.resourceName}</span>
                     <span className="text-[10px] text-emerald-600 font-bold">เลือกหรือพิมพ์เองได้</span>
                   </label>
                   <div className="space-y-1.5">
@@ -843,7 +839,7 @@ export const MerchantStaffManager: React.FC = () => {
                 <label className="block text-slate-700 font-bold flex items-center justify-between text-xs">
                   <span className="flex items-center gap-1.5">
                     <ImageIcon className="w-4 h-4 text-emerald-600" />
-                    <span>รูปภาพสนาม / คอร์ท (แสดงบน LIFF)</span>
+                    <span>รูปภาพ{terminology.resourceName} (แสดงบน LIFF)</span>
                   </span>
                   {editingCourt.imageUrl && (
                     <button
@@ -936,7 +932,7 @@ export const MerchantStaffManager: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <label className="font-bold text-slate-700 text-xs flex items-center gap-1.5">
                     <Clock className="w-4 h-4 text-emerald-600" />
-                    ตารางเวลาเปิด-ปิดเฉพาะของสนามนี้
+                    ตารางเวลาเปิด-ปิดเฉพาะของ{terminology.resourceName}นี้
                   </label>
                   <div
                     onClick={() => {
@@ -965,7 +961,7 @@ export const MerchantStaffManager: React.FC = () => {
                 <p className="text-[10px] text-slate-400 -mt-2">{summarizeBusinessHours(businessHours)}</p>
                 <p className="text-[10px] text-slate-400 flex items-start gap-1 -mt-1">
                   <span>ℹ️</span>
-                  <span>เวลาที่ตั้งไว้ตรงนี้จะมีผลเหนือเวลาของบริการหลักและเวลาร้านค้าเสมอ (สนาม &gt; บริการ &gt; ร้าน)</span>
+                  <span>เวลาที่ตั้งไว้ตรงนี้จะมีผลเหนือเวลาของ{terminology.serviceLabel}และเวลาร้านค้าเสมอ ({terminology.resourceName} &gt; {terminology.serviceLabel} &gt; ร้าน)</span>
                 </p>
 
                 {editingCourt.operatingSchedule?.isCustom && (
@@ -1048,7 +1044,7 @@ export const MerchantStaffManager: React.FC = () => {
                   type="submit"
                   className="flex-1 py-2.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm text-xs"
                 >
-                  บันทึกข้อมูลสนาม
+                  บันทึกข้อมูล{terminology.resourceName}
                 </button>
               </div>
             </form>

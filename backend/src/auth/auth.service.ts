@@ -23,6 +23,20 @@ interface SupabaseIdentity {
   email: string;
 }
 
+/**
+ * Derives sensible booking-flow defaults from the business type chosen at
+ * signup, so a new "sports/venue" shop doesn't land on an empty dashboard
+ * still configured for staff-based booking — the merchant would otherwise
+ * have to separately discover and manually enable court selection in
+ * Booking Flow settings before their shop is usable at all.
+ */
+function defaultSettingsForBusinessType(businessType: string): Record<string, unknown> {
+  if (businessType === 'sports' || businessType === 'venue') {
+    return { enableCourtSelection: true };
+  }
+  return {};
+}
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -87,6 +101,7 @@ export class AuthService {
               currency: 'THB',
               autoConfirm: false,
               depositPercentage: 0,
+              ...defaultSettingsForBusinessType(dto.businessType),
             },
           },
           select: { id: true, name: true, slug: true, businessType: true },

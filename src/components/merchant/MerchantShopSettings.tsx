@@ -16,7 +16,9 @@ import {
   Sparkles,
   Clock,
   Copy,
+  Type,
 } from 'lucide-react';
+import { getTenantTerminology } from '../../lib/tenant-terminology';
 
 // Preset sample logo avatars for quick selection
 const PRESET_LOGOS = [
@@ -39,7 +41,7 @@ const DAYS_LIST = [
 ];
 
 export const MerchantShopSettings: React.FC = () => {
-  const { activeTenant, updateTenant, businessHours, updateBusinessHours } = useSaaS();
+  const { activeTenant, updateTenant, updateTenantSettings, businessHours, updateBusinessHours } = useSaaS();
 
   const [name, setName] = useState(activeTenant?.name || '');
   const [logoUrl, setLogoUrl] = useState(activeTenant?.logoUrl || '');
@@ -49,6 +51,11 @@ export const MerchantShopSettings: React.FC = () => {
   const [email, setEmail] = useState(activeTenant?.email || '');
   const [address, setAddress] = useState(activeTenant?.address || '');
   const [businessType, setBusinessType] = useState<any>(activeTenant?.businessType || 'other');
+
+  // คำศัพท์เฉพาะร้าน — ปล่อยว่างเพื่อใช้ค่า default ตามประเภทธุรกิจ, กรอกเพื่อ override
+  const [serviceLabelOverride, setServiceLabelOverride] = useState(activeTenant?.settings?.terminology?.serviceLabel || '');
+  const [resourceNameOverride, setResourceNameOverride] = useState(activeTenant?.settings?.terminology?.resourceName || '');
+  const terminologyPreview = getTenantTerminology({ businessType, settings: activeTenant?.settings } as any);
 
   // Business Hours State
   const [localHours, setLocalHours] = useState<BusinessHour[]>(() => {
@@ -154,6 +161,15 @@ export const MerchantShopSettings: React.FC = () => {
         address: address.trim(),
         businessType,
       });
+
+      if (updateTenantSettings) {
+        await updateTenantSettings({
+          terminology: {
+            ...(serviceLabelOverride.trim() ? { serviceLabel: serviceLabelOverride.trim() } : {}),
+            ...(resourceNameOverride.trim() ? { resourceName: resourceNameOverride.trim() } : {}),
+          },
+        });
+      }
 
       if (updateBusinessHours) {
         await updateBusinessHours(localHours);
@@ -309,6 +325,9 @@ export const MerchantShopSettings: React.FC = () => {
                 <option value="spa">สปา & นวดแผนไทย (Spa / Massage)</option>
                 <option value="clinic">คลินิกเสริมความงาม (Beauty Clinic)</option>
                 <option value="sports">สนามซ้อม / สนามกีฬา (Sports Venue)</option>
+                <option value="fitness">ฟิตเนส / โยคะ (Fitness)</option>
+                <option value="restaurant">ร้านอาหาร (Restaurant)</option>
+                <option value="education">สอนพิเศษ / อบรม (Education)</option>
                 <option value="other">ธุรกิจบริการอื่นๆ (Other Business)</option>
               </select>
             </div>
@@ -326,6 +345,50 @@ export const MerchantShopSettings: React.FC = () => {
                 className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
+          </div>
+        </div>
+
+        {/* Section 2b: Terminology Override */}
+        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
+          <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
+            <Type className="w-4 h-4 text-emerald-600" />
+            คำศัพท์เฉพาะร้าน (Terminology)
+          </h2>
+          <p className="text-[11px] text-slate-500 -mt-2">
+            ปล่อยว่างเพื่อใช้คำ default ตามประเภทธุรกิจที่เลือกด้านบน หรือกรอกเพื่อเปลี่ยนคำที่ใช้ทั่วทั้งระบบ (ทั้งหน้าจัดการร้านและหน้าจองของลูกค้า)
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                เรียก "บริการหลัก" ว่า
+              </label>
+              <input
+                type="text"
+                value={serviceLabelOverride}
+                onChange={(e) => setServiceLabelOverride(e.target.value)}
+                placeholder={terminologyPreview.serviceLabel}
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                เรียกหน่วยที่ลูกค้าเลือกจองว่า
+              </label>
+              <input
+                type="text"
+                value={resourceNameOverride}
+                onChange={(e) => setResourceNameOverride(e.target.value)}
+                placeholder={terminologyPreview.resourceName}
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              />
+            </div>
+          </div>
+
+          <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-2xl text-[11px] text-emerald-800">
+            <span className="font-bold">ตัวอย่างที่ลูกค้าจะเห็น: </span>
+            เลือก{resourceNameOverride.trim() || terminologyPreview.resourceName}ที่ต้องการ ภายใต้
+            {' '}{serviceLabelOverride.trim() || terminologyPreview.serviceLabel} "{name || 'ชื่อร้านของคุณ'}"
           </div>
         </div>
 

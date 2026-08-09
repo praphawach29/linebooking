@@ -19,7 +19,7 @@ export const MerchantBlackoutDates: React.FC = () => {
   const resourceScopeLabel = `เฉพาะ${terminology.resourceName}`;
 
   const scopeLabel = (scope: BlackoutScope) =>
-    scope === 'tenant' ? 'ทั้งร้าน' : scope === 'service' ? 'บริการหลัก' : terminology.resourceName;
+    scope === 'tenant' ? 'ทั้งร้าน' : scope === 'service' ? terminology.serviceLabel : terminology.resourceName;
 
   const today = toLocalDateStr(new Date());
   const [scope, setScope] = useState<BlackoutScope>('tenant');
@@ -35,7 +35,7 @@ export const MerchantBlackoutDates: React.FC = () => {
 
   const describeTarget = (b: (typeof blackoutDates)[number]) => {
     if (b.scope === 'service') {
-      return services.find((s) => s.id === b.serviceId)?.name || 'บริการที่ถูกลบไปแล้ว';
+      return services.find((s) => s.id === b.serviceId)?.name || `${terminology.serviceLabel}ที่ถูกลบไปแล้ว`;
     }
     if (b.scope === 'court') {
       return courts.find((c) => c.id === b.courtId)?.name || `${terminology.resourceName}ที่ถูกลบไปแล้ว`;
@@ -52,7 +52,7 @@ export const MerchantBlackoutDates: React.FC = () => {
       return;
     }
     if (scope === 'service' && !serviceId) {
-      setFormError('กรุณาเลือกบริการหลักที่ต้องการปิดรับจอง');
+      setFormError(`กรุณาเลือก${terminology.serviceLabel}ที่ต้องการปิดรับจอง`);
       return;
     }
     if (scope === 'court' && !courtId) {
@@ -85,7 +85,7 @@ export const MerchantBlackoutDates: React.FC = () => {
         <div>
           <h3 className="text-lg font-bold text-slate-800">วันหยุดล่วงหน้า (ปิดรับจอง)</h3>
           <p className="text-sm text-slate-500">
-            ปิดรับจองทั้งวันในช่วงวันที่กำหนด — เลือกได้ทั้งร้าน เฉพาะบริการหลัก
+            ปิดรับจองทั้งวันในช่วงวันที่กำหนด — เลือกได้ทั้งร้าน เฉพาะ{terminology.serviceLabel}
             {hasResources ? ` หรือ${resourceScopeLabel}` : ''}
           </p>
         </div>
@@ -116,7 +116,7 @@ export const MerchantBlackoutDates: React.FC = () => {
               }}
             >
               <option value="tenant">ปิดทั้งร้าน</option>
-              <option value="service">เฉพาะบริการหลัก</option>
+              <option value="service">เฉพาะ{terminology.serviceLabel}</option>
               {hasResources && <option value="court">{resourceScopeLabel}</option>}
             </select>
           </div>

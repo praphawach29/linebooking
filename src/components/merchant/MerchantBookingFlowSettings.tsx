@@ -16,9 +16,11 @@ import {
   Save
 } from 'lucide-react';
 import { BookingPresetTemplate, PaymentMode, BookingFlowConfig } from '../../types';
+import { getTenantTerminology } from '../../lib/tenant-terminology';
 
 export const MerchantBookingFlowSettings: React.FC = () => {
   const { activeTenant, updateTenantSettings } = useSaaS();
+  const terminology = getTenantTerminology(activeTenant);
 
   // Load existing booking_flow_config or initialize defaults
   const initialFlowConfig: BookingFlowConfig = activeTenant.settings.bookingFlowConfig || {
@@ -130,9 +132,9 @@ export const MerchantBookingFlowSettings: React.FC = () => {
 
   // Compute Active Steps for Live Preview
   const activeStepsPreview = [];
-  if (flowConfig.steps.requireService) activeStepsPreview.push({ name: 'เลือกบริการ', icon: Scissors });
+  if (flowConfig.steps.requireService) activeStepsPreview.push({ name: `เลือก${terminology.serviceLabel}`, icon: Scissors });
   if (flowConfig.steps.requireStaff) activeStepsPreview.push({ name: 'เลือกช่าง/พนักงาน', icon: UserCheck });
-  if (flowConfig.steps.requireResource) activeStepsPreview.push({ name: 'เลือกสนาม/คอร์ท', icon: Trophy });
+  if (flowConfig.steps.requireResource) activeStepsPreview.push({ name: `เลือก${terminology.resourceName}`, icon: Trophy });
   activeStepsPreview.push({ name: 'เลือกวัน & เวลา', icon: Calendar });
   if (flowConfig.paymentMode !== 'NO_PAYMENT') activeStepsPreview.push({ name: 'ชำระเงิน/มัดจำ', icon: CreditCard });
   activeStepsPreview.push({ name: 'ยืนยันการจอง', icon: Sparkles });
@@ -268,8 +270,8 @@ export const MerchantBookingFlowSettings: React.FC = () => {
                     <Scissors className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-slate-800 text-sm">หน้าเลือกบริการ (Services)</h4>
-                    <p className="text-xs text-slate-500">ให้ลูกค้าเลือกแพ็กเกจหรือประเภทบริการ</p>
+                    <h4 className="font-bold text-slate-800 text-sm">หน้าเลือก{terminology.serviceLabel} (Services)</h4>
+                    <p className="text-xs text-slate-500">ให้ลูกค้าเลือกแพ็กเกจหรือประเภท{terminology.serviceLabel}</p>
                   </div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -314,9 +316,9 @@ export const MerchantBookingFlowSettings: React.FC = () => {
                     <Trophy className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-slate-800 text-sm">หน้าเลือกสนาม/คอร์ท/ห้อง (Resource)</h4>
+                    <h4 className="font-bold text-slate-800 text-sm">หน้าเลือก{terminology.resourceName} (Resource)</h4>
                     <p className="text-xs text-slate-500">
-                      {flowConfig.steps.requireResource ? 'ลูกค้าเลือกคอร์ทเอง' : 'ปิดอยู่ ➔ ระบบจะจัดสนามว่างให้อัตโนมัติ'}
+                      {flowConfig.steps.requireResource ? `ลูกค้าเลือก${terminology.resourceName}เอง` : `ปิดอยู่ ➔ ระบบจะจัด${terminology.resourceName}ว่างให้อัตโนมัติ`}
                     </p>
                   </div>
                 </div>

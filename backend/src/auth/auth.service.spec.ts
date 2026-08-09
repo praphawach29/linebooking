@@ -103,6 +103,103 @@ describe('AuthService merchant onboarding', () => {
     });
   });
 
+  it('enables court selection by default for a "sports" business type', async () => {
+    const createdUser = {
+      id: authUserId,
+      auth_user_id: authUserId,
+      tenant_id: null,
+      displayName: 'Owner',
+      email: 'owner@example.com',
+      role: 'merchant_admin',
+    };
+    const linkedUser = { ...createdUser, tenant_id: tenantId };
+    const tenant = {
+      id: tenantId,
+      name: 'JackSports',
+      slug: 'jacksports',
+      businessType: 'sports',
+    };
+    const tx = {
+      user: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue(createdUser),
+        update: jest.fn().mockResolvedValue(linkedUser),
+      },
+      tenant: {
+        findUnique: jest.fn(),
+        create: jest.fn().mockResolvedValue(tenant),
+      },
+      businessHours: {
+        createMany: jest.fn().mockResolvedValue({ count: 7 }),
+      },
+    };
+    const prisma = {
+      $transaction: jest.fn().mockImplementation((callback) => callback(tx)),
+    };
+    const service = new AuthService(prisma as never, {} as never, {} as never);
+
+    await service.onboardMerchant('Bearer valid-token', {
+      displayName: 'Owner',
+      shopName: 'JackSports',
+      businessType: 'sports',
+      phone: '0812345678',
+    });
+
+    expect(tx.tenant.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          settings: expect.objectContaining({ enableCourtSelection: true }),
+        }),
+      }),
+    );
+  });
+
+  it('does not enable court selection for a non-venue business type', async () => {
+    const createdUser = {
+      id: authUserId,
+      auth_user_id: authUserId,
+      tenant_id: null,
+      displayName: 'Owner',
+      email: 'owner@example.com',
+      role: 'merchant_admin',
+    };
+    const linkedUser = { ...createdUser, tenant_id: tenantId };
+    const tenant = {
+      id: tenantId,
+      name: 'Booking Shop',
+      slug: 'booking-shop-test',
+      businessType: 'spa',
+    };
+    const tx = {
+      user: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue(createdUser),
+        update: jest.fn().mockResolvedValue(linkedUser),
+      },
+      tenant: {
+        findUnique: jest.fn(),
+        create: jest.fn().mockResolvedValue(tenant),
+      },
+      businessHours: {
+        createMany: jest.fn().mockResolvedValue({ count: 7 }),
+      },
+    };
+    const prisma = {
+      $transaction: jest.fn().mockImplementation((callback) => callback(tx)),
+    };
+    const service = new AuthService(prisma as never, {} as never, {} as never);
+
+    await service.onboardMerchant('Bearer valid-token', {
+      displayName: 'Owner',
+      shopName: 'Booking Shop',
+      businessType: 'spa',
+      phone: '0812345678',
+    });
+
+    const settingsArg = tx.tenant.create.mock.calls[0][0].data.settings;
+    expect(settingsArg.enableCourtSelection).toBeUndefined();
+  });
+
   it('returns the existing tenant without creating a second shop', async () => {
     const user = {
       id: authUserId,

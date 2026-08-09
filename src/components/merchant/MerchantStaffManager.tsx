@@ -25,6 +25,7 @@ import {
 
 import { getTenantQuotaInfo } from '../../lib/quota-manager';
 import { MerchantSubscriptionModal } from './MerchantSubscriptionModal';
+import { summarizeBusinessHours, isOperatingScheduleMissingDays } from '../../lib/business-hours-summary';
 
 const PRESET_COURT_IMAGES = [
   { label: 'สนามฟุตบอล ⚽', url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=500&auto=format&fit=crop&q=60' },
@@ -52,13 +53,14 @@ const DEFAULT_OPERATING_SCHEDULE: OperatingSchedule = {
 };
 
 export const MerchantStaffManager: React.FC = () => {
-  const { activeTenant, staffs, services, saveStaff, deleteStaff, bookings, courts, saveCourt, deleteCourt, setMerchantTab } = useSaaS();
+  const { activeTenant, staffs, services, saveStaff, deleteStaff, bookings, courts, saveCourt, deleteCourt, setMerchantTab, businessHours } = useSaaS();
   const [activeTab, setActiveTab] = useState<'courts' | 'staffs'>(
     activeTenant?.businessType === 'sports' ? 'courts' : 'staffs'
   );
   const [editingStaff, setEditingStaff] = useState<Partial<Staff> | null>(null);
   const [editingCourt, setEditingCourt] = useState<Partial<Court> | null>(null);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [courtScheduleError, setCourtScheduleError] = useState<string | null>(null);
 
   const quotaInfo = activeTenant ? getTenantQuotaInfo(activeTenant, bookings, staffs, courts) : null;
 
@@ -167,7 +169,7 @@ export const MerchantStaffManager: React.FC = () => {
         {activeTab === 'courts' ? (
           <button
             type="button"
-            onClick={() =>
+            onClick={() => {
               setEditingCourt({
                 name: '',
                 code: `COURT-${courts.length + 1}`,
@@ -178,8 +180,9 @@ export const MerchantStaffManager: React.FC = () => {
                 imageUrl:
                   'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=500&auto=format&fit=crop&q=80',
                 isActive: true,
-              })
-            }
+              });
+              setCourtScheduleError(null);
+            }}
             className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-2xl shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 transition-colors"
           >
             <PlusCircle className="w-4 h-4" />
@@ -295,7 +298,7 @@ export const MerchantStaffManager: React.FC = () => {
                   <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2">
                     <button
                       type="button"
-                      onClick={() => setEditingCourt(court)}
+                      onClick={() => { setEditingCourt(court); setCourtScheduleError(null); }}
                       className="p-1.5 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors font-bold flex items-center gap-1 text-[11px]"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
@@ -631,7 +634,7 @@ export const MerchantStaffManager: React.FC = () => {
               </h3>
               <button
                 type="button"
-                onClick={() => setEditingCourt(null)}
+                onClick={() => { setEditingCourt(null); setCourtScheduleError(null); }}
                 className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
               >
                 <X className="w-5 h-5" />
@@ -641,10 +644,16 @@ export const MerchantStaffManager: React.FC = () => {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                if (editingCourt) {
-                  saveCourt(editingCourt);
-                  setEditingCourt(null);
+                if (!editingCourt) return;
+
+                if (isOperatingScheduleMissingDays(editingCourt.operatingSchedule)) {
+                  setCourtScheduleError('เปิดใช้ "กำหนดเอง" แล้วแต่ยังไม่ได้เลือกวันเปิดให้บริการเลย — สนามนี้จะจองไม่ได้ทุกวัน กรุณาเลือกอย่างน้อย 1 วัน');
+                  return;
                 }
+
+                saveCourt(editingCourt);
+                setEditingCourt(null);
+                setCourtScheduleError(null);
               }}
               className="space-y-3 overflow-y-auto custom-scrollbar px-6 pt-4 pb-6"
             >
@@ -936,6 +945,7 @@ export const MerchantStaffManager: React.FC = () => {
                         ...editingCourt,
                         operatingSchedule: { ...curr, isCustom: !curr.isCustom },
                       });
+                      setCourtScheduleError(null);
                     }}
                     className="flex items-center gap-2 cursor-pointer"
                   >
@@ -951,6 +961,12 @@ export const MerchantStaffManager: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                <p className="text-[10px] text-slate-400 -mt-2">{summarizeBusinessHours(businessHours)}</p>
+                <p className="text-[10px] text-slate-400 flex items-start gap-1 -mt-1">
+                  <span>ℹ️</span>
+                  <span>เวลาที่ตั้งไว้ตรงนี้จะมีผลเหนือเวลาของบริการหลักและเวลาร้านค้าเสมอ (สนาม &gt; บริการ &gt; ร้าน)</span>
+                </p>
 
                 {editingCourt.operatingSchedule?.isCustom && (
                   <div className="bg-emerald-50/60 p-3 rounded-2xl border border-emerald-200 space-y-3">
@@ -1012,12 +1028,18 @@ export const MerchantStaffManager: React.FC = () => {
                     </p>
                   </div>
                 )}
+
+                {courtScheduleError && (
+                  <p className="text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
+                    {courtScheduleError}
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setEditingCourt(null)}
+                  onClick={() => { setEditingCourt(null); setCourtScheduleError(null); }}
                   className="flex-1 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors text-xs"
                 >
                   ยกเลิก

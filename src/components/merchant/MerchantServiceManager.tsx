@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
 import { Service, ServiceAddon, TimePricingRule, OperatingSchedule } from '../../types';
 import { getServicePriceRangeText } from '../../lib/pricing-calculator';
+import { summarizeBusinessHours, isOperatingScheduleMissingDays } from '../../lib/business-hours-summary';
 import {
   Scissors,
   Plus,
@@ -67,12 +68,14 @@ export const MerchantServiceManager: React.FC = () => {
     staffs,
     courts,
     bookings,
+    businessHours,
   } = useSaaS();
 
   const [activeTab, setActiveTab] = useState<'services' | 'addons'>('services');
   const [editingService, setEditingService] = useState<Partial<Service> | null>(null);
   const [editingAddon, setEditingAddon] = useState<Partial<ServiceAddon> | null>(null);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
 
   const existingCategories = Array.from(
     new Set(services.map((s) => s.category).filter(Boolean))
@@ -106,6 +109,7 @@ export const MerchantServiceManager: React.FC = () => {
       price: 1000,
       colorCode: '#3B82F6',
     });
+    setScheduleError(null);
   };
 
   const handleOpenAddAddon = () => {
@@ -122,10 +126,16 @@ export const MerchantServiceManager: React.FC = () => {
 
   const handleSaveService = (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingService) {
-      saveService(editingService);
-      setEditingService(null);
+    if (!editingService) return;
+
+    if (isOperatingScheduleMissingDays(editingService.operatingSchedule)) {
+      setScheduleError('เปิดใช้ "กำหนดเอง" แล้วแต่ยังไม่ได้เลือกวันเปิดให้บริการเลย — บริการนี้จะจองไม่ได้ทุกวัน กรุณาเลือกอย่างน้อย 1 วัน');
+      return;
     }
+
+    saveService(editingService);
+    setEditingService(null);
+    setScheduleError(null);
   };
 
   const handleSaveAddon = (e: React.FormEvent) => {
@@ -259,7 +269,7 @@ export const MerchantServiceManager: React.FC = () => {
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => setEditingService(svc)}
+                    onClick={() => { setEditingService(svc); setScheduleError(null); }}
                     className="p-2 text-slate-600 hover:text-emerald-600 hover:bg-slate-100 rounded-xl transition-colors"
                     title="แก้ไข"
                   >
@@ -391,7 +401,7 @@ export const MerchantServiceManager: React.FC = () => {
               </h3>
               <button
                 type="button"
-                onClick={() => setEditingService(null)}
+                onClick={() => { setEditingService(null); setScheduleError(null); }}
                 className="p-1 rounded-full text-slate-400 hover:text-slate-600"
               >
                 <X className="w-5 h-5" />
@@ -827,6 +837,7 @@ export const MerchantServiceManager: React.FC = () => {
                         ...editingService,
                         operatingSchedule: { ...curr, isCustom: !curr.isCustom },
                       });
+                      setScheduleError(null);
                     }}
                     className="flex items-center gap-2 cursor-pointer"
                   >
@@ -842,6 +853,15 @@ export const MerchantServiceManager: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                <p className="text-[10px] text-slate-400 -mt-2">{summarizeBusinessHours(businessHours)}</p>
+
+                {courts.some((c) => c.serviceId === editingService.id) && (
+                  <p className="text-[10px] text-slate-400 flex items-start gap-1 -mt-1">
+                    <span>ℹ️</span>
+                    <span>ถ้าสนาม/คอร์ทในบริการนี้มีการตั้งเวลาเฉพาะของตัวเองไว้ด้วย เวลาของสนามจะมีผลเหนือเวลาที่ตั้งตรงนี้</span>
+                  </p>
+                )}
 
                 {editingService.operatingSchedule?.isCustom && (
                   <div className="bg-emerald-50/60 p-3 rounded-2xl border border-emerald-200 space-y-3">
@@ -903,12 +923,18 @@ export const MerchantServiceManager: React.FC = () => {
                     </p>
                   </div>
                 )}
+
+                {scheduleError && (
+                  <p className="text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
+                    {scheduleError}
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-2 pt-3 border-t border-slate-100 bg-white sticky bottom-0 z-10 shrink-0 mt-3">
                 <button
                   type="button"
-                  onClick={() => setEditingService(null)}
+                  onClick={() => { setEditingService(null); setScheduleError(null); }}
                   className="flex-1 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors text-xs"
                 >
                   ยกเลิก

@@ -8,6 +8,7 @@
  */
 
 import { supabase } from './supabase';
+import { authHeader } from './subscriptions';
 import {
   BillingCycle,
   PlatformBillingPublic,
@@ -352,7 +353,11 @@ export const chargeSubscriptionViaBackend = async (payload: {
   try {
     const res = await fetch(`${API_URL}/billing/charge`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(await authHeader()),
+        'x-tenant-id': payload.tenantId,
+      },
       body: JSON.stringify(payload),
     });
     const json = await res.json();

@@ -68,7 +68,7 @@ export interface ProrationPreview {
 
 class BillingApiError extends Error {}
 
-const api = async <T>(path: string, init?: RequestInit): Promise<T> => {
+const api = async <T>(path: string, init?: RequestInit, tenantId?: string): Promise<T> => {
   if (!API_URL) {
     throw new BillingApiError('ยังไม่ได้ตั้งค่า VITE_API_URL — ระบบตัดบัตรอัตโนมัติต้องทำงานผ่าน Backend');
   }
@@ -78,6 +78,11 @@ const api = async <T>(path: string, init?: RequestInit): Promise<T> => {
     headers: {
       'Content-Type': 'application/json',
       ...(await authHeader()),
+      // TenantAccessGuard on the backend reads tenant scoping from this
+      // header — passing tenantId only as a query param (which every
+      // endpoint below also does, for the guard's Query decorator) is not
+      // enough on its own.
+      ...(tenantId ? { 'x-tenant-id': tenantId } : {}),
       ...(init?.headers || {}),
     },
   });
@@ -108,22 +113,22 @@ export const attachCard = (input: {
   api<SavedCard>('/payment-methods', {
     method: 'POST',
     body: JSON.stringify({ ...input, mandateText: MANDATE_TEXT }),
-  });
+  }, input.tenantId);
 
 export const listCards = (tenantId: string) =>
-  api<SavedCard[]>(`/payment-methods?tenantId=${encodeURIComponent(tenantId)}`);
+  api<SavedCard[]>(`/payment-methods?tenantId=${encodeURIComponent(tenantId)}`, undefined, tenantId);
 
 export const removeCard = (tenantId: string, cardId: string) =>
   api<{ success: boolean }>(`/payment-methods/${cardId}?tenantId=${encodeURIComponent(tenantId)}`, {
     method: 'DELETE',
-  });
+  }, tenantId);
 
 // ---------------------------------------------------------------
 // Subscription
 // ---------------------------------------------------------------
 
 export const getSubscription = (tenantId: string) =>
-  api<SubscriptionSummary>(`/subscription?tenantId=${encodeURIComponent(tenantId)}`);
+  api<SubscriptionSummary>(`/subscription?tenantId=${encodeURIComponent(tenantId)}`, undefined, tenantId);
 
 export const subscribe = (input: {
   tenantId: string;
@@ -134,27 +139,30 @@ export const subscribe = (input: {
   api<{ success: boolean; chargeId: string; subscription: SubscriptionSummary }>('/subscribe', {
     method: 'POST',
     body: JSON.stringify(input),
-  });
+  }, input.tenantId);
 
 export const previewPlanChange = (tenantId: string, plan: TenantPlan, billingCycle: BillingCycle) =>
   api<ProrationPreview>(
-    `/plan-change-preview?tenantId=${encodeURIComponent(tenantId)}&plan=${plan}&billingCycle=${billingCycle}`
+    `/plan-change-preview?tenantId=${encodeURIComponent(tenantId)}&plan=${plan}&billingCycle=${billingCycle}`,
+    undefined,
+    tenantId
   );
 
 export const changePlan = (input: { tenantId: string; plan: TenantPlan; billingCycle: BillingCycle }) =>
   api<{ success: boolean; effective: string; amountCharged: number; subscription: SubscriptionSummary }>(
     '/change-plan',
-    { method: 'POST', body: JSON.stringify(input) }
+    { method: 'POST', body: JSON.stringify(input) },
+    input.tenantId
   );
 
 export const cancelSubscription = (tenantId: string, immediately = false) =>
   api<SubscriptionSummary>('/cancel', {
     method: 'POST',
     body: JSON.stringify({ tenantId, immediately }),
-  });
+  }, tenantId);
 
 export const resumeSubscription = (tenantId: string) =>
-  api<SubscriptionSummary>('/resume', { method: 'POST', body: JSON.stringify({ tenantId }) });
+  api<SubscriptionSummary>('/resume', { method: 'POST', body: JSON.stringify({ tenantId }) }, tenantId);
 
 // ---------------------------------------------------------------
 // ป้ายสถานะสำหรับ UI

@@ -96,7 +96,11 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
     return currentUser?.phone || '';
   });
   const [notes, setNotes] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('promptpay');
+  const enabledPaymentMethods: PaymentMethod[] =
+    activeTenant?.settings?.enabledPaymentMethods && activeTenant.settings.enabledPaymentMethods.length > 0
+      ? activeTenant.settings.enabledPaymentMethods
+      : ['promptpay', 'cash'];
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(enabledPaymentMethods[0]);
 
   // Selected Add-ons State
   const [selectedAddons, setSelectedAddons] = useState<SelectedAddon[]>(initialSelectedAddons);
@@ -541,6 +545,7 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
 
         <div className="space-y-3">
           {/* PromptPay QR */}
+          {enabledPaymentMethods.includes('promptpay') && (
           <div
             onClick={() => setPaymentMethod('promptpay')}
             className={`p-4 rounded-2xl border flex items-center gap-4 cursor-pointer transition-all duration-300 ${
@@ -562,8 +567,10 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
                   {paymentMethod === 'promptpay' && <div className="w-2.5 h-2.5 bg-primary rounded-full"></div>}
               </div>
           </div>
+          )}
 
           {/* Credit Card */}
+          {enabledPaymentMethods.includes('credit_card') && (
           <div
             onClick={() => setPaymentMethod('credit_card')}
             className={`p-4 rounded-2xl border flex items-center gap-4 cursor-pointer transition-all duration-300 ${
@@ -585,8 +592,10 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
                   {paymentMethod === 'credit_card' && <div className="w-2.5 h-2.5 bg-primary rounded-full"></div>}
               </div>
           </div>
+          )}
 
           {/* Cash */}
+          {enabledPaymentMethods.includes('cash') && (
           <div
             onClick={() => setPaymentMethod('cash')}
             className={`p-4 rounded-2xl border flex items-center gap-4 cursor-pointer transition-all duration-300 ${
@@ -608,6 +617,7 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
                   {paymentMethod === 'cash' && <div className="w-2.5 h-2.5 bg-primary rounded-full"></div>}
               </div>
           </div>
+          )}
         </div>
 
         {/* Pricing Breakdown */}

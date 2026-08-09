@@ -342,6 +342,7 @@ describe('BookingsController (Unit Tests)', () => {
         customerName: undefined,
         customerPhone: undefined,
         notes: undefined,
+        paymentMethod: 'cash',
       });
     });
 

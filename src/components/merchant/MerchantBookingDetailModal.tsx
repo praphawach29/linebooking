@@ -28,13 +28,26 @@ export const MerchantBookingDetailModal: React.FC<MerchantBookingDetailModalProp
   booking,
   onClose,
 }) => {
-  const { updateBookingStatus, completeBooking } = useSaaS();
+  const { updateBookingStatus, completeBooking, verifyBookingPayment } = useSaaS();
   const [cancelReason, setCancelReason] = useState('');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [targetStatus, setTargetStatus] = useState<BookingStatus | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
+
+  const handleVerifyPayment = async () => {
+    setIsVerifyingPayment(true);
+    setErrorMsg(null);
+    try {
+      await verifyBookingPayment(booking.id);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'ยืนยันการชำระเงินไม่สำเร็จ');
+    } finally {
+      setIsVerifyingPayment(false);
+    }
+  };
 
   const handleStatusChange = async (newStatus: BookingStatus) => {
     if (newStatus === 'cancelled') {
@@ -255,9 +268,18 @@ export const MerchantBookingDetailModal: React.FC<MerchantBookingDetailModalProp
 
           {/* Payment Breakdown */}
           <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-2">
-            <h4 className="font-bold text-slate-900 flex items-center gap-1.5">
-              <DollarSign className="w-4 h-4 text-emerald-600" />
-              รายละเอียดการชำระเงิน ({booking.paymentMethod?.toUpperCase() || 'NOT SET'})
+            <h4 className="font-bold text-slate-900 flex items-center justify-between gap-1.5">
+              <span className="flex items-center gap-1.5">
+                <DollarSign className="w-4 h-4 text-emerald-600" />
+                รายละเอียดการชำระเงิน ({booking.paymentMethod?.toUpperCase() || 'NOT SET'})
+              </span>
+              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                booking.paymentStatus === 'paid'
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'bg-amber-100 text-amber-700'
+              }`}>
+                {booking.paymentStatus === 'paid' ? 'ชำระแล้ว' : 'ยังไม่ยืนยัน'}
+              </span>
             </h4>
 
             <div className="space-y-1 text-slate-600 pt-1">
@@ -265,15 +287,44 @@ export const MerchantBookingDetailModal: React.FC<MerchantBookingDetailModalProp
                 <span>ราคาค่าบริการทั้งหมด</span>
                 <span className="font-semibold text-slate-900">฿{(booking?.price ?? booking?.finalPrice ?? 0).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-emerald-700 font-bold">
-                <span>มัดจำออนไลน์แล้ว (PromptPay)</span>
-                <span>฿{(booking?.depositAmount ?? 0).toLocaleString()}</span>
-              </div>
+              {(booking?.depositAmount ?? 0) > 0 && (
+                <div className="flex justify-between text-emerald-700 font-bold">
+                  <span>ยอดมัดจำที่ลูกค้าแจ้ง</span>
+                  <span>฿{(booking?.depositAmount ?? 0).toLocaleString()}</span>
+                </div>
+              )}
               <div className="flex justify-between text-slate-900 font-bold border-t border-slate-200 pt-1">
                 <span>คงเหลือชำระหน้าร้าน</span>
                 <span>฿{((booking?.price ?? booking?.finalPrice ?? 0) - (booking?.depositAmount ?? 0)).toLocaleString()}</span>
               </div>
             </div>
+
+            {booking.paymentSlipUrl && (
+              <div className="pt-2 border-t border-slate-200 space-y-2">
+                <span className="text-[11px] font-bold text-slate-500">สลิปที่ลูกค้าแนบมา:</span>
+                <img
+                  src={booking.paymentSlipUrl}
+                  alt="สลิปการโอนเงิน"
+                  className="w-full max-h-64 object-contain rounded-2xl border border-slate-200 bg-white"
+                />
+                {errorMsg && <p className="text-[11px] font-bold text-rose-600">{errorMsg}</p>}
+                {booking.paymentStatus !== 'paid' && (
+                  <button
+                    type="button"
+                    onClick={handleVerifyPayment}
+                    disabled={isVerifyingPayment}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    {isVerifyingPayment ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4" />
+                    )}
+                    <span>ยืนยันว่าได้รับเงินแล้ว</span>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* QR Code Check-in Simulator */}

@@ -89,6 +89,9 @@ export class BookingsController {
       customerName: dto.customerName,
       customerPhone: dto.customerPhone,
       notes: dto.notes,
+      paymentMethod: dto.paymentMethod,
+      depositPaid: dto.depositPaid,
+      paymentSlipUrl: dto.paymentSlipUrl,
     });
     await this.notificationsService.queueBookingEvent(
       tenantId,
@@ -117,6 +120,7 @@ export class BookingsController {
       customerName: dto.customerName,
       customerPhone: dto.customerPhone,
       notes: dto.notes,
+      paymentMethod: dto.paymentMethod ?? 'cash',
     });
     await this.notificationsService.queueBookingEvent(
       tenantId,
@@ -124,6 +128,18 @@ export class BookingsController {
       'booking_created',
     );
     return booking;
+  }
+
+  @Patch(':id/verify-payment')
+  @UseGuards(SupabaseAuthGuard, TenantAccessGuard)
+  async verifyBookingPayment(
+    @TenantId() tenantId: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) bookingId: string,
+  ): Promise<BookingResponseDto> {
+    return this.bookingsService.verifyBookingPaymentAsMerchant(
+      tenantId,
+      bookingId,
+    );
   }
 
   @Patch(':id/cancel')

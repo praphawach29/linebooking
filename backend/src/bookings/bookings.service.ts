@@ -337,7 +337,7 @@ export class BookingsService {
             // 1. Fetch & validate Tenant inside transaction
             const tenant = await tx.tenant.findUnique({
               where: { id: command.tenantId },
-              select: { id: true, isActive: true },
+              select: { id: true, isActive: true, settings: true },
             });
 
             if (!tenant) {
@@ -549,6 +549,20 @@ export class BookingsService {
             );
 
             // 9. Booking Creation
+            const VALID_PAYMENT_METHODS = ['promptpay', 'credit_card', 'cash', 'transfer'];
+            const paymentMethodVal = VALID_PAYMENT_METHODS.includes(command.paymentMethod || '')
+              ? (command.paymentMethod as 'promptpay' | 'credit_card' | 'cash' | 'transfer')
+              : null;
+
+            // Deposit amount is the CLAIMED amount pending merchant verification
+            // (via uploaded slip) — paymentStatus stays 'unpaid' until the
+            // merchant actually confirms it. Cash bookings never claim a deposit.
+            const depositPercentage = Number((tenant.settings as any)?.depositPercentage ?? 100);
+            const depositAmountVal =
+              command.depositPaid && paymentMethodVal && paymentMethodVal !== 'cash'
+                ? Math.round(finalPriceVal.toNumber() * (depositPercentage / 100))
+                : 0;
+
             const createdBooking: BookingPayload = await tx.booking.create({
               data: {
                 ref_no: currentRefNo,
@@ -574,6 +588,10 @@ export class BookingsService {
                 discountAmount: discountVal,
                 finalPrice: finalPriceVal,
                 paymentStatus: 'unpaid',
+                payment_method: paymentMethodVal,
+                deposit_amount: depositAmountVal,
+                paymentSlipUrl: command.paymentSlipUrl || null,
+                paymentSlipUploadedAt: command.paymentSlipUrl ? new Date() : null,
                 source: sourceVal,
                 notes: command.notes || null,
               },
@@ -706,6 +724,8 @@ export class BookingsService {
       depositAmount: Number(booking.deposit_amount || 0),
       paymentStatus: booking.paymentStatus || 'unpaid',
       paymentMethod: booking.payment_method,
+      paymentSlipUrl: booking.paymentSlipUrl,
+      paymentSlipUploadedAt: booking.paymentSlipUploadedAt?.toISOString() || null,
       source: booking.source || 'line_liff',
       notes: booking.notes,
       cancellationReason: booking.cancellationReason,
@@ -837,5 +857,52 @@ export class BookingsService {
       where: { id: bookingId },
       data: { status: 'cancelled', cancelledAt: new Date() },
     });
+  }
+
+  /**
+   * Merchant confirms they actually received the customer's claimed payment
+   * (checked the uploaded PromptPay slip, or collected cash in person).
+   * This is the only place paymentStatus is allowed to become 'paid' for a
+   * customer booking — creation always leaves it 'unpaid' regardless of
+   * payment method, since a slip being attached doesn't prove funds arrived.
+   */
+  async verifyBookingPaymentAsMerchant(
+    tenantId: string,
+    bookingId: string,
+  ): Promise<BookingResponseDto> {
+    if (!tenantId) {
+      throw new BadRequestException({
+        statusCode: 400,
+        code: ErrorCode.TENANT_ID_REQUIRED,
+        message: 'Tenant ID is required',
+      });
+    }
+
+    const booking = await this.prisma.booking.findFirst({
+      where: { id: bookingId, tenantId },
+    });
+
+    if (!booking) {
+      throw new NotFoundException({
+        statusCode: 404,
+        code: ErrorCode.BOOKING_NOT_FOUND,
+        message: 'Booking not found for this tenant',
+      });
+    }
+
+    if (booking.status === 'cancelled') {
+      throw new BadRequestException({
+        statusCode: 400,
+        code: ErrorCode.INVALID_BOOKING_STATUS,
+        message: 'Cannot verify payment for a cancelled booking',
+      });
+    }
+
+    const updated = await this.prisma.booking.update({
+      where: { id: bookingId },
+      data: { paymentStatus: 'paid' },
+    });
+
+    return this.toBookingResponse(updated);
   }
 }

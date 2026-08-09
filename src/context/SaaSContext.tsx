@@ -12,6 +12,7 @@ import {
   getCustomerBookingsWithLiff,
   rescheduleMerchantBookingWithSession,
   updateMerchantBookingStatusWithSession,
+  verifyMerchantBookingPaymentWithSession,
 } from '../lib/booking-client';
 import { mapBookingApiResponse } from '../lib/booking-mapper';
 import {
@@ -133,6 +134,7 @@ interface SaaSContextType {
     selectedAddons?: SelectedAddon[];
     paymentMethod: PaymentMethod;
     depositPaid?: boolean;
+    paymentSlipUrl?: string;
     source?: 'line_liff' | 'walk_in' | 'admin';
     customerName?: string;
     customerPhone?: string;
@@ -145,6 +147,7 @@ interface SaaSContextType {
     reason?: string
   ) => Promise<void>;
   checkInBookingByCode: (code: string) => Promise<Booking>;
+  verifyBookingPayment: (bookingId: string) => Promise<void>;
   rescheduleBooking: (
     bookingId: string,
     newDate: string,
@@ -740,6 +743,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     selectedAddons?: SelectedAddon[];
     paymentMethod: PaymentMethod;
     depositPaid?: boolean;
+    paymentSlipUrl?: string;
     source?: 'line_liff' | 'walk_in' | 'admin';
     customerName?: string;
     customerPhone?: string;
@@ -816,6 +820,9 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         customerName: data.customerName,
         customerPhone: phone,
         notes: data.notes,
+        paymentMethod: data.paymentMethod,
+        depositPaid: data.depositPaid,
+        paymentSlipUrl: data.paymentSlipUrl,
       };
       const isMerchant = data.source === 'walk_in' || data.source === 'admin';
       let response: BookingApiResponse;
@@ -879,6 +886,28 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : 'Failed to update booking status');
       throw updateError;
+    }
+  };
+
+  const verifyBookingPayment = async (bookingId: string): Promise<void> => {
+    if (!activeTenant) {
+      throw new Error('ไม่พบข้อมูลร้านค้าที่กำลังใช้งาน กรุณาเข้าสู่ระบบใหม่');
+    }
+
+    try {
+      const response = await verifyMerchantBookingPaymentWithSession(
+        bookingId,
+        { tenantId: activeTenant.id },
+      );
+      const service = services.find((item) => item.id === response.serviceId);
+      const staff = staffs.find((item) => item.id === response.staffId);
+      const court = courts.find((item) => item.id === response.courtId);
+      const updated = mapBookingApiResponse(response, service, staff, court);
+      setBookings((prev) => prev.map((item) => (item.id === bookingId ? updated : item)));
+      setError(null);
+    } catch (verifyError) {
+      setError(verifyError instanceof Error ? verifyError.message : 'Failed to verify payment');
+      throw verifyError;
     }
   };
 
@@ -1589,6 +1618,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         createBooking,
         updateBookingStatus,
         checkInBookingByCode,
+        verifyBookingPayment,
         rescheduleBooking,
         saveService,
         deleteService,

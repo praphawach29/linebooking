@@ -205,6 +205,8 @@ model Booking {
   paymentStatus      payment_status?    @default(unpaid) @map("payment_status")
   payment_method     payment_method?
   paymentId          String?            @map("payment_id")
+  paymentSlipUrl        String?         @map("payment_slip_url")
+  paymentSlipUploadedAt DateTime?       @map("payment_slip_uploaded_at") @db.Timestamptz(6)
   source             booking_source?    @default(web)
   notes              String?
   addons             Json?

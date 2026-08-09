@@ -129,6 +129,8 @@ export interface Tenant {
     bookingFlowConfig?: BookingFlowConfig;
     /** Merchant-customized overrides for wording — see TenantTerminology / getTenantTerminology() */
     terminology?: Partial<TenantTerminology>;
+    /** Which payment methods customers may choose at checkout. Unset = ['promptpay', 'cash'] (card requires a connected gateway before it can be enabled). */
+    enabledPaymentMethods?: PaymentMethod[];
   };
   createdAt: string;
 }
@@ -286,6 +288,8 @@ export interface Booking {
   paymentStatus: PaymentStatus;
   paymentMethod?: PaymentMethod;
   paymentId?: string;
+  paymentSlipUrl?: string;
+  paymentSlipUploadedAt?: string;
   source: BookingSource;
   notes?: string;
   addons?: SelectedAddon[];

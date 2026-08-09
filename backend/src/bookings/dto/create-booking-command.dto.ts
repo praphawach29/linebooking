@@ -13,4 +13,7 @@ export interface CreateBookingCommand {
   customerName?: string;
   customerPhone?: string;
   notes?: string;
+  paymentMethod?: string;
+  depositPaid?: boolean;
+  paymentSlipUrl?: string;
 }

@@ -2,6 +2,7 @@ import {
   IsString,
   IsOptional,
   IsInt,
+  IsIn,
   Min,
   Max,
   Matches,
@@ -62,4 +63,8 @@ export class CreateMerchantBookingDto {
   @IsString()
   @MaxLength(500)
   notes?: string;
+
+  @IsOptional()
+  @IsIn(['promptpay', 'credit_card', 'cash', 'transfer'])
+  paymentMethod?: string;
 }

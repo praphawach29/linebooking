@@ -5,6 +5,7 @@ import {
   getCustomerBookings,
   rescheduleMerchantBooking,
   updateMerchantBookingStatus,
+  verifyMerchantBookingPayment,
   type BookingApiResponse,
   type CreateCustomerBookingInput,
   type CreateMerchantBookingInput,
@@ -87,6 +88,20 @@ export async function updateMerchantBookingStatusWithSession(
 ): Promise<BookingApiResponse> {
   const accessToken = await getMerchantAccessToken(options.sessionProvider);
   return updateMerchantBookingStatus(bookingId, input, {
+    tenantId: options.tenantId,
+    accessToken,
+    apiUrl: options.apiUrl,
+    fetcher: options.fetcher,
+    signal: options.signal,
+  });
+}
+
+export async function verifyMerchantBookingPaymentWithSession(
+  bookingId: string,
+  options: MerchantBookingClientOptions,
+): Promise<BookingApiResponse> {
+  const accessToken = await getMerchantAccessToken(options.sessionProvider);
+  return verifyMerchantBookingPayment(bookingId, {
     tenantId: options.tenantId,
     accessToken,
     apiUrl: options.apiUrl,

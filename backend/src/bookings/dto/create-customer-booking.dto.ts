@@ -2,6 +2,8 @@ import {
   IsString,
   IsOptional,
   IsInt,
+  IsBoolean,
+  IsIn,
   Min,
   Max,
   Matches,
@@ -59,4 +61,17 @@ export class CreateCustomerBookingDto {
   @IsString()
   @MaxLength(500)
   notes?: string;
+
+  @IsOptional()
+  @IsIn(['promptpay', 'credit_card', 'cash', 'transfer'])
+  paymentMethod?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  depositPaid?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2_000_000)
+  paymentSlipUrl?: string;
 }

@@ -63,6 +63,9 @@ export interface CreateCustomerBookingInput {
   customerName?: string;
   customerPhone?: string;
   notes?: string;
+  paymentMethod?: string;
+  depositPaid?: boolean;
+  paymentSlipUrl?: string;
 }
 
 export interface CreateMerchantBookingInput
@@ -96,6 +99,8 @@ export interface BookingApiResponse {
   depositAmount: number;
   paymentStatus: string;
   paymentMethod?: string | null;
+  paymentSlipUrl?: string | null;
+  paymentSlipUploadedAt?: string | null;
   source: string;
   notes?: string | null;
   cancellationReason?: string | null;
@@ -259,6 +264,25 @@ export function updateMerchantBookingStatus(
   );
 }
 
+export function verifyMerchantBookingPayment(
+  bookingId: string,
+  options: AuthenticatedBookingRequestOptions,
+): Promise<BookingApiResponse> {
+  return requestJson<BookingApiResponse>(
+    `/bookings/${bookingId}/verify-payment`,
+    {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${options.accessToken}`,
+        'x-tenant-id': options.tenantId,
+      },
+      signal: options.signal,
+    },
+    'merchant',
+    options,
+  );
+}
+
 export function checkInMerchantBooking(
   code: string,
   options: AuthenticatedBookingRequestOptions,
@@ -304,7 +328,7 @@ export function rescheduleMerchantBooking(
 
 function createBookingRequest(
   path: string,
-  body: Record<string, string | number>,
+  body: Record<string, string | number | boolean>,
   actor: BookingApiActor,
   options: AuthenticatedBookingRequestOptions,
 ): Promise<BookingApiResponse> {
@@ -336,8 +360,8 @@ function createBookingRequest(
 
 function customerBody(
   input: CreateCustomerBookingInput,
-): Record<string, string | number> {
-  const body: Record<string, string | number> = {
+): Record<string, string | number | boolean> {
+  const body: Record<string, string | number | boolean> = {
     serviceId: input.serviceId,
     bookingDate: input.bookingDate,
     startTime: input.startTime,
@@ -349,6 +373,9 @@ function customerBody(
   if (input.customerName) body.customerName = input.customerName;
   if (input.customerPhone) body.customerPhone = input.customerPhone;
   if (input.notes) body.notes = input.notes;
+  if (input.paymentMethod) body.paymentMethod = input.paymentMethod;
+  if (input.depositPaid) body.depositPaid = input.depositPaid;
+  if (input.paymentSlipUrl) body.paymentSlipUrl = input.paymentSlipUrl;
   return body;
 }
 

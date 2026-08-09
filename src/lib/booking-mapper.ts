@@ -36,6 +36,8 @@ export function mapBookingApiResponse(
     paymentMethod: isPaymentMethod(response.paymentMethod)
       ? response.paymentMethod
       : undefined,
+    paymentSlipUrl: response.paymentSlipUrl || undefined,
+    paymentSlipUploadedAt: response.paymentSlipUploadedAt || undefined,
     source: response.source as Booking['source'],
     notes: response.notes || undefined,
     cancellationReason: response.cancellationReason || undefined,

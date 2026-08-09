@@ -385,11 +385,14 @@ describe('BookingsController HTTP / Validation E2E Tests', () => {
         customerUserId: validCustomerId,
         serviceId: validServiceId,
         staffId: undefined,
+        courtId: undefined,
         bookingDate: validBookingDate,
         startTime: '10:00',
+        bookingHours: undefined,
         customerName: undefined,
         customerPhone: undefined,
         notes: 'Created by merchant',
+        paymentMethod: 'cash',
       });
     });
 

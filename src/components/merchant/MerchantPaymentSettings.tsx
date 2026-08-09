@@ -1,8 +1,17 @@
 import React, { useState } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
-import { CreditCard, QrCode, ShieldAlert, Check, Save, Sparkles, Zap } from 'lucide-react';
+import { CreditCard, QrCode, ShieldAlert, Check, Save, Sparkles, Zap, Wallet, Lock } from 'lucide-react';
 import { MerchantSubscriptionModal } from './MerchantSubscriptionModal';
 import { MerchantBillingPortal } from './MerchantBillingPortal';
+import { PaymentMethod } from '../../types';
+
+const DEFAULT_ENABLED_METHODS: PaymentMethod[] = ['promptpay', 'cash'];
+
+const PAYMENT_METHOD_META: Partial<Record<PaymentMethod, { label: string; desc: string; icon: React.ElementType; comingSoon?: boolean }>> = {
+  promptpay: { label: 'PromptPay QR', desc: 'ลูกค้าสแกน QR โอนแล้วอัปโหลดสลิปให้ร้านตรวจสอบ', icon: QrCode },
+  cash: { label: 'เงินสดหน้าร้าน', desc: 'ลูกค้าจองไว้ก่อน แล้วจ่ายเมื่อมาถึงร้าน', icon: Wallet },
+  credit_card: { label: 'บัตรเครดิต/เดบิต', desc: 'ต้องเชื่อมต่อ payment gateway ก่อนจึงจะเปิดใช้งานได้', icon: CreditCard, comingSoon: true },
+};
 
 export const MerchantPaymentSettings: React.FC = () => {
   const { activeTenant, updateTenantSettings, cancellationPolicies, updateCancellationPolicies } =
@@ -18,9 +27,19 @@ export const MerchantPaymentSettings: React.FC = () => {
   const [depositPct, setDepositPct] = useState(
     activeTenant.settings.depositPercentage ?? 50
   );
+  const [enabledMethods, setEnabledMethods] = useState<PaymentMethod[]>(
+    activeTenant.settings.enabledPaymentMethods || DEFAULT_ENABLED_METHODS
+  );
   const [savedMsg, setSavedMsg] = useState(false);
 
   const [policies, setPolicies] = useState(cancellationPolicies);
+
+  const toggleMethod = (method: PaymentMethod) => {
+    if (PAYMENT_METHOD_META[method].comingSoon) return;
+    setEnabledMethods((prev) =>
+      prev.includes(method) ? prev.filter((m) => m !== method) : [...prev, method]
+    );
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,6 +47,7 @@ export const MerchantPaymentSettings: React.FC = () => {
       promptpayNumber,
       promptpayName,
       depositPercentage: Number(depositPct),
+      enabledPaymentMethods: enabledMethods.length > 0 ? enabledMethods : DEFAULT_ENABLED_METHODS,
     });
     updateCancellationPolicies(policies);
     setSavedMsg(true);
@@ -94,7 +114,62 @@ export const MerchantPaymentSettings: React.FC = () => {
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
-        
+
+        {/* Enabled Payment Methods Box */}
+        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
+          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
+            <Wallet className="w-4 h-4 text-emerald-600" />
+            วิธีชำระเงินที่เปิดให้ลูกค้าเลือกได้
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {(Object.keys(PAYMENT_METHOD_META) as PaymentMethod[]).map((method) => {
+              const meta = PAYMENT_METHOD_META[method]!;
+              const Icon = meta.icon;
+              const isEnabled = enabledMethods.includes(method);
+              return (
+                <button
+                  key={method}
+                  type="button"
+                  onClick={() => toggleMethod(method)}
+                  disabled={meta.comingSoon}
+                  className={`text-left p-3.5 rounded-2xl border flex items-start gap-3 transition-all ${
+                    meta.comingSoon
+                      ? 'bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed'
+                      : isEnabled
+                      ? 'bg-emerald-50 border-emerald-300'
+                      : 'bg-white border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                    isEnabled && !meta.comingSoon ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'
+                  }`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-slate-900">{meta.label}</span>
+                      {meta.comingSoon ? (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600 flex items-center gap-1 shrink-0">
+                          <Lock className="w-2.5 h-2.5" /> เร็วๆ นี้
+                        </span>
+                      ) : (
+                        <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 ${
+                          isEnabled ? 'bg-emerald-500' : 'bg-slate-300'
+                        }`}>
+                          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                            isEnabled ? 'translate-x-[18px]' : 'translate-x-[2px]'
+                          }`} />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5">{meta.desc}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* PromptPay Settings Box */}
         <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
           <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">

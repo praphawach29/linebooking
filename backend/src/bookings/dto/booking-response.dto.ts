@@ -39,6 +39,8 @@ export interface BookingResponseDto {
   depositAmount: number;
   paymentStatus: string;
   paymentMethod?: string | null;
+  paymentSlipUrl?: string | null;
+  paymentSlipUploadedAt?: string | null;
   source: string;
   notes?: string | null;
   cancellationReason?: string | null;

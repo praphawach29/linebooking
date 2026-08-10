@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
-import { useLiffProfile } from '../../hooks/useLiffProfile';
+import type { useLiffProfile } from '../../hooks/useLiffProfile';
+import { type CustomerProfileSummary, linkCustomerPhone } from '../../lib/booking-api';
 import {
-  type CustomerProfileSummary,
-  getCustomerProfileSummary,
-  linkCustomerPhone,
-} from '../../lib/booking-api';
-import {
+  loadCustomerProfileSummary,
   readCustomerProfileCache,
   writeCustomerProfileCache,
 } from '../../lib/customer-profile-cache';
@@ -16,6 +13,7 @@ import liff from '@line/liff';
 
 interface LiffProfileProps {
   onNavigate?: (step: 'rewards' | 'point_history') => void;
+  liffProfile: ReturnType<typeof useLiffProfile>;
 }
 
 // Phone-merge check only needs to run once per phone number, not on every
@@ -28,19 +26,33 @@ const setLinkedPhone = (phone: string) => {
   try { localStorage.setItem(LINKED_PHONE_KEY, phone); } catch {}
 };
 
-export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
+export const LiffProfile: React.FC<LiffProfileProps> = ({
+  onNavigate,
+  liffProfile,
+}) => {
   const {
     currentUser,
     activeTenant,
     fetchMembership,
     updateCurrentUserContact,
   } = useSaaS();
-  const liffProfile = useLiffProfile(activeTenant?.liffId);
+  const initialSummary =
+    activeTenant && liffProfile.lineUserId
+      ? readCustomerProfileCache(activeTenant.id, liffProfile.lineUserId)
+      : null;
 
-  const [membershipData, setMembershipData] = useState<Membership | null>(null);
-  const [bookingCount, setBookingCount] = useState(0);
-  const [completedCount, setCompletedCount] = useState(0);
-  const [isStatsLoading, setIsStatsLoading] = useState<boolean>(true);
+  const [membershipData, setMembershipData] = useState<Membership | null>(
+    (initialSummary?.membership as Membership | undefined) || null,
+  );
+  const [bookingCount, setBookingCount] = useState(
+    initialSummary?.stats.totalBookings || 0,
+  );
+  const [completedCount, setCompletedCount] = useState(
+    initialSummary?.stats.completedVisits || 0,
+  );
+  const [isStatsLoading, setIsStatsLoading] = useState<boolean>(
+    !initialSummary,
+  );
 
   const [phoneInput, setPhoneInput] = useState<string>(() => {
     try {
@@ -107,8 +119,9 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
       try {
         const token = liff.getIDToken();
         if (!token) return;
-        const summary = await getCustomerProfileSummary({
+        const summary = await loadCustomerProfileSummary({
           tenantId: activeTenant.id,
+          lineUserId: liffProfile.lineUserId,
           accessToken: token,
           phone: phoneInput,
         });
@@ -204,8 +217,10 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
           })
             .then(() => {
               setLinkedPhone(phoneInput);
-              return getCustomerProfileSummary({
+              if (!liffProfile.lineUserId) return;
+              return loadCustomerProfileSummary({
                 tenantId: activeTenant.id,
+                lineUserId: liffProfile.lineUserId,
                 accessToken: token,
                 phone: phoneInput,
               }).then((summary) => {

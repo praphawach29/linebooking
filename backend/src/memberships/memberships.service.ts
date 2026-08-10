@@ -178,7 +178,7 @@ export class MembershipsService {
     userId: string,
     phone?: string,
   ) {
-    const membership = await this.getMembershipWithPhoneFallback(
+    const membershipPromise = this.getMembershipWithPhoneFallback(
       tenantId,
       userId,
       phone,
@@ -197,7 +197,8 @@ export class MembershipsService {
       OR: [{ userId }, ...phoneFilters],
     };
 
-    const [totalBookings, completedVisits] = await Promise.all([
+    const [membership, totalBookings, completedVisits] = await Promise.all([
+      membershipPromise,
       this.prisma.booking.count({ where: customerFilter }),
       this.prisma.booking.count({
         where: {

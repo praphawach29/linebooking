@@ -26,6 +26,8 @@ import { LiffProfile } from './LiffProfile';
 import LiffRewards from './LiffRewards';
 import LiffPointHistory from './LiffPointHistory';
 import { useLiffProfile } from '../../hooks/useLiffProfile';
+import liff from '@line/liff';
+import { loadCustomerProfileSummary } from '../../lib/customer-profile-cache';
 import { autoAssignStaff, autoAssignResource } from './BookingStepEngine';
 import { Service, Staff, Court, Booking, SelectedAddon, PaymentMethod } from '../../types';
 import { toLocalDateStr } from '../../lib/date-utils';
@@ -95,6 +97,44 @@ export const LiffLayout: React.FC = () => {
     liffProfile.error,
     liffProfile.isLoggedIn,
     liffProfile.login,
+  ]);
+
+  useEffect(() => {
+    if (
+      !activeTenant ||
+      !liffProfile.isLoggedIn ||
+      !liffProfile.isAuthorized ||
+      !liffProfile.lineUserId
+    ) {
+      return;
+    }
+
+    const accessToken = liff.getIDToken();
+    if (!accessToken) return;
+
+    let phone = currentUser?.phone || '';
+    try {
+      const saved = localStorage.getItem('liff_customer_contact');
+      const parsed = saved ? JSON.parse(saved) : null;
+      phone = parsed?.phone || phone;
+    } catch {
+      // Contact cache is optional; identity from the LINE token is sufficient.
+    }
+
+    void loadCustomerProfileSummary({
+      tenantId: activeTenant.id,
+      lineUserId: liffProfile.lineUserId,
+      accessToken,
+      phone,
+    }).catch((error) => {
+      console.error('Failed to prefetch customer profile summary:', error);
+    });
+  }, [
+    activeTenant?.id,
+    currentUser?.phone,
+    liffProfile.isAuthorized,
+    liffProfile.isLoggedIn,
+    liffProfile.lineUserId,
   ]);
 
   if (isLoading) {
@@ -428,7 +468,12 @@ export const LiffLayout: React.FC = () => {
 
           {currentStep === 'notifications' && <LiffNotifications />}
 
-          {currentStep === 'profile' && <LiffProfile onNavigate={(step) => setCurrentStep(step)} />}
+          {currentStep === 'profile' && (
+            <LiffProfile
+              liffProfile={liffProfile}
+              onNavigate={(step) => setCurrentStep(step)}
+            />
+          )}
 
           {currentStep === 'rewards' && <LiffRewards onBack={() => setCurrentStep('profile')} />}
           
@@ -499,4 +544,3 @@ export const LiffLayout: React.FC = () => {
     </div>
   );
 };
-

@@ -230,6 +230,8 @@ model Booking {
 
   @@index([tenantId, bookingDate], map: "idx_bookings_tenant_date")
   @@index([userId], map: "idx_bookings_user")
+  @@index([tenantId, userId, status], map: "idx_bookings_tenant_user_status")
+  @@index([tenantId, user_phone, status], map: "idx_bookings_tenant_phone_status")
   @@map("bookings")
 }
 

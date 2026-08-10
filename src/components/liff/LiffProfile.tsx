@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
 import { useLiffProfile } from '../../hooks/useLiffProfile';
-import { getCustomerMembership, linkCustomerPhone } from '../../lib/booking-api';
+import {
+  type CustomerProfileSummary,
+  getCustomerProfileSummary,
+  linkCustomerPhone,
+} from '../../lib/booking-api';
+import {
+  readCustomerProfileCache,
+  writeCustomerProfileCache,
+} from '../../lib/customer-profile-cache';
 import { Membership } from '../../types';
 import { Phone, Mail, Award, ShieldCheck, LogOut, ChevronRight, UserCheck, Edit3, Save, Check } from 'lucide-react';
 import liff from '@line/liff';
@@ -21,11 +29,17 @@ const setLinkedPhone = (phone: string) => {
 };
 
 export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
-  const { currentUser, activeTenant, bookings, fetchMembership, updateCurrentUserContact, fetchMyBookings } = useSaaS();
+  const {
+    currentUser,
+    activeTenant,
+    fetchMembership,
+    updateCurrentUserContact,
+  } = useSaaS();
   const liffProfile = useLiffProfile(activeTenant?.liffId);
 
   const [membershipData, setMembershipData] = useState<Membership | null>(null);
-  const [myBookings, setMyBookings] = useState<any[]>([]);
+  const [bookingCount, setBookingCount] = useState(0);
+  const [completedCount, setCompletedCount] = useState(0);
   const [isStatsLoading, setIsStatsLoading] = useState<boolean>(true);
 
   const [phoneInput, setPhoneInput] = useState<string>(() => {
@@ -51,55 +65,102 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
   });
 
   useEffect(() => {
-    if (activeTenant && liffProfile.isLoggedIn) {
+    if (!activeTenant || !liffProfile.isLoggedIn || !liffProfile.lineUserId) {
+      setIsStatsLoading(false);
+      return;
+    }
+
+    let disposed = false;
+    let refreshInFlight = false;
+    let refreshPending = false;
+    const cached = readCustomerProfileCache(
+      activeTenant.id,
+      liffProfile.lineUserId,
+    );
+
+    const applySummary = (summary: CustomerProfileSummary) => {
+      if (disposed) return;
+      setMembershipData(summary.membership as Membership);
+      setBookingCount(summary.stats.totalBookings);
+      setCompletedCount(summary.stats.completedVisits);
+      writeCustomerProfileCache(
+        activeTenant.id,
+        liffProfile.lineUserId,
+        summary,
+      );
+    };
+
+    if (cached) {
+      applySummary(cached);
+      setIsStatsLoading(false);
+    } else {
       setIsStatsLoading(true);
+    }
 
-      const bookingsPromise = fetchMyBookings(liffProfile.lineUserId, phoneInput)
-        .then(bks => {
-          if (bks) setMyBookings(bks);
-        })
-        .catch(console.error);
-
-      // Use the LINE ID Token to fetch latest membership from API
-      let membershipPromise: Promise<unknown> = Promise.resolve();
+    const refreshSummary = async () => {
+      if (disposed) return;
+      if (refreshInFlight) {
+        refreshPending = true;
+        return;
+      }
+      refreshInFlight = true;
       try {
         const token = liff.getIDToken();
-        if (token) {
-          const fetchMembershipNow = () =>
-            getCustomerMembership({
-              tenantId: activeTenant.id,
-              accessToken: token,
-              phone: phoneInput
-            }).then(mem => {
-              if (mem) setMembershipData(mem);
-            });
-
-          // Fetch membership immediately — don't make the page wait on the
-          // phone-merge check below, which is a full backend transaction and
-          // only ever needs to run once per phone number.
-          membershipPromise = fetchMembershipNow().catch(console.error);
-
-          if (phoneInput && getLinkedPhone() !== phoneInput) {
-            linkCustomerPhone({ tenantId: activeTenant.id, accessToken: token, phone: phoneInput })
-              .then((result) => {
-                setLinkedPhone(phoneInput);
-                // Accounts were merged — silently refresh membership with the
-                // now-corrected numbers, without blocking the initial render.
-                if (result.merged) return fetchMembershipNow();
-              })
-              .catch(console.error);
-          }
+        if (!token) return;
+        const summary = await getCustomerProfileSummary({
+          tenantId: activeTenant.id,
+          accessToken: token,
+          phone: phoneInput,
+        });
+        applySummary(summary);
+      } catch (error) {
+        console.error('Failed to refresh customer profile summary:', error);
+      } finally {
+        refreshInFlight = false;
+        if (!disposed) setIsStatsLoading(false);
+        if (refreshPending && !disposed) {
+          refreshPending = false;
+          void refreshSummary();
         }
-      } catch (err) {
-        console.error("Failed to fetch membership:", err);
       }
+    };
 
-      Promise.allSettled([bookingsPromise, membershipPromise]).finally(() => setIsStatsLoading(false));
-    } else {
-      setIsStatsLoading(false);
+    void refreshSummary();
+
+    if (phoneInput && getLinkedPhone() !== phoneInput) {
+      const token = liff.getIDToken();
+      if (token) {
+        void linkCustomerPhone({
+          tenantId: activeTenant.id,
+          accessToken: token,
+          phone: phoneInput,
+        })
+          .then((result) => {
+            setLinkedPhone(phoneInput);
+            if (result.merged) return refreshSummary();
+          })
+          .catch(console.error);
+      }
     }
-  }, [activeTenant, liffProfile.isLoggedIn, liffProfile.lineUserId]);
 
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void refreshSummary();
+    };
+    const intervalId = window.setInterval(refreshWhenVisible, 30_000);
+    window.addEventListener('focus', refreshWhenVisible);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+
+    return () => {
+      disposed = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', refreshWhenVisible);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
+  }, [
+    activeTenant?.id,
+    liffProfile.isLoggedIn,
+    liffProfile.lineUserId,
+  ]);
 
   const [isEditingContact, setIsEditingContact] = useState<boolean>(false);
   const [saveToast, setSaveToast] = useState<boolean>(false);
@@ -111,12 +172,6 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
   const avatarUrl = liffProfile.pictureUrl || currentUser?.avatarUrl ||
     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
 
-  // Determine which bookings to count: use the fetched ones if available, otherwise fallback to global context filtered by phone
-  const userBookings = myBookings.length > 0 
-    ? myBookings 
-    : bookings.filter((b) => b.userId === currentUser?.id || b.phoneInput === phoneInput);
-  
-  const completedCount = userBookings.filter((b) => b.status === 'completed' || b.status === 'checked_in').length;
   const membership = membershipData || (currentUser ? fetchMembership(currentUser.id) : undefined);
   const points = membership?.points || 0;
   const tierRaw = membership?.tier || 'Bronze';
@@ -147,17 +202,24 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
             accessToken: token,
             phone: phoneInput,
           })
-            .then((result) => {
+            .then(() => {
               setLinkedPhone(phoneInput);
-              if (result.merged) {
-                return getCustomerMembership({
-                  tenantId: activeTenant.id,
-                  accessToken: token,
-                  phone: phoneInput,
-                }).then((mem) => {
-                  if (mem) setMembershipData(mem);
-                });
-              }
+              return getCustomerProfileSummary({
+                tenantId: activeTenant.id,
+                accessToken: token,
+                phone: phoneInput,
+              }).then((summary) => {
+                setMembershipData(summary.membership as Membership);
+                setBookingCount(summary.stats.totalBookings);
+                setCompletedCount(summary.stats.completedVisits);
+                if (liffProfile.lineUserId) {
+                  writeCustomerProfileCache(
+                    activeTenant.id,
+                    liffProfile.lineUserId,
+                    summary,
+                  );
+                }
+              });
             })
             .catch(console.error);
         }
@@ -236,7 +298,7 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({ onNavigate }) => {
           {isStatsLoading ? (
             <span className="block h-6 w-8 mx-auto rounded-md bg-slate-200 animate-pulse" />
           ) : (
-            <span className="text-xl font-black text-slate-900">{userBookings.length}</span>
+            <span className="text-xl font-black text-slate-900">{bookingCount}</span>
           )}
         </div>
 

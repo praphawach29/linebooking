@@ -5,6 +5,7 @@ import {
   createCustomerBooking,
   createMerchantBooking,
   getCustomerBookings,
+  getCustomerProfileSummary,
   getAvailableSlots,
 } from './booking-api';
 
@@ -67,6 +68,48 @@ describe('booking-api', () => {
       'Bearer line-id-token',
     );
     assert.equal(new Headers(capturedInit?.headers).get('x-tenant-id'), tenantId);
+  });
+
+  it('loads the customer profile summary in one authenticated request', async () => {
+    let capturedUrl = '';
+    let capturedInit: RequestInit | undefined;
+    const fetcher: typeof fetch = async (url, init) => {
+      capturedUrl = String(url);
+      capturedInit = init;
+      return jsonResponse({
+        membership: {
+          id: 'membership-id',
+          tenantId,
+          userId: bookingResponse.userId,
+          points: 25,
+          totalPointsEarned: 40,
+          tier: 'bronze',
+          createdAt: bookingResponse.createdAt,
+          updatedAt: bookingResponse.createdAt,
+        },
+        stats: { totalBookings: 4, completedVisits: 2 },
+        updatedAt: bookingResponse.createdAt,
+      });
+    };
+
+    const result = await getCustomerProfileSummary({
+      tenantId,
+      accessToken: 'line-id-token',
+      phone: '081-234-5678',
+      apiUrl,
+      fetcher,
+    });
+
+    assert.equal(
+      capturedUrl,
+      `${apiUrl}/customer/membership/summary?phone=081-234-5678`,
+    );
+    assert.equal(
+      new Headers(capturedInit?.headers).get('Authorization'),
+      'Bearer line-id-token',
+    );
+    assert.equal(new Headers(capturedInit?.headers).get('x-tenant-id'), tenantId);
+    assert.deepEqual(result.stats, { totalBookings: 4, completedVisits: 2 });
   });
 
   it('sends a customer request with the LINE token, tenant header and whitelisted camelCase body', async () => {

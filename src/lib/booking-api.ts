@@ -124,6 +124,24 @@ export interface AvailableSlotsApiResponse {
   slots: AvailableSlotApiResponse[];
 }
 
+export interface CustomerProfileSummary {
+  membership: {
+    id: string;
+    tenantId: string;
+    userId: string;
+    points: number;
+    totalPointsEarned: number;
+    tier: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  stats: {
+    totalBookings: number;
+    completedVisits: number;
+  };
+  updatedAt: string;
+}
+
 interface BookingRequestOptions {
   apiUrl?: string;
   fetcher?: typeof fetch;
@@ -198,6 +216,26 @@ export function getCustomerMembership(
 ): Promise<any> {
   return requestJson<any>(
     options.phone ? `/customer/membership?phone=${encodeURIComponent(options.phone)}` : '/customer/membership',
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${options.accessToken}`,
+        'x-tenant-id': options.tenantId,
+      },
+      signal: options.signal,
+    },
+    'customer',
+    options,
+  );
+}
+
+export function getCustomerProfileSummary(
+  options: AuthenticatedBookingRequestOptions,
+): Promise<CustomerProfileSummary> {
+  return requestJson<CustomerProfileSummary>(
+    options.phone
+      ? `/customer/membership/summary?phone=${encodeURIComponent(options.phone)}`
+      : '/customer/membership/summary',
     {
       method: 'GET',
       headers: {

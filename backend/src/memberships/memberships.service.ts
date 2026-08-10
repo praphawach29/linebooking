@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { computeMembershipTier } from '../common/utils/membership-tier';
 
@@ -51,7 +55,10 @@ export class MembershipsService {
       for (const walkinMembership of candidateMemberships) {
         const authMembership = await tx.membership.findUnique({
           where: {
-            tenantId_userId: { tenantId: walkinMembership.tenantId!, userId: authUserId },
+            tenantId_userId: {
+              tenantId: walkinMembership.tenantId!,
+              userId: authUserId,
+            },
           },
         });
 
@@ -64,7 +71,8 @@ export class MembershipsService {
         }
 
         const mergedTotalPointsEarned =
-          (authMembership.totalPointsEarned || 0) + (walkinMembership.totalPointsEarned || 0);
+          (authMembership.totalPointsEarned || 0) +
+          (walkinMembership.totalPointsEarned || 0);
 
         await tx.pointTransaction.updateMany({
           where: { membershipId: walkinMembership.id },
@@ -74,7 +82,8 @@ export class MembershipsService {
         await tx.membership.update({
           where: { id: authMembership.id },
           data: {
-            points: (authMembership.points || 0) + (walkinMembership.points || 0),
+            points:
+              (authMembership.points || 0) + (walkinMembership.points || 0),
             totalPointsEarned: mergedTotalPointsEarned,
             tier: computeMembershipTier(mergedTotalPointsEarned),
           },
@@ -93,8 +102,11 @@ export class MembershipsService {
     });
   }
 
-  
-  async getMembershipWithPhoneFallback(tenantId: string, userId: string, phone?: string) {
+  async getMembershipWithPhoneFallback(
+    tenantId: string,
+    userId: string,
+    phone?: string,
+  ) {
     // A customer's real point history can end up under two different user
     // records: the one tied to their authenticated LINE identity, and a
     // separate phone-linked record if staff checked them in (e.g. a walk-in
@@ -103,20 +115,30 @@ export class MembershipsService {
     // points, rather than assuming either is always authoritative.
     const authMembership = await this.prisma.membership.findUnique({
       where: { tenantId_userId: { tenantId, userId } },
-      include: { pointTransactions: { orderBy: { createdAt: 'desc' }, take: 10 } }
+      include: {
+        pointTransactions: { orderBy: { createdAt: 'desc' }, take: 10 },
+      },
     });
 
     let phoneMembership = null;
     if (phone) {
       const bookingWithPhone = await this.prisma.booking.findFirst({
         where: { tenantId, user_phone: phone, userId: { not: null } },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
       });
 
-      if (bookingWithPhone && bookingWithPhone.userId && bookingWithPhone.userId !== userId) {
+      if (
+        bookingWithPhone &&
+        bookingWithPhone.userId &&
+        bookingWithPhone.userId !== userId
+      ) {
         phoneMembership = await this.prisma.membership.findUnique({
-          where: { tenantId_userId: { tenantId, userId: bookingWithPhone.userId } },
-          include: { pointTransactions: { orderBy: { createdAt: 'desc' }, take: 10 } }
+          where: {
+            tenantId_userId: { tenantId, userId: bookingWithPhone.userId },
+          },
+          include: {
+            pointTransactions: { orderBy: { createdAt: 'desc' }, take: 10 },
+          },
         });
       }
     }
@@ -124,7 +146,8 @@ export class MembershipsService {
     let membership = authMembership;
     if (
       phoneMembership &&
-      (phoneMembership.totalPointsEarned || 0) > (authMembership?.totalPointsEarned || 0)
+      (phoneMembership.totalPointsEarned || 0) >
+        (authMembership?.totalPointsEarned || 0)
     ) {
       membership = phoneMembership;
     }
@@ -150,6 +173,49 @@ export class MembershipsService {
     };
   }
 
+  async getCustomerProfileSummary(
+    tenantId: string,
+    userId: string,
+    phone?: string,
+  ) {
+    const membership = await this.getMembershipWithPhoneFallback(
+      tenantId,
+      userId,
+      phone,
+    );
+    const normalizedPhone = phone?.replace(/[\s-]/g, '');
+    const phoneFilters = phone
+      ? [
+          { user_phone: phone },
+          ...(normalizedPhone && normalizedPhone !== phone
+            ? [{ user_phone: normalizedPhone }]
+            : []),
+        ]
+      : [];
+    const customerFilter = {
+      tenantId,
+      OR: [{ userId }, ...phoneFilters],
+    };
+
+    const [totalBookings, completedVisits] = await Promise.all([
+      this.prisma.booking.count({ where: customerFilter }),
+      this.prisma.booking.count({
+        where: {
+          ...customerFilter,
+          status: { in: ['checked_in', 'completed'] },
+        },
+      }),
+    ]);
+
+    return {
+      membership,
+      stats: {
+        totalBookings,
+        completedVisits,
+      },
+      updatedAt: new Date().toISOString(),
+    };
+  }
 
   async getMembership(tenantId: string, userId: string) {
     let membership = await this.prisma.membership.findUnique({

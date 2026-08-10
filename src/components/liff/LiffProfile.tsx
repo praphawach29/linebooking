@@ -249,7 +249,7 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({
   };
 
   return (
-    <div className="p-4 space-y-5 pb-28 font-prompt">
+    <div className="p-4 space-y-5 pb-4 font-prompt">
       {/* Save Notification Toast */}
       {saveToast && (
         <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 text-xs font-bold animate-bounce">

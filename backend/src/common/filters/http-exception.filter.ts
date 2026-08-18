@@ -53,19 +53,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   private mapStatusToErrorCode(status: number, exceptionResponse: any): string {
     if (exceptionResponse?.code) return exceptionResponse.code;
-    switch (status) {
-      case HttpStatus.BAD_REQUEST:
-        return ErrorCode.BAD_REQUEST;
-      case HttpStatus.UNAUTHORIZED:
-        return ErrorCode.AUTH_REQUIRED;
-      case HttpStatus.FORBIDDEN:
-        return ErrorCode.FORBIDDEN;
-      case HttpStatus.NOT_FOUND:
-        return ErrorCode.NOT_FOUND;
-      case HttpStatus.CONFLICT:
-        return ErrorCode.CONFLICT;
-      default:
-        return ErrorCode.INTERNAL_SERVER_ERROR;
-    }
+    const statusCodeMap: Partial<Record<number, string>> = {
+      [HttpStatus.BAD_REQUEST]: ErrorCode.BAD_REQUEST,
+      [HttpStatus.UNAUTHORIZED]: ErrorCode.AUTH_REQUIRED,
+      [HttpStatus.FORBIDDEN]: ErrorCode.FORBIDDEN,
+      [HttpStatus.NOT_FOUND]: ErrorCode.NOT_FOUND,
+      [HttpStatus.CONFLICT]: ErrorCode.CONFLICT,
+    };
+    return statusCodeMap[status] || ErrorCode.INTERNAL_SERVER_ERROR;
   }
 }

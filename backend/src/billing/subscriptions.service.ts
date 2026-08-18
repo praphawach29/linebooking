@@ -639,7 +639,11 @@ export class SubscriptionsService {
     for (const sub of due) {
       try {
         const result = await this.renewSubscription(sub);
-        result.paid ? paid++ : failed++;
+        if (result.paid) {
+          paid++;
+        } else {
+          failed++;
+        }
       } catch (err: any) {
         failed++;
         this.logger.error(`เก็บเงิน tenant=${sub.tenant_id} ล้มเหลว: ${err.message}`);

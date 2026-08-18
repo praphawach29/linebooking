@@ -1,0 +1,94 @@
+name: Verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VITE_SUPABASE_URL: https://example.supabase.co
+      VITE_SUPABASE_ANON_KEY: ci-anon-key
+      VITE_API_URL: http://localhost:8080
+      VITE_LIFF_ID: ci-liff-id
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test:frontend
+      - run: npm run build
+      - run: npm run bundle:check
+
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: linebooking_test
+          POSTGRES_USER: linebooking
+          POSTGRES_PASSWORD: linebooking_test_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U linebooking -d linebooking_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://linebooking:linebooking_test_only@localhost:5432/linebooking_test?schema=public
+      TEST_DATABASE_URL: postgresql://linebooking:linebooking_test_only@localhost:5432/linebooking_test?schema=public
+      TEST_DATABASE_ACKNOWLEDGED: 'true'
+      REDIS_URL: redis://localhost:6379
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_ANON_KEY: ci-anon-key
+      SUPABASE_SECRET_KEY: ci-secret-key
+      JWT_SECRET: ci-only-jwt-secret
+      CORS_ORIGINS: http://localhost:3005
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npx prisma db push
+      - run: npm test -- --runInBand
+      - run: npm run test:e2e -- --runInBand
+      - name: Run PostgreSQL concurrency tests
+        env:
+          DATABASE_URL: postgresql://production-sentinel:invalid@127.0.0.1:1/production
+        run: npm run test:integration -- --runInBand

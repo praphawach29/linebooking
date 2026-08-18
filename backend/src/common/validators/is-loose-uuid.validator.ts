@@ -20,7 +20,7 @@ export function IsLooseUuid(validationOptions?: ValidationOptions) {
       propertyName: propertyName,
       options: validationOptions,
       validator: {
-        validate(value: any, args: ValidationArguments) {
+        validate(value: any) {
           return typeof value === 'string' && LOOSE_UUID_REGEX.test(value);
         },
         defaultMessage(args: ValidationArguments) {

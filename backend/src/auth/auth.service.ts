@@ -213,7 +213,7 @@ export class AuthService {
     try {
       // 1. Exchange code for LINE token
       const tokenResponse = await this.exchangeLineCodeForToken(code, redirectUri);
-      const { id_token, access_token } = tokenResponse;
+      const { id_token } = tokenResponse;
 
       // 2. Decode ID Token to get user profile
       const decoded: any = jwt.decode(id_token);

@@ -37,4 +37,4 @@ async function bootstrap() {
   await app.listen(port);
   new Logger('Bootstrap').log(`Backend พร้อมใช้งานที่ port ${port} — CORS: ${origins.join(', ')}`);
 }
-bootstrap();
+void bootstrap();

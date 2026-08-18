@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
@@ -26,25 +26,35 @@ import {
   ChevronRight,
   ScanLine,
 } from 'lucide-react';
-import { MerchantDashboard } from './MerchantDashboard';
-import { MerchantCalendarView } from './MerchantCalendarView';
-import { MerchantWalkinBookingModal } from './MerchantWalkinBookingModal';
-import { MerchantServiceManager } from './MerchantServiceManager';
-import { MerchantStaffManager } from './MerchantStaffManager';
-import { MerchantPaymentSettings } from './MerchantPaymentSettings';
-import { MerchantAnalytics } from './MerchantAnalytics';
-import { MerchantLineOASettings } from './MerchantLineOASettings';
-import { MerchantBookingSettings } from './MerchantBookingSettings';
-import { MerchantBookingFlowSettings } from './MerchantBookingFlowSettings';
-import { MerchantOnboardingWizard } from './MerchantOnboardingWizard';
-import { MerchantReviews } from './MerchantReviews';
-import { MerchantShopSettings } from './MerchantShopSettings';
 import { MerchantSubscriptionModal } from './MerchantSubscriptionModal';
-import { MerchantLoyaltyManager } from './MerchantLoyaltyManager';
-import { MerchantCheckInScanner } from './MerchantCheckInScanner';
 import { getTenantQuotaInfo, FREE_PLAN_MONTHLY_BOOKING_LIMIT } from '../../lib/quota-manager';
 import { toLocalDateStr } from '../../lib/date-utils';
 import { getTenantTerminology } from '../../lib/tenant-terminology';
+
+const lazyNamed = <T extends Record<string, unknown>>(loader: () => Promise<T>, name: keyof T) =>
+  lazy(async () => ({ default: (await loader())[name] as React.ComponentType }));
+
+const MerchantDashboard = lazyNamed(() => import('./MerchantDashboard'), 'MerchantDashboard');
+const MerchantCalendarView = lazyNamed(() => import('./MerchantCalendarView'), 'MerchantCalendarView');
+const MerchantWalkinBookingModal = lazyNamed(() => import('./MerchantWalkinBookingModal'), 'MerchantWalkinBookingModal');
+const MerchantCheckInScanner = lazyNamed(() => import('./MerchantCheckInScanner'), 'MerchantCheckInScanner');
+const MerchantShopSettings = lazyNamed(() => import('./MerchantShopSettings'), 'MerchantShopSettings');
+const MerchantServiceManager = lazyNamed(() => import('./MerchantServiceManager'), 'MerchantServiceManager');
+const MerchantStaffManager = lazyNamed(() => import('./MerchantStaffManager'), 'MerchantStaffManager');
+const MerchantBookingFlowSettings = lazyNamed(() => import('./MerchantBookingFlowSettings'), 'MerchantBookingFlowSettings');
+const MerchantPaymentSettings = lazyNamed(() => import('./MerchantPaymentSettings'), 'MerchantPaymentSettings');
+const MerchantBookingSettings = lazyNamed(() => import('./MerchantBookingSettings'), 'MerchantBookingSettings');
+const MerchantLoyaltyManager = lazyNamed(() => import('./MerchantLoyaltyManager'), 'MerchantLoyaltyManager');
+const MerchantAnalytics = lazyNamed(() => import('./MerchantAnalytics'), 'MerchantAnalytics');
+const MerchantLineOASettings = lazyNamed(() => import('./MerchantLineOASettings'), 'MerchantLineOASettings');
+const MerchantOnboardingWizard = lazyNamed(() => import('./MerchantOnboardingWizard'), 'MerchantOnboardingWizard');
+const MerchantReviews = lazyNamed(() => import('./MerchantReviews'), 'MerchantReviews');
+
+const MerchantPanelFallback = () => (
+  <div className="flex min-h-64 items-center justify-center" aria-label="Loading panel">
+    <div className="h-9 w-9 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+  </div>
+);
 
 export const MerchantLayout: React.FC = () => {
   const { activeTenant, merchantTab, setMerchantTab, bookings, staffs, courts } = useSaaS();
@@ -385,21 +395,23 @@ export const MerchantLayout: React.FC = () => {
           </div>
         )}
 
-        {merchantTab === 'dashboard' && <MerchantDashboard />}
-        {merchantTab === 'calendar' && <MerchantCalendarView />}
-        {merchantTab === 'walkin' && <MerchantWalkinBookingModal />}
-        {merchantTab === 'checkin' && <MerchantCheckInScanner />}
-        {merchantTab === 'shop_settings' && <MerchantShopSettings />}
-        {merchantTab === 'services' && <MerchantServiceManager />}
-        {merchantTab === 'staffs' && <MerchantStaffManager />}
-        {merchantTab === 'booking_flow' && <MerchantBookingFlowSettings />}
-        {merchantTab === 'payments' && <MerchantPaymentSettings />}
-        {merchantTab === 'booking_settings' && <MerchantBookingSettings />}
-        {merchantTab === 'loyalty' && <MerchantLoyaltyManager />}
-        {merchantTab === 'analytics' && <MerchantAnalytics />}
-        {merchantTab === 'line_settings' && <MerchantLineOASettings />}
-        {merchantTab === 'onboarding' && <MerchantOnboardingWizard />}
-        {merchantTab === 'reviews' && <MerchantReviews />}
+        <Suspense fallback={<MerchantPanelFallback />}>
+          {merchantTab === 'dashboard' && <MerchantDashboard />}
+          {merchantTab === 'calendar' && <MerchantCalendarView />}
+          {merchantTab === 'walkin' && <MerchantWalkinBookingModal />}
+          {merchantTab === 'checkin' && <MerchantCheckInScanner />}
+          {merchantTab === 'shop_settings' && <MerchantShopSettings />}
+          {merchantTab === 'services' && <MerchantServiceManager />}
+          {merchantTab === 'staffs' && <MerchantStaffManager />}
+          {merchantTab === 'booking_flow' && <MerchantBookingFlowSettings />}
+          {merchantTab === 'payments' && <MerchantPaymentSettings />}
+          {merchantTab === 'booking_settings' && <MerchantBookingSettings />}
+          {merchantTab === 'loyalty' && <MerchantLoyaltyManager />}
+          {merchantTab === 'analytics' && <MerchantAnalytics />}
+          {merchantTab === 'line_settings' && <MerchantLineOASettings />}
+          {merchantTab === 'onboarding' && <MerchantOnboardingWizard />}
+          {merchantTab === 'reviews' && <MerchantReviews />}
+        </Suspense>
       </main>
 
       {/* Subscription Payment Modal */}

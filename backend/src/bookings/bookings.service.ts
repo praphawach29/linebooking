@@ -189,16 +189,6 @@ export class BookingsService {
       if (pointsEarned > 0) response.pointsEarned = pointsEarned;
       if (packageRemaining !== undefined) response.packageRemaining = packageRemaining;
       
-      // Attempt to queue a booking event if it's checked_in (to send Line Flex)
-      if (status === 'checked_in') {
-        try {
-           // We might not have access to notificationsService directly in transaction, but it's okay to call it outside or async
-           // Actually, we shouldn't await it if it delays transaction, but NestJS service will handle it
-           // Let's defer notification to controller if not available here, but currently where does the LINE flex send?
-           // The controller calls checkInBookingAsMerchant, which calls this method.
-        } catch (error) {}
-      }
-      
       return response;
     });
   }

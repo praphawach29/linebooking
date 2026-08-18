@@ -3,24 +3,46 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React, { lazy, Suspense } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { SaaSProvider } from './context/SaaSContext';
 import { AuthProvider } from './context/AuthContext';
-import { SaaSLandingPage } from './components/landing/SaaSLandingPage';
-import { LiffLayout } from './components/liff/LiffLayout';
-import { MerchantLayout } from './components/merchant/MerchantLayout';
-import { AdminDashboard } from './components/admin/AdminDashboard';
-import { LineSimulator } from './components/line_simulator/LineSimulator';
-import { MerchantLoginPage } from './components/auth/MerchantLoginPage';
-import { MerchantRegisterPage } from './components/auth/MerchantRegisterPage';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
+
+const SaaSLandingPage = lazy(() =>
+  import('./components/landing/SaaSLandingPage').then((module) => ({ default: module.SaaSLandingPage }))
+);
+const LiffLayout = lazy(() =>
+  import('./components/liff/LiffLayout').then((module) => ({ default: module.LiffLayout }))
+);
+const MerchantLayout = lazy(() =>
+  import('./components/merchant/MerchantLayout').then((module) => ({ default: module.MerchantLayout }))
+);
+const AdminDashboard = lazy(() =>
+  import('./components/admin/AdminDashboard').then((module) => ({ default: module.AdminDashboard }))
+);
+const LineSimulator = lazy(() =>
+  import('./components/line_simulator/LineSimulator').then((module) => ({ default: module.LineSimulator }))
+);
+const MerchantLoginPage = lazy(() =>
+  import('./components/auth/MerchantLoginPage').then((module) => ({ default: module.MerchantLoginPage }))
+);
+const MerchantRegisterPage = lazy(() =>
+  import('./components/auth/MerchantRegisterPage').then((module) => ({ default: module.MerchantRegisterPage }))
+);
+
+const RouteFallback = () => (
+  <div className="flex min-h-screen items-center justify-center bg-slate-50" aria-label="Loading">
+    <div className="h-10 w-10 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+  </div>
+);
 
 const AppLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-background text-foreground font-sans antialiased flex flex-col">
       <main className="flex-1 w-full">
-        <Routes>
+        <Suspense fallback={<RouteFallback />}>
+          <Routes>
           {/* Main SaaS Landing Page */}
           <Route path="/" element={<SaaSLandingPage />} />
 
@@ -56,7 +78,8 @@ const AppLayout: React.FC = () => {
           <Route path="/simulator/*" element={<LineSimulator />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+          </Routes>
+        </Suspense>
       </main>
     </div>
   );

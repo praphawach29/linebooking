@@ -128,6 +128,12 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
         findFirst: jest.fn(),
         update: jest.fn(),
       },
+      tenantLoyaltySettings: { findUnique: jest.fn() },
+      customerPackage: {
+        findMany: jest.fn(),
+        update: jest.fn(),
+      },
+      pointTransaction: { create: jest.fn() },
     };
 
     const mockPrismaService = {
@@ -168,7 +174,10 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
       );
 
       expect(prisma.booking.findMany).toHaveBeenCalledWith({
-        where: { tenantId, userId: customerUserId },
+        where: {
+          tenantId,
+          OR: [{ userId: customerUserId }],
+        },
         orderBy: [{ bookingDate: 'desc' }, { startTime: 'desc' }],
         take: 100,
       });
@@ -180,7 +189,7 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
   describe('merchant booking mutations', () => {
     it('validates and persists a server-owned status transition', async () => {
       prisma.booking.findFirst.mockResolvedValueOnce(mockCreatedBooking);
-      prisma.booking.update.mockResolvedValueOnce({
+      mockTx.booking.update.mockResolvedValueOnce({
         ...mockCreatedBooking,
         status: 'confirmed',
       });
@@ -194,7 +203,7 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
       expect(prisma.booking.findFirst).toHaveBeenCalledWith({
         where: { id: mockCreatedBooking.id, tenantId },
       });
-      expect(prisma.booking.update).toHaveBeenCalledWith({
+      expect(mockTx.booking.update).toHaveBeenCalledWith({
         where: { id: mockCreatedBooking.id },
         data: expect.objectContaining({ status: 'confirmed' }),
       });
@@ -204,11 +213,12 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
     it('checks in a confirmed booking from its tenant-scoped QR code', async () => {
       const confirmedBooking = { ...mockCreatedBooking, status: 'confirmed' };
       prisma.booking.findFirst.mockResolvedValue(confirmedBooking);
-      prisma.booking.update.mockResolvedValueOnce({
+      mockTx.booking.update.mockResolvedValueOnce({
         ...confirmedBooking,
         status: 'checked_in',
         checkedInAt: new Date('2026-08-03T03:00:00Z'),
       });
+      mockTx.tenantLoyaltySettings.findUnique.mockResolvedValueOnce(null);
 
       const result = await service.checkInBookingAsMerchant(
         tenantId,
@@ -218,7 +228,7 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
       expect(prisma.booking.findFirst).toHaveBeenNthCalledWith(1, {
         where: { ref_no: mockCreatedBooking.ref_no, tenantId },
       });
-      expect(prisma.booking.update).toHaveBeenCalledWith({
+      expect(mockTx.booking.update).toHaveBeenCalledWith({
         where: { id: mockCreatedBooking.id },
         data: expect.objectContaining({
           status: 'checked_in',
@@ -226,6 +236,9 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
         }),
       });
       expect(result.status).toBe('checked_in');
+      expect(mockTx.tenantLoyaltySettings.findUnique).toHaveBeenCalledWith({
+        where: { tenantId },
+      });
     });
 
     it('returns an already checked-in booking without writing again', async () => {

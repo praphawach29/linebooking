@@ -1,0 +1,26 @@
+services:
+  postgres-test:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: linebooking_test
+      POSTGRES_USER: linebooking
+      POSTGRES_PASSWORD: linebooking_test_only
+    ports:
+      - "54231:5432"
+    volumes:
+      - ./test/bootstrap-test-db.sql:/docker-entrypoint-initdb.d/001-bootstrap.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U linebooking -d linebooking_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  redis-test:
+    image: redis:7-alpine
+    ports:
+      - "54232:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 20

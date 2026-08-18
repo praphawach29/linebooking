@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test:frontend": "tsx --test --test-isolation=none src/lib/*.test.ts"
+    "test:frontend": "tsx scripts/run-frontend-tests.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

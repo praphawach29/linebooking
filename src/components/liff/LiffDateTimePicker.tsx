@@ -48,6 +48,9 @@ const getSlotsErrorMessage = (error: unknown): string => {
     if (error.code === 'BOOKING_IN_PAST') {
       return 'ไม่สามารถเลือกวันหรือเวลาที่ผ่านมาแล้ว';
     }
+    if (error.code === 'NETWORK_ERROR' || error.code === 'REQUEST_TIMEOUT') {
+      return 'กำลังเชื่อมต่อระบบ กรุณารอครู่หนึ่งหรือแตะเลือกวันใหม่อีกครั้ง';
+    }
     return error.message;
   }
   return error instanceof Error ? error.message : 'ไม่สามารถโหลดรอบเวลาได้';

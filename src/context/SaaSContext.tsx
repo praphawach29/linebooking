@@ -40,6 +40,7 @@ import {
   CustomerPackage,
   BlackoutDate,
 } from '../types';
+import { BookingService } from '../services/bookingService';
 
 const toCamelCase = (str: string) => {
   return str.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
@@ -677,18 +678,44 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   ): Promise<AvailableSlot[]> => {
     if (!activeTenant) return [];
     const service = services.find((item) => item.id === serviceId);
-    const response = await getAvailableSlotsFromApi(
-      activeTenant.id,
-      { serviceId, bookingDate: dateStr, staffId, courtId },
-    );
 
-    return (response.slots || []).map((slot) => ({
-      startTime: slot.startTime,
-      endTime: slot.endTime,
-      isAvailable: slot.available,
-      reason: slot.available ? undefined : 'BOOKED',
-      price: service?.price ?? 1200,
-    }));
+    try {
+      const response = await getAvailableSlotsFromApi(
+        activeTenant.id,
+        { serviceId, bookingDate: dateStr, staffId, courtId },
+      );
+
+      return (response.slots || []).map((slot) => ({
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        isAvailable: slot.available,
+        reason: slot.available ? undefined : 'BOOKED',
+        price: service?.price ?? 1200,
+      }));
+    } catch (apiError: any) {
+      console.warn('getAvailableSlotsFromApi fallback to BookingService:', apiError);
+
+      const calculatedSlots = BookingService.getAvailableSlots(
+        service?.durationMinutes ?? 60,
+        staffId ?? null,
+        dateStr,
+        bookings.filter((b) => b.tenantId === activeTenant.id),
+        businessHours.filter((b) => b.tenantId === activeTenant.id),
+        staffs.filter((s) => s.tenantId === activeTenant.id),
+      );
+
+      const filteredSlots = (service?.durationMinutes ?? 60) >= 60
+        ? calculatedSlots.filter((slot) => slot.time.endsWith(':00'))
+        : calculatedSlots;
+
+      return filteredSlots.map((slot) => ({
+        startTime: slot.time,
+        endTime: slot.time,
+        isAvailable: slot.available,
+        reason: slot.reason,
+        price: service?.price ?? 1200,
+      }));
+    }
   };
 
   const createBooking = async (data: {

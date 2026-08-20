@@ -6,14 +6,15 @@ import {
   type BookingApiResponse,
 } from '../lib/booking-api';
 import {
-  checkInMerchantBookingWithSession,
   createCustomerBookingWithLiff,
   createMerchantBookingWithSession,
   getCustomerBookingsWithLiff,
-  rescheduleMerchantBookingWithSession,
   updateMerchantBookingStatusWithSession,
   verifyMerchantBookingPaymentWithSession,
+  checkInMerchantBookingWithSession,
+  rescheduleMerchantBookingWithSession,
 } from '../lib/booking-client';
+import { buildBookingFlexMessage, sendLineFlexPush } from '../lib/line-push';
 import { mapBookingApiResponse } from '../lib/booking-mapper';
 import {
   Tenant,
@@ -856,6 +857,29 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       setBookings((prev) => [savedBooking, ...prev]);
       setError(null);
+
+      // Trigger automatic LINE Flex Push Notification if token configured
+      if (activeTenant.lineChannelAccessToken) {
+        let customerLineUserId = currentUser?.lineUserId;
+        if (!customerLineUserId) {
+          try {
+            const rawProfile = typeof localStorage !== 'undefined' ? localStorage.getItem('line_liff_profile_v1') : null;
+            if (rawProfile) {
+              const p = JSON.parse(rawProfile);
+              customerLineUserId = p?.lineUserId || p?.userId;
+            }
+          } catch (e) {}
+        }
+        if (customerLineUserId && customerLineUserId.startsWith('U')) {
+          const flexMsg = buildBookingFlexMessage(
+            'booking_created',
+            savedBooking,
+            activeTenant.name,
+            activeTenant.liffId,
+          );
+          void sendLineFlexPush(activeTenant.lineChannelAccessToken, customerLineUserId, flexMsg);
+        }
+      }
       
       return savedBooking;
     } catch (err: unknown) {
@@ -890,6 +914,37 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       ),
     );
 
+    // Trigger LINE Flex Message on status update
+    if (activeTenant.lineChannelAccessToken) {
+      let customerLineUserId = existing.userId;
+      if (!customerLineUserId || !customerLineUserId.startsWith('U')) {
+        try {
+          const rawProfile = typeof localStorage !== 'undefined' ? localStorage.getItem('line_liff_profile_v1') : null;
+          if (rawProfile) {
+            const p = JSON.parse(rawProfile);
+            customerLineUserId = p?.lineUserId || p?.userId;
+          }
+        } catch (e) {}
+      }
+      if (customerLineUserId && customerLineUserId.startsWith('U')) {
+        const event =
+          status === 'confirmed'
+            ? 'booking_confirmed'
+            : status === 'cancelled'
+            ? 'booking_cancelled'
+            : status === 'completed'
+            ? 'booking_checked_in'
+            : 'booking_confirmed';
+        const flexMsg = buildBookingFlexMessage(
+          event,
+          { ...existing, status },
+          activeTenant.name,
+          activeTenant.liffId,
+        );
+        void sendLineFlexPush(activeTenant.lineChannelAccessToken, customerLineUserId, flexMsg);
+      }
+    }
+
     try {
       const response = await updateMerchantBookingStatusWithSession(
         bookingId,
@@ -909,6 +964,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const verifyBookingPayment = async (bookingId: string): Promise<void> => {
+    const existing = bookings.find((booking) => booking.id === bookingId);
     if (!activeTenant) {
       throw new Error('ไม่พบข้อมูลร้านค้าที่กำลังใช้งาน กรุณาเข้าสู่ระบบใหม่');
     }
@@ -921,6 +977,29 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           : item,
       ),
     );
+
+    // Trigger LINE Flex Message on payment verification
+    if (activeTenant.lineChannelAccessToken && existing) {
+      let customerLineUserId = existing.userId;
+      if (!customerLineUserId || !customerLineUserId.startsWith('U')) {
+        try {
+          const rawProfile = typeof localStorage !== 'undefined' ? localStorage.getItem('line_liff_profile_v1') : null;
+          if (rawProfile) {
+            const p = JSON.parse(rawProfile);
+            customerLineUserId = p?.lineUserId || p?.userId;
+          }
+        } catch (e) {}
+      }
+      if (customerLineUserId && customerLineUserId.startsWith('U')) {
+        const flexMsg = buildBookingFlexMessage(
+          'payment_confirmed',
+          { ...existing, paymentStatus: 'paid', status: 'confirmed' },
+          activeTenant.name,
+          activeTenant.liffId,
+        );
+        void sendLineFlexPush(activeTenant.lineChannelAccessToken, customerLineUserId, flexMsg);
+      }
+    }
 
     try {
       const response = await verifyMerchantBookingPaymentWithSession(

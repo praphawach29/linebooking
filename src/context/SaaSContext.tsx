@@ -590,7 +590,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } catch (e) {}
     }
 
-    if (!lineId || !activeTenant) return [];
+    if (!activeTenant) return bookings;
 
     const liffId =
       activeTenant.liffId ||
@@ -604,17 +604,19 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
       const list = response.map((item) => {
         const service = services.find((entry) => entry.id === item.serviceId);
-        return mapBookingApiResponse(item, service);
+        const court = courts.find((entry) => entry.id === item.courtId);
+        const staff = staffs.find((entry) => entry.id === item.staffId);
+        return mapBookingApiResponse(item, service, staff, court);
       });
 
       setBookings((prev) => {
         const ids = new Set(list.map((b) => b.id));
         return [...list, ...prev.filter((b) => !ids.has(b.id))];
       });
-      return list;
+      return list.length > 0 ? list : bookings.filter((b) => b.tenantId === activeTenant.id);
     } catch (error) {
       console.error('Error fetching customer bookings from API:', error);
-      return [];
+      return bookings.filter((b) => b.tenantId === activeTenant.id);
     }
   };
 

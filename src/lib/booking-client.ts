@@ -105,8 +105,8 @@ export async function createCustomerBookingWithLiff(
         discountAmount: 0,
         finalPrice,
         depositAmount,
-        paymentStatus: input.paymentMethod === 'cash' ? 'paid' : (input.paymentSlipUrl ? 'pending_verification' : 'unpaid'),
-        paymentMethod: input.paymentMethod,
+        paymentStatus: input.paymentMethod === 'cash' ? 'paid' : 'unpaid',
+        paymentMethod: input.paymentMethod || 'promptpay',
         paymentSlipUrl: input.paymentSlipUrl,
         source: 'line_liff',
         notes: input.notes ?? null,
@@ -115,35 +115,45 @@ export async function createCustomerBookingWithLiff(
       };
 
       try {
-        const { error: insertErr } = await supabase.from('bookings').insert([{
-          id: fallbackBooking.id,
+        const dbRecord: Record<string, any> = {
           ref_no: fallbackBooking.refNo,
           tenant_id: fallbackBooking.tenantId,
           user_name: fallbackBooking.userName,
-          user_phone: fallbackBooking.userPhone,
-          service_id: fallbackBooking.serviceId,
-          service_name: fallbackBooking.serviceName,
-          staff_id: fallbackBooking.staffId,
-          staff_name: fallbackBooking.staffName,
-          court_id: fallbackBooking.courtId,
-          court_name: fallbackBooking.courtName,
+          user_phone: fallbackBooking.userPhone || null,
+          service_id: fallbackBooking.serviceId || null,
+          service_name: fallbackBooking.serviceName || null,
+          service_duration: (input.bookingHours || 1) * 60,
+          service_price: fallbackBooking.price,
+          staff_id: fallbackBooking.staffId || null,
+          staff_name: fallbackBooking.staffName || null,
+          court_id: fallbackBooking.courtId || null,
+          court_name: fallbackBooking.courtName || null,
           booking_date: fallbackBooking.bookingDate,
-          start_time: fallbackBooking.startTime,
-          end_time: fallbackBooking.endTime,
-          booking_hours: fallbackBooking.bookingHours,
+          start_time: fallbackBooking.startTime.length === 5 ? `${fallbackBooking.startTime}:00` : fallbackBooking.startTime,
+          end_time: fallbackBooking.endTime.length === 5 ? `${fallbackBooking.endTime}:00` : fallbackBooking.endTime,
           status: fallbackBooking.status,
           price: fallbackBooking.price,
+          discount_amount: 0,
           final_price: fallbackBooking.finalPrice,
           deposit_amount: fallbackBooking.depositAmount,
           payment_method: fallbackBooking.paymentMethod,
           payment_status: fallbackBooking.paymentStatus,
-          payment_slip_url: fallbackBooking.paymentSlipUrl,
-          notes: fallbackBooking.notes,
-          check_in_code: fallbackBooking.checkInCode,
+          payment_slip_url: fallbackBooking.paymentSlipUrl || null,
+          payment_slip_uploaded_at: fallbackBooking.paymentSlipUrl ? new Date().toISOString() : null,
           source: 'line_liff',
-        }]);
+          notes: fallbackBooking.notes || null,
+        };
+
+        const { data: inserted, error: insertErr } = await supabase
+          .from('bookings')
+          .insert([dbRecord])
+          .select();
+
         if (insertErr) {
           console.warn('Direct Supabase insert note:', insertErr.message || insertErr);
+        } else if (inserted && inserted[0]) {
+          fallbackBooking.id = inserted[0].id;
+          fallbackBooking.refNo = inserted[0].ref_no;
         }
       } catch (insertErr) {
         console.warn('Direct Supabase insert failed:', insertErr);

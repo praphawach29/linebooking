@@ -483,12 +483,12 @@ async function requestJson<T>(
   const fetcher = options.fetcher ?? fetch;
   let response: Response;
 
-  // Resilient 45-second default request timeout to accommodate cold starts and slip uploads on mobile networks
+  // Fast 2.5-second default request timeout to ensure snappy customer UX
   let timeoutId: any = null;
   let effectiveSignal = options.signal;
   if (!effectiveSignal && typeof AbortController !== 'undefined') {
     const controller = new AbortController();
-    timeoutId = setTimeout(() => controller.abort(), 45000);
+    timeoutId = setTimeout(() => controller.abort(), 2500);
     effectiveSignal = controller.signal;
   }
 
@@ -505,7 +505,7 @@ async function requestJson<T>(
           statusCode: 0,
           code: 'REQUEST_TIMEOUT',
           message: 'The booking service took too long to respond. Please check your connection and try again.',
-          details: 'Request timed out after 45000ms',
+          details: 'Request timed out after 2500ms',
         },
         actor,
       );
@@ -537,6 +537,13 @@ function getApiUrl(override?: string): string {
     (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env
       ?.VITE_API_URL;
   const normalized = configured?.trim().replace(/\/+$/, '');
+
+  if (typeof window !== 'undefined' && window.location) {
+    const isRemote = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+    if (isRemote && (!normalized || normalized.includes('localhost') || normalized.includes('127.0.0.1'))) {
+      return `${window.location.origin}/api`;
+    }
+  }
 
   if (!normalized) {
     if (typeof window !== 'undefined' && window.location) {

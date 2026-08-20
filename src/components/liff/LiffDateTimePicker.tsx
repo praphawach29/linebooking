@@ -322,17 +322,6 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
   const activeDateObj = new Date(activeDate);
   const activeDateThai = `${activeDateObj.getDate()} ${monthNamesThai[activeDateObj.getMonth()]} ${activeDateObj.getFullYear() + 543}`;
 
-  if (isSlotsLoading) {
-    return (
-      <div className="p-4 space-y-4 pb-32">
-        <div className="flex items-center justify-between mb-4">
-          <div className="h-6 bg-slate-200 rounded w-1/3 animate-pulse"></div>
-        </div>
-        {[1, 2, 3].map((n) => <SkeletonCard key={n} />)}
-      </div>
-    );
-  }
-
   const canConfirm = selectedStartHour !== null && selectedHours >= 1;
 
   return (
@@ -583,7 +572,16 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
           )}
         </div>
 
-        {slots.length === 0 ? (
+        {isSlotsLoading ? (
+          <div className="bg-white border border-slate-200/80 rounded-3xl p-4 space-y-3 shadow-sm">
+            <div className="h-6 bg-slate-100 rounded-xl w-32 animate-pulse mb-3"></div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="h-12 bg-slate-100/90 rounded-2xl animate-pulse"></div>
+              ))}
+            </div>
+          </div>
+        ) : slots.length === 0 ? (
           <div className="premium-card text-center space-y-2 py-10 px-6">
             <XCircle className="w-10 h-10 text-danger/80 mx-auto mb-2" />
             <p className="text-[13px] text-slate-800 font-black">ไม่มีรอบเวลาบริการว่างในวันที่เลือก</p>

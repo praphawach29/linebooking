@@ -173,16 +173,29 @@ export async function getAvailableSlots(
   if (query.staffId) search.set('staffId', query.staffId);
   if (query.courtId) search.set('courtId', query.courtId);
 
-  return requestJson<AvailableSlotsApiResponse>(
-    `/bookings/available-slots?${search.toString()}`,
-    {
-      method: 'GET',
-      headers: { 'x-tenant-id': tenantId },
-      signal: options.signal,
-    },
-    null,
-    options,
-  );
+  // Fast 1500ms timeout for slot querying to avoid UI delay
+  let effectiveSignal = options.signal;
+  let timeoutId: any = null;
+  if (!effectiveSignal && typeof AbortController !== 'undefined') {
+    const controller = new AbortController();
+    timeoutId = setTimeout(() => controller.abort(), 1500);
+    effectiveSignal = controller.signal;
+  }
+
+  try {
+    return await requestJson<AvailableSlotsApiResponse>(
+      `/bookings/available-slots?${search.toString()}`,
+      {
+        method: 'GET',
+        headers: { 'x-tenant-id': tenantId },
+        signal: effectiveSignal,
+      },
+      null,
+      { ...options, signal: effectiveSignal },
+    );
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
 }
 
 export function createCustomerBooking(

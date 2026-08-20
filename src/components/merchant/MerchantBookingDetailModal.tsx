@@ -36,6 +36,7 @@ export const MerchantBookingDetailModal: React.FC<MerchantBookingDetailModalProp
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [showSlipZoom, setShowSlipZoom] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [targetStatus, setTargetStatus] = useState<BookingStatus | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -289,36 +290,49 @@ export const MerchantBookingDetailModal: React.FC<MerchantBookingDetailModalProp
               <div className="pt-2 border-t border-slate-200 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-slate-600">หลักฐานสลิปการโอนเงิน:</span>
-                  <button
-                    type="button"
-                    onClick={() => setShowSlipZoom(true)}
-                    className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition-colors"
-                  >
-                    <ZoomIn className="w-3.5 h-3.5" />
-                    ดูรูปขนาดใหญ่
-                  </button>
+                  {!imageError && (
+                    <button
+                      type="button"
+                      onClick={() => setShowSlipZoom(true)}
+                      className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                    >
+                      <ZoomIn className="w-3.5 h-3.5" />
+                      ดูรูปขนาดใหญ่
+                    </button>
+                  )}
                 </div>
-                <div
-                  onClick={() => setShowSlipZoom(true)}
-                  className="relative group cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white max-h-56 flex items-center justify-center"
-                >
-                  <img
-                    src={booking.paymentSlipUrl}
-                    alt="สลิปการโอนเงิน"
-                    className="w-full h-auto max-h-56 object-contain transition-transform duration-200 group-hover:scale-102"
-                  />
-                  <div className="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold text-xs gap-1.5 backdrop-blur-[2px]">
-                    <Maximize2 className="w-4 h-4" />
-                    <span>คลิกเพื่อดูรูปเต็มจอ</span>
+
+                {imageError ? (
+                  <div className="p-4 bg-slate-100/80 rounded-2xl border border-dashed border-slate-300 text-center space-y-1.5 py-6">
+                    <AlertCircle className="w-6 h-6 text-slate-400 mx-auto" />
+                    <p className="font-bold text-slate-600">ไม่สามารถโหลดรูปภาพสลิปได้</p>
+                    <p className="text-[10px] text-slate-400">รายการนี้อาจเป็นข้อมูลทดสอบระบบ หรือลิงก์ภาพไม่ถูกต้อง</p>
                   </div>
-                </div>
+                ) : (
+                  <div
+                    onClick={() => setShowSlipZoom(true)}
+                    className="relative group cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white max-h-56 flex items-center justify-center"
+                  >
+                    <img
+                      src={booking.paymentSlipUrl}
+                      alt="สลิปการโอนเงิน"
+                      onError={() => setImageError(true)}
+                      className="w-full h-auto max-h-56 object-contain transition-transform duration-200 group-hover:scale-102"
+                    />
+                    <div className="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold text-xs gap-1.5 backdrop-blur-[2px]">
+                      <Maximize2 className="w-4 h-4" />
+                      <span>คลิกเพื่อดูรูปเต็มจอ</span>
+                    </div>
+                  </div>
+                )}
+
                 {errorMsg && <p className="text-[11px] font-bold text-rose-600">{errorMsg}</p>}
                 {booking.paymentStatus !== 'paid' && (
                   <button
                     type="button"
                     onClick={handleVerifyPayment}
                     disabled={isVerifyingPayment}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-xs"
                   >
                     {isVerifyingPayment ? (
                       <Loader2 className="w-4 h-4 animate-spin" />

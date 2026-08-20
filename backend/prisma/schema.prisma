@@ -51,6 +51,7 @@ model Tenant {
   subscriptions                      subscriptions?
   tenantLoyaltySettings              TenantLoyaltySettings?
   customerPackages                   CustomerPackage[]
+  auditLogs                          AuditLog[]
   users_tenants_owner_user_idTousers User?                   @relation("tenants_owner_user_idTousers", fields: [owner_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users_users_tenant_idTotenants     User[]                  @relation("users_tenant_idTotenants")
 
@@ -81,6 +82,7 @@ model User {
   reviews                                        reviews[]
   staff                                          staff[]
   customerPackages                               CustomerPackage[]
+  auditLogs                                      AuditLog[]
   tenants_tenants_owner_user_idTousers           Tenant[]            @relation("tenants_owner_user_idTousers")
   tenants_users_tenant_idTotenants               Tenant?             @relation("users_tenant_idTotenants", fields: [tenant_id], references: [id], onUpdate: NoAction)
   mergedIntoUser                                 User?               @relation("UserMergedInto", fields: [mergedIntoUserId], references: [id], onUpdate: NoAction)
@@ -715,3 +717,27 @@ enum user_role {
   merchant_admin
   platform_admin
 }
+
+model AuditLog {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  actorType  String   @default("system") @map("actor_type") @db.VarChar(50)
+  action     String   @db.VarChar(100)
+  entityType String   @map("entity_type") @db.VarChar(50)
+  entityId   String   @map("entity_id") @db.VarChar(255)
+  beforeState Json?   @map("before_state")
+  afterState  Json?   @map("after_state")
+  reason     String?
+  ipAddress  String?  @map("ip_address") @db.VarChar(45)
+  userAgent  String?  @map("user_agent") @db.VarChar(255)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([tenantId, createdAt(sort: Desc)], map: "idx_audit_logs_tenant_created")
+  @@index([tenantId, entityType, entityId], map: "idx_audit_logs_tenant_entity")
+  @@index([tenantId, action], map: "idx_audit_logs_tenant_action")
+  @@map("audit_logs")
+}
+

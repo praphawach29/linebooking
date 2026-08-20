@@ -9,6 +9,7 @@ import {
   UseGuards,
   Query,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { BookingsService } from './bookings.service';
 import {
   AvailabilityService,
@@ -26,8 +27,10 @@ import {
 import { CustomerTenantGuard } from '../common/guards/customer-tenant.guard';
 import { TenantId } from '../common/decorators/tenant-id.decorator';
 import { CurrentCustomer } from '../common/decorators/current-customer.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { LineIdTokenGuard } from '../common/guards/line-id-token.guard';
 import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard';
+import type { AppUser } from '../common/guards/supabase-auth.guard';
 import { TenantAccessGuard } from '../common/guards/tenant-access.guard';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -41,6 +44,7 @@ export class BookingsController {
 
   @Get('mine')
   @UseGuards(LineIdTokenGuard)
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   async getCustomerBookings(
     @TenantId() tenantId: string,
     @CurrentCustomer() customer: { id: string },
@@ -56,6 +60,7 @@ export class BookingsController {
    */
   @Get('available-slots')
   @UseGuards(CustomerTenantGuard)
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
   async getAvailableSlots(
     @TenantId() tenantId: string,
     @Query() query: GetAvailableSlotsQueryDto,
@@ -71,6 +76,7 @@ export class BookingsController {
 
   @Post()
   @UseGuards(LineIdTokenGuard)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   async createCustomerBooking(
     @TenantId() tenantId: string,
     @CurrentCustomer() customer: { id: string },
@@ -103,6 +109,7 @@ export class BookingsController {
 
   @Post('merchant')
   @UseGuards(SupabaseAuthGuard, TenantAccessGuard)
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   async createMerchantBooking(
     @TenantId() tenantId: string,
     @Body() dto: CreateMerchantBookingDto,
@@ -132,25 +139,32 @@ export class BookingsController {
 
   @Patch(':id/verify-payment')
   @UseGuards(SupabaseAuthGuard, TenantAccessGuard)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   async verifyBookingPayment(
     @TenantId() tenantId: string,
     @Param('id', new ParseUUIDPipe({ version: '4' })) bookingId: string,
+    @CurrentUser() user?: AppUser,
   ): Promise<BookingResponseDto> {
     return this.bookingsService.verifyBookingPaymentAsMerchant(
       tenantId,
       bookingId,
+      user ? { id: user.dbUserId, role: user.role } : undefined,
     );
   }
 
   @Patch(':id/cancel')
   @UseGuards(SupabaseAuthGuard, TenantAccessGuard)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   async cancelMerchantBooking(
     @TenantId() tenantId: string,
     @Param('id', new ParseUUIDPipe({ version: '4' })) bookingId: string,
+    @CurrentUser() user?: AppUser,
   ) {
     const booking = await this.bookingsService.cancelBookingAsMerchant(
       tenantId,
       bookingId,
+      undefined,
+      user ? { id: user.dbUserId, role: user.role } : undefined,
     );
     await this.notificationsService.queueBookingEvent(
       tenantId,
@@ -162,13 +176,16 @@ export class BookingsController {
 
   @Post('check-in')
   @UseGuards(SupabaseAuthGuard, TenantAccessGuard)
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   async checkInMerchantBooking(
     @TenantId() tenantId: string,
     @Body() dto: CheckInBookingDto,
+    @CurrentUser() user?: AppUser,
   ): Promise<BookingResponseDto> {
     const booking = await this.bookingsService.checkInBookingAsMerchant(
       tenantId,
       dto.code,
+      user ? { id: user.dbUserId, role: user.role } : undefined,
     );
     await this.notificationsService.queueBookingEvent(
       tenantId,
@@ -180,16 +197,19 @@ export class BookingsController {
 
   @Patch(':id/status')
   @UseGuards(SupabaseAuthGuard, TenantAccessGuard)
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   async updateMerchantBookingStatus(
     @TenantId() tenantId: string,
     @Param('id', new ParseUUIDPipe({ version: '4' })) bookingId: string,
     @Body() dto: UpdateBookingStatusDto,
+    @CurrentUser() user?: AppUser,
   ): Promise<BookingResponseDto> {
     const booking = await this.bookingsService.updateBookingStatusAsMerchant(
       tenantId,
       bookingId,
       dto.status,
       dto.reason,
+      user ? { id: user.dbUserId, role: user.role } : undefined,
     );
     if (dto.status === 'confirmed') {
       await this.notificationsService.queueBookingEvent(
@@ -209,16 +229,19 @@ export class BookingsController {
 
   @Patch(':id/reschedule')
   @UseGuards(SupabaseAuthGuard, TenantAccessGuard)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   async rescheduleMerchantBooking(
     @TenantId() tenantId: string,
     @Param('id', new ParseUUIDPipe({ version: '4' })) bookingId: string,
     @Body() dto: RescheduleBookingDto,
+    @CurrentUser() user?: AppUser,
   ): Promise<BookingResponseDto> {
     const booking = await this.bookingsService.rescheduleBookingAsMerchant(
       tenantId,
       bookingId,
       dto.bookingDate,
       dto.startTime,
+      user ? { id: user.dbUserId, role: user.role } : undefined,
     );
     await this.notificationsService.queueBookingEvent(
       tenantId,

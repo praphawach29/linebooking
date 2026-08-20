@@ -7,8 +7,29 @@ import {
   readCustomerProfileCache,
   writeCustomerProfileCache,
 } from '../../lib/customer-profile-cache';
+import {
+  exportCustomerDataWithLiff,
+  eraseCustomerDataWithLiff,
+} from '../../lib/booking-client';
+import { LegalModal, LegalModalType } from '../legal/LegalModals';
 import { Membership } from '../../types';
-import { Phone, Mail, Award, ShieldCheck, LogOut, ChevronRight, UserCheck, Edit3, Save, Check } from 'lucide-react';
+import {
+  Phone,
+  Mail,
+  Award,
+  ShieldCheck,
+  LogOut,
+  ChevronRight,
+  UserCheck,
+  Edit3,
+  Save,
+  Check,
+  Download,
+  Trash2,
+  AlertTriangle,
+  FileText,
+  Loader2,
+} from 'lucide-react';
 import liff from '@line/liff';
 
 interface LiffProfileProps {
@@ -75,6 +96,62 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({
     } catch (e) {}
     return currentUser?.email || '';
   });
+
+  const [legalModal, setLegalModal] = useState<LegalModalType>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isErasing, setIsErasing] = useState(false);
+  const [showErasureConfirm, setShowErasureConfirm] = useState(false);
+  const [erasureSuccess, setErasureSuccess] = useState(false);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+
+  const handleExportData = async () => {
+    if (!activeTenant || !liffProfile.lineUserId) return;
+    setIsExporting(true);
+    setActionMessage(null);
+    try {
+      const data = await exportCustomerDataWithLiff({
+        tenantId: activeTenant.id,
+        liffId: activeTenant.lineLiffId || '',
+      });
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `my-booking-data-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setActionMessage('ดาวน์โหลดข้อมูลสำเร็จแล้ว (JSON)');
+    } catch (err: any) {
+      setActionMessage('ไม่สามารถดาวน์โหลดข้อมูลได้: ' + (err?.message || 'โปรดลองใหม่'));
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleEraseData = async () => {
+    if (!activeTenant || !liffProfile.lineUserId) return;
+    setIsErasing(true);
+    setActionMessage(null);
+    try {
+      await eraseCustomerDataWithLiff({
+        tenantId: activeTenant.id,
+        liffId: activeTenant.lineLiffId || '',
+      });
+      setShowErasureConfirm(false);
+      setErasureSuccess(true);
+      setActionMessage('ข้อมูลส่วนบุคคลของคุณถูกลบและทำให้นิรนามเรียบร้อยแล้ว');
+      localStorage.removeItem('liff_customer_contact');
+      localStorage.removeItem(LINKED_PHONE_KEY);
+    } catch (err: any) {
+      setActionMessage('เกิดข้อผิดพลาดในการลบข้อมูล: ' + (err?.message || 'โปรดลองใหม่'));
+    } finally {
+      setIsErasing(false);
+    }
+  };
 
   useEffect(() => {
     if (!activeTenant || !liffProfile.isLoggedIn || !liffProfile.lineUserId) {
@@ -437,6 +514,100 @@ export const LiffProfile: React.FC<LiffProfileProps> = ({
           <ChevronRight className="w-4 h-4 text-slate-400" />
         </button>
       </div>
+
+      {/* PDPA & Data Privacy Subject Rights */}
+      <div className="bg-white border border-slate-200/80 rounded-3xl p-4 shadow-sm space-y-3">
+        <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+          <h4 className="font-bold text-xs text-slate-800">ความเป็นส่วนตัวและสิทธิข้อมูลส่วนบุคคล (PDPA)</h4>
+        </div>
+
+        {actionMessage && (
+          <div className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs p-2.5 rounded-xl font-medium">
+            {actionMessage}
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-2 pt-1">
+          <button
+            onClick={handleExportData}
+            disabled={isExporting}
+            className="flex items-center justify-center gap-1.5 p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold rounded-2xl border border-slate-200 text-xs transition-colors disabled:opacity-50"
+          >
+            {isExporting ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Download className="w-3.5 h-3.5 text-blue-600" />
+            )}
+            <span>ส่งออกข้อมูล (Export)</span>
+          </button>
+
+          <button
+            onClick={() => setShowErasureConfirm(true)}
+            disabled={isErasing || erasureSuccess}
+            className="flex items-center justify-center gap-1.5 p-2.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-2xl border border-red-200 text-xs transition-colors disabled:opacity-50"
+          >
+            {isErasing ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Trash2 className="w-3.5 h-3.5" />
+            )}
+            <span>ขอลบข้อมูล (Erasure)</span>
+          </button>
+        </div>
+
+        <div className="flex justify-center gap-4 text-[11px] text-slate-400 font-semibold pt-1">
+          <button
+            onClick={() => setLegalModal('privacy')}
+            className="hover:text-slate-600 underline"
+          >
+            นโยบายความเป็นส่วนตัว
+          </button>
+          <span>•</span>
+          <button
+            onClick={() => setLegalModal('terms')}
+            className="hover:text-slate-600 underline"
+          >
+            ข้อกำหนดการใช้บริการ
+          </button>
+        </div>
+      </div>
+
+      {/* Erasure Confirmation Modal */}
+      {showErasureConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl space-y-4 animate-slideUp border border-slate-100">
+            <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div className="text-center space-y-1.5">
+              <h3 className="font-black text-slate-800 text-base">ยืนยันการขอลบข้อมูลส่วนบุคคล?</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                ระบบจะทำการลบชื่อ เบอร์โทรศัพท์ และยกเลิกการผูกบัญชี LINE โดยทำให้ข้อมูลประวัติการจองเป็นข้อมูลนิรนามตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล (PDPA)
+              </p>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setShowErasureConfirm(false)}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleEraseData}
+                disabled={isErasing}
+                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5"
+              >
+                {isErasing && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>ยืนยันการลบ</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Legal Modal Popup */}
+      <LegalModal type={legalModal} onClose={() => setLegalModal(null)} />
 
       {/* Logout button */}
       {liffProfile.isLoggedIn && (

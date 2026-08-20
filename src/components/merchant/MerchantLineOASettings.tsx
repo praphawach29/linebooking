@@ -198,25 +198,61 @@ export const MerchantLineOASettings: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div>
-                <div className="flex justify-between text-[11px] mb-1.5 font-bold">
+              <div className="space-y-2.5">
+                <div className="flex justify-between text-[11px] font-bold">
                   <span className="text-slate-600">ใช้งานแล้ว {pushCount.toLocaleString()} ข้อความ</span>
-                  <span className={quotaCritical ? 'text-rose-500' : 'text-emerald-600'}>
-                    {quotaRemainingText}
+                  <span className={quotaCritical ? 'text-rose-600 font-black' : 'text-emerald-600'}>
+                    {quotaRemainingText} ({pushPercentage}%)
                   </span>
                 </div>
-                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                  <div
-                    className={'h-2 rounded-full ' + quotaBarClass}
-                    style={{ width: `${pushPercentage}%` }}
-                  ></div>
+                
+                {/* Progress bar with threshold markers */}
+                <div className="relative">
+                  <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                    <div
+                      className={'h-2.5 rounded-full transition-all duration-500 ' + quotaBarClass}
+                      style={{ width: `${pushPercentage}%` }}
+                    ></div>
+                  </div>
+                  {/* Threshold Indicators */}
+                  <div className="flex justify-between text-[9px] text-slate-400 font-semibold px-0.5 mt-1">
+                    <span>0%</span>
+                    <span className={pushPercentage >= 70 ? 'text-amber-600 font-bold' : ''}>70%</span>
+                    <span className={pushPercentage >= 85 ? 'text-orange-600 font-bold' : ''}>85%</span>
+                    <span className={pushPercentage >= 95 ? 'text-rose-600 font-bold' : ''}>95%</span>
+                    <span className={pushPercentage >= 100 ? 'text-red-700 font-black' : ''}>100%</span>
+                  </div>
                 </div>
-                <div className="mt-2 flex items-start justify-between gap-3">
+
+                {/* Quota Alerts Banner */}
+                {quota && quota.warningLevel !== 'normal' && (
+                  <div className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center gap-2 ${
+                    quota.warningLevel === 'exceeded'
+                      ? 'bg-red-50 text-red-700 border-red-200'
+                      : quota.warningLevel === 'critical'
+                        ? 'bg-rose-50 text-rose-700 border-rose-200'
+                        : 'bg-amber-50 text-amber-800 border-amber-200'
+                  }`}>
+                    <Bell className="w-4 h-4 shrink-0" />
+                    <div className="flex-1 text-[11px]">
+                      <span>
+                        {quota.warningLevel === 'exceeded' && '⚠️ โควต้าข้อความฟรีรายเดือนครบ 100% แล้ว'}
+                        {quota.warningLevel === 'critical' && '⚠️ โควต้าข้อความใกล้หมด (95%+)'}
+                        {quota.warningLevel === 'warning' && '⚡ โควต้าข้อความใช้งานถึง 85%'}
+                        {quota.warningLevel === 'notice' && 'ℹ️ โควต้าข้อความใช้งานถึง 70%'}
+                      </span>
+                      <p className="text-[10px] text-slate-500 font-normal mt-0.5">
+                        * ระบบแจ้งเตือนเพื่อบริหารโควต้า แต่จะไม่บล็อกการส่งข้อความแจ้งเตือนลูกค้า (Non-blocking)
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between gap-3 pt-1">
                   <p className="text-[10px] text-slate-500">
                     {quota?.source === 'line'
-                      ? 'ข้อมูลโควต้าจริงจาก LINE Messaging API ระบบ SaaS จะไม่ปิดการส่งอัตโนมัติ'
+                      ? 'ข้อมูลโควต้าจริงจาก LINE Messaging API (Monthly Limit)'
                       : 'กำลังใช้ค่าประมาณ 300 ข้อความจนกว่าจะอ่านแพ็กเกจจริงจาก LINE ได้'}
-                    {quota && quota.warningLevel !== 'normal' && ' แจ้งเตือน: ใช้โควต้าแล้ว ' + quota.percentage + '%'}
                     {quotaError && ' (' + quotaError + ')'}
                   </p>
                   <button

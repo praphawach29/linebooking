@@ -20,6 +20,50 @@ interface LiffPromptPayPaymentProps {
   onBookingComplete: (booking: Booking) => void;
 }
 
+// Client-side image compression to ensure fast, reliable slip upload on mobile networks
+const compressSlipImage = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_DIM = 1200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_DIM) {
+            height = Math.round((height * MAX_DIM) / width);
+            width = MAX_DIM;
+          }
+        } else {
+          if (height > MAX_DIM) {
+            width = Math.round((width * MAX_DIM) / height);
+            height = MAX_DIM;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(event.target?.result as string);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        // Compress as JPEG 0.82 quality (~120KB - 250KB)
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        resolve(compressedDataUrl);
+      };
+      img.onerror = () => reject(new Error('Failed to load image for compression'));
+      img.src = event.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+};
+
 export const LiffPromptPayPayment: React.FC<LiffPromptPayPaymentProps> = ({
   service,
   staff,
@@ -38,6 +82,7 @@ export const LiffPromptPayPayment: React.FC<LiffPromptPayPaymentProps> = ({
   const [copied, setCopied] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(15 * 60); // 15 mins
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isCompressingSlip, setIsCompressingSlip] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [slipDataUrl, setSlipDataUrl] = useState<string | null>(null);
   const [slipError, setSlipError] = useState<string | null>(null);
@@ -95,14 +140,23 @@ export const LiffPromptPayPayment: React.FC<LiffPromptPayPaymentProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleSlipFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSlipFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setSlipError(null);
-    const reader = new FileReader();
-    reader.onloadend = () => setSlipDataUrl(reader.result as string);
-    reader.onerror = () => setSlipError('อัปโหลดรูปไม่สำเร็จ กรุณาลองใหม่');
-    reader.readAsDataURL(file);
+    setIsCompressingSlip(true);
+
+    try {
+      const compressedDataUrl = await compressSlipImage(file);
+      setSlipDataUrl(compressedDataUrl);
+    } catch (err) {
+      const reader = new FileReader();
+      reader.onloadend = () => setSlipDataUrl(reader.result as string);
+      reader.onerror = () => setSlipError('อัปโหลดรูปไม่สำเร็จ กรุณาลองใหม่');
+      reader.readAsDataURL(file);
+    } finally {
+      setIsCompressingSlip(false);
+    }
   };
 
   const handleConfirmBooking = async () => {
@@ -229,19 +283,19 @@ export const LiffPromptPayPayment: React.FC<LiffPromptPayPaymentProps> = ({
             <span className="font-black text-slate-900 truncate text-right">{promptpayName}</span>
           </div>
 
-          <div className="flex items-center justify-between gap-2 border-t border-slate-200/70 pt-2">
-            <span className="text-slate-500 font-bold shrink-0">หมายเลขพร้อมเพย์:</span>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <span className="font-mono font-black text-emerald-600 text-sm tracking-wider whitespace-nowrap">
+          <div className="flex items-center justify-between gap-2 border-t border-slate-200/70 pt-2.5">
+            <span className="text-slate-500 font-bold text-[11.5px] shrink-0">หมายเลขพร้อมเพย์:</span>
+            <div className="flex items-center gap-1.5 min-w-0 bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-2xs">
+              <span className="font-mono font-black text-emerald-600 text-[12.5px] sm:text-sm tracking-wide truncate">
                 {promptpayNo}
               </span>
               <button
                 type="button"
                 onClick={handleCopyNo}
-                className="p-1 hover:bg-emerald-100 rounded-lg text-emerald-700 transition-colors border border-emerald-200 shrink-0"
+                className="p-1 hover:bg-emerald-50 active:bg-emerald-100 rounded-lg text-emerald-700 transition-colors shrink-0"
                 title="คัดลอกหมายเลข"
               >
-                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500 hover:text-emerald-600" />}
               </button>
             </div>
           </div>
@@ -273,16 +327,25 @@ export const LiffPromptPayPayment: React.FC<LiffPromptPayPaymentProps> = ({
               <button
                 type="button"
                 onClick={() => setSlipDataUrl(null)}
-                className="absolute top-2 right-2 bg-white/90 border border-slate-200 text-slate-600 text-[10px] font-bold px-2.5 py-1 rounded-lg hover:bg-white"
+                className="absolute top-2 right-2 bg-white/90 border border-slate-200 text-slate-600 text-[10px] font-bold px-2.5 py-1 rounded-lg hover:bg-white shadow-xs"
               >
                 เปลี่ยนรูป
               </button>
             </div>
           ) : (
             <label className="cursor-pointer flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-slate-300 rounded-2xl py-6 text-slate-500 hover:border-emerald-400 hover:text-emerald-600 transition-colors">
-              <Upload className="w-5 h-5" />
-              <span className="text-[12px] font-bold">แตะเพื่ออัปโหลดสลิป</span>
-              <input type="file" accept="image/*" className="hidden" onChange={handleSlipFileChange} />
+              {isCompressingSlip ? (
+                <>
+                  <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-[12px] font-bold text-emerald-600">กำลังประมวลผลรูปภาพ...</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-5 h-5" />
+                  <span className="text-[12px] font-bold">แตะเพื่ออัปโหลดสลิป</span>
+                </>
+              )}
+              <input type="file" accept="image/*" disabled={isCompressingSlip} className="hidden" onChange={handleSlipFileChange} />
             </label>
           )}
           {slipError && <p className="text-[11px] font-bold text-rose-600">{slipError}</p>}

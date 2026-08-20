@@ -91,21 +91,25 @@ export const LiffCourtSelect: React.FC<LiffCourtSelectProps> = ({
       {/* Option: Any Available Court */}
       <div
         onClick={() => setSelectedCourtId('any')}
-        className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center gap-3.5 ${
+        className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${
           selectedCourtId === 'any'
             ? 'bg-emerald-50/90 border-emerald-500 shadow-xs ring-2 ring-emerald-500/20'
             : 'bg-white border-slate-200 hover:border-slate-300'
         }`}
       >
-        <div className="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 flex-shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 shrink-0">
           <Sparkles className="w-5 h-5" />
         </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-1.5">
-            <h3 className="text-xs font-bold text-slate-900">สนามใดก็ได้ (ระบบสุ่มคอร์ทว่าง)</h3>
-            <span className="bg-emerald-100 text-emerald-700 text-[9px] font-bold px-1.5 py-0.2 rounded">แนะนำ</span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <h3 className="text-[12px] sm:text-xs font-black text-slate-900 leading-snug">
+              สนามใดก็ได้ <span className="text-[11px] font-medium text-slate-600">(สุ่มคอร์ทว่าง)</span>
+            </h3>
+            <span className="bg-emerald-100 text-emerald-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
+              แนะนำ
+            </span>
           </div>
-          <p className="text-[11px] text-slate-500 mt-0.5">
+          <p className="text-[10.5px] sm:text-[11px] text-slate-500 mt-0.5 leading-tight">
             จัดคิวสนามที่ว่างตรงกับเวลาที่คุณเลือกให้อัตโนมัติ
           </p>
         </div>
@@ -114,7 +118,7 @@ export const LiffCourtSelect: React.FC<LiffCourtSelectProps> = ({
           name="court"
           checked={selectedCourtId === 'any'}
           onChange={() => setSelectedCourtId('any')}
-          className="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
+          className="w-4 h-4 text-emerald-600 focus:ring-emerald-500 shrink-0"
         />
       </div>
 

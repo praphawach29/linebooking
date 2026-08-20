@@ -497,17 +497,19 @@ export const LiffDateTimePicker: React.FC<LiffDateTimePickerProps> = ({
       )}
 
       {/* Selected Date Summary Banner */}
-      <div className="bg-primary/5 border border-primary/20 p-3 rounded-2xl flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-2.5">
-          <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-          <div>
-            <p className="font-black text-[13px] text-foreground">วันที่เลือก: {activeDateThai}</p>
-            <p className="text-[11px] text-slate-500 font-bold mt-0.5">
+      <div className="bg-primary/5 border border-primary/20 p-3 rounded-2xl flex items-center justify-between gap-2 shadow-sm">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="font-black text-[12px] sm:text-[13px] text-foreground truncate">
+              วันที่เลือก: {activeDateThai}
+            </p>
+            <p className="text-[10.5px] sm:text-[11px] text-slate-500 font-bold mt-0.5 truncate">
               มีรอบเวลาว่าง <span className="text-primary">{availableCount} ช่วงเวลา</span>
             </p>
           </div>
         </div>
-        <span className="text-[10px] font-black bg-success/10 text-success border border-success/20 px-2.5 py-1.5 rounded-xl">
+        <span className="text-[9.5px] sm:text-[10px] font-black bg-success/10 text-success border border-success/20 px-2 sm:px-2.5 py-1 rounded-xl shrink-0 whitespace-nowrap">
           เปิดให้บริการ
         </span>
       </div>

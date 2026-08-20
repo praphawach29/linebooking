@@ -468,6 +468,41 @@ export class SubscriptionsService {
   }
 
   /**
+   * คืนเงินใบแจ้งหนี้ (Refund) สำหรับ Super Admin
+   */
+  async refundInvoice(invoiceId: string, reason: string, adminUserId?: string) {
+    const invoice = await this.db.selectOne<any>(`subscription_invoices?id=eq.${invoiceId}`);
+    if (!invoice) throw new NotFoundException('ไม่พบใบแจ้งหนี้นี้');
+    if (invoice.status !== 'paid') {
+      throw new BadRequestException('ไม่สามารถคืนเงินใบแจ้งหนี้ที่ยังไม่ได้ชำระเงินสำเร็จได้');
+    }
+
+    if (invoice.provider === 'omise' && invoice.provider_ref) {
+      await this.omise.createRefund(invoice.provider_ref, Number(invoice.amount));
+    }
+
+    await this.db.update(`subscription_invoices?id=eq.${invoiceId}`, {
+      status: 'refunded',
+      failure_reason: `Refunded: ${reason}`,
+    });
+
+    if (invoice.subscription_id) {
+      const sub = await this.db.selectOne<SubscriptionRow>(`subscriptions?id=eq.${invoice.subscription_id}`);
+      if (sub) {
+        await this.db.update(`subscriptions?id=eq.${sub.id}`, {
+          status: 'canceled',
+          canceled_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+        await this.syncTenantPlan(invoice.tenant_id, 'free', new Date());
+      }
+    }
+
+    this.logger.log(`Refunded invoice ${invoiceId} (reason: ${reason}) by admin ${adminUserId}`);
+    return { success: true, invoiceId, status: 'refunded' };
+  }
+
+  /**
    * เปลี่ยนแพ็กเกจกลางรอบ
    *  - อัปเกรด  → มีผลทันที คิดเฉพาะส่วนต่างตามวันที่เหลือ (proration)
    *  - ดาวน์เกรด → มีผลเมื่อจบรอบ (ไม่คืนเงิน ไม่ตัดสิทธิ์กลางคัน)

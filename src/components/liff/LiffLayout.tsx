@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
 import {
   Calendar,
@@ -18,13 +18,30 @@ import { LiffStaffSelect } from './LiffStaffSelect';
 import { LiffCourtSelect } from './LiffCourtSelect';
 import { LiffDateTimePicker } from './LiffDateTimePicker';
 import { LiffBookingSummary } from './LiffBookingSummary';
-import { LiffPromptPayPayment } from './LiffPromptPayPayment';
-import { LiffBookingConfirmation } from './LiffBookingConfirmation';
-import { LiffMyBookings } from './LiffMyBookings';
-import { LiffNotifications } from './LiffNotifications';
-import { LiffProfile } from './LiffProfile';
-import LiffRewards from './LiffRewards';
-import LiffPointHistory from './LiffPointHistory';
+
+const LiffPromptPayPayment = lazy(() =>
+  import('./LiffPromptPayPayment').then((m) => ({ default: m.LiffPromptPayPayment })),
+);
+const LiffBookingConfirmation = lazy(() =>
+  import('./LiffBookingConfirmation').then((m) => ({ default: m.LiffBookingConfirmation })),
+);
+const LiffMyBookings = lazy(() =>
+  import('./LiffMyBookings').then((m) => ({ default: m.LiffMyBookings })),
+);
+const LiffNotifications = lazy(() =>
+  import('./LiffNotifications').then((m) => ({ default: m.LiffNotifications })),
+);
+const LiffProfile = lazy(() =>
+  import('./LiffProfile').then((m) => ({ default: m.LiffProfile })),
+);
+const LiffRewards = lazy(() => import('./LiffRewards'));
+const LiffPointHistory = lazy(() => import('./LiffPointHistory'));
+
+const LiffStepFallback = () => (
+  <div className="flex min-h-64 items-center justify-center p-8">
+    <div className="h-8 w-8 animate-spin rounded-full border-3 border-emerald-500 border-t-transparent" />
+  </div>
+);
 import { useLiffProfile } from '../../hooks/useLiffProfile';
 import liff from '@line/liff';
 import { loadCustomerProfileSummary } from '../../lib/customer-profile-cache';
@@ -385,99 +402,101 @@ export const LiffLayout: React.FC = () => {
 
         {/* LIFF Main Scrollable Body */}
         <div className="flex-1 overflow-y-auto bg-slate-50 pb-3 scrollbar-none">
-          {currentStep === 'home' && (
-            <LiffHome liffProfile={liffProfile} onSelectService={handleSelectService} />
-          )}
+          <Suspense fallback={<LiffStepFallback />}>
+            {currentStep === 'home' && (
+              <LiffHome liffProfile={liffProfile} onSelectService={handleSelectService} />
+            )}
 
-          {currentStep === 'service_detail' && selectedService && (
-            <LiffServiceDetail
-              service={selectedService}
-              onStartBooking={handleStartBooking}
-            />
-          )}
+            {currentStep === 'service_detail' && selectedService && (
+              <LiffServiceDetail
+                service={selectedService}
+                onStartBooking={handleStartBooking}
+              />
+            )}
 
-          {currentStep === 'staff_select' && selectedService && (
-            <LiffStaffSelect
-              service={selectedService}
-              selectedAddons={selectedAddons}
-              onSelectStaff={handleSelectStaff}
-            />
-          )}
+            {currentStep === 'staff_select' && selectedService && (
+              <LiffStaffSelect
+                service={selectedService}
+                selectedAddons={selectedAddons}
+                onSelectStaff={handleSelectStaff}
+              />
+            )}
 
-          {currentStep === 'court_select' && selectedService && (
-            <LiffCourtSelect
-              service={selectedService}
-              selectedAddons={selectedAddons}
-              onSelectCourt={handleSelectCourt}
-            />
-          )}
+            {currentStep === 'court_select' && selectedService && (
+              <LiffCourtSelect
+                service={selectedService}
+                selectedAddons={selectedAddons}
+                onSelectCourt={handleSelectCourt}
+              />
+            )}
 
-          {currentStep === 'date_time_select' && selectedService && (
-            <LiffDateTimePicker
-              service={selectedService}
-              staff={selectedStaff}
-              court={selectedCourt}
-              selectedDate={selectedDate}
-              selectedTime={selectedTime}
-              selectedAddons={selectedAddons}
-              onSelectSlot={handleSelectSlot}
-            />
-          )}
+            {currentStep === 'date_time_select' && selectedService && (
+              <LiffDateTimePicker
+                service={selectedService}
+                staff={selectedStaff}
+                court={selectedCourt}
+                selectedDate={selectedDate}
+                selectedTime={selectedTime}
+                selectedAddons={selectedAddons}
+                onSelectSlot={handleSelectSlot}
+              />
+            )}
 
-          {currentStep === 'booking_summary' && selectedService && (
-            <LiffBookingSummary
-              service={selectedService}
-              staff={selectedStaff}
-              court={selectedCourt}
-              date={selectedDate}
-              time={selectedTime}
-              bookingHours={selectedBookingHours}
-              selectedAddons={selectedAddons}
-              onGoToPayment={handleGoToPayment}
-            />
-          )}
+            {currentStep === 'booking_summary' && selectedService && (
+              <LiffBookingSummary
+                service={selectedService}
+                staff={selectedStaff}
+                court={selectedCourt}
+                date={selectedDate}
+                time={selectedTime}
+                bookingHours={selectedBookingHours}
+                selectedAddons={selectedAddons}
+                onGoToPayment={handleGoToPayment}
+              />
+            )}
 
-          {currentStep === 'promptpay_payment' && selectedService && (
-            <LiffPromptPayPayment
-              service={selectedService}
-              staff={selectedStaff}
-              court={selectedCourt}
-              date={selectedDate}
-              time={selectedTime}
-              bookingHours={selectedBookingHours}
-              selectedAddons={selectedAddons}
-              customerName={customerName}
-              customerPhone={customerPhone}
-              notes={notes}
-              paymentMethod={paymentMethod}
-              onBookingComplete={handleBookingComplete}
-            />
-          )}
+            {currentStep === 'promptpay_payment' && selectedService && (
+              <LiffPromptPayPayment
+                service={selectedService}
+                staff={selectedStaff}
+                court={selectedCourt}
+                date={selectedDate}
+                time={selectedTime}
+                bookingHours={selectedBookingHours}
+                selectedAddons={selectedAddons}
+                customerName={customerName}
+                customerPhone={customerPhone}
+                notes={notes}
+                paymentMethod={paymentMethod}
+                onBookingComplete={handleBookingComplete}
+              />
+            )}
 
-          {currentStep === 'booking_confirmation' && confirmedBooking && (
-            <LiffBookingConfirmation
-              booking={confirmedBooking}
-              onViewMyBookings={() => handleTabChange('my_bookings')}
-              onGoHome={() => handleTabChange('home')}
-            />
-          )}
+            {currentStep === 'booking_confirmation' && confirmedBooking && (
+              <LiffBookingConfirmation
+                booking={confirmedBooking}
+                onViewMyBookings={() => handleTabChange('my_bookings')}
+                onGoHome={() => handleTabChange('home')}
+              />
+            )}
 
-          {currentStep === 'my_bookings' && (
-            <LiffMyBookings onNewBooking={() => handleTabChange('home')} lineUserId={liffProfile.lineUserId} />
-          )}
+            {currentStep === 'my_bookings' && (
+              <LiffMyBookings onNewBooking={() => handleTabChange('home')} lineUserId={liffProfile.lineUserId} />
+            )}
 
-          {currentStep === 'notifications' && <LiffNotifications />}
+            {currentStep === 'notifications' && <LiffNotifications />}
 
-          {currentStep === 'profile' && (
-            <LiffProfile
-              liffProfile={liffProfile}
-              onNavigate={(step) => setCurrentStep(step)}
-            />
-          )}
+            {currentStep === 'profile' && (
+              <LiffProfile
+                liffProfile={liffProfile}
+                onNavigate={(step) => setCurrentStep(step)}
+              />
+            )}
 
-          {currentStep === 'rewards' && <LiffRewards onBack={() => setCurrentStep('profile')} />}
-          
-          {currentStep === 'point_history' && <LiffPointHistory onBack={() => setCurrentStep('profile')} />}
+            {currentStep === 'rewards' && <LiffRewards onBack={() => setCurrentStep('profile')} />}
+            
+            {currentStep === 'point_history' && <LiffPointHistory onBack={() => setCurrentStep('profile')} />}
+          </Suspense>
         </div>
 
         {/* Sticky Bottom Navigation Bar */}

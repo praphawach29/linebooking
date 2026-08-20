@@ -14,10 +14,12 @@ type BookingForFlex = {
 
 const EVENT_COPY: Record<LineBookingEvent, { title: string; color: string }> = {
   booking_created: { title: 'รับคำขอจองแล้ว', color: '#D97706' },
+  payment_confirmed: { title: 'ยืนยันการชำระเงินแล้ว', color: '#0284C7' },
   booking_confirmed: { title: 'ยืนยันการจองแล้ว', color: '#059669' },
   booking_checked_in: { title: 'เช็กอินเรียบร้อยแล้ว', color: '#0F766E' },
   booking_rescheduled: { title: 'เลื่อนเวลาจองแล้ว', color: '#2563EB' },
   booking_cancelled: { title: 'ยกเลิกการจองแล้ว', color: '#DC2626' },
+  booking_reminder: { title: 'แจ้งเตือนนัดหมายใกล้ถึงเวลา', color: '#6366F1' },
 };
 
 // Prisma maps PostgreSQL `time` values to a Date anchored at 1970-01-01 UTC.

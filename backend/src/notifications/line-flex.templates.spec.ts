@@ -38,4 +38,41 @@ describe('buildBookingFlexMessage', () => {
 
     expect(JSON.stringify(message)).toContain('เช็กอินเรียบร้อยแล้ว');
   });
+
+  it('builds a payment confirmed flex message', () => {
+    const message = buildBookingFlexMessage(
+      'payment_confirmed',
+      {
+        ref_no: 'BK-PAID-01',
+        service_name: 'Haircut',
+        court_name: null,
+        bookingDate: new Date('2026-08-09T00:00:00.000Z'),
+        startTime: new Date('1970-01-01T10:00:00.000Z'),
+        endTime: new Date('1970-01-01T11:00:00.000Z'),
+        finalPrice: 500,
+      },
+      'JackSaloon',
+    );
+
+    expect(JSON.stringify(message)).toContain('ยืนยันการชำระเงินแล้ว');
+  });
+
+  it('builds a reminder flex message', () => {
+    const message = buildBookingFlexMessage(
+      'booking_reminder',
+      {
+        ref_no: 'BK-REMIND-01',
+        service_name: 'Massage',
+        court_name: null,
+        bookingDate: new Date('2026-08-09T00:00:00.000Z'),
+        startTime: new Date('1970-01-01T14:00:00.000Z'),
+        endTime: new Date('1970-01-01T15:00:00.000Z'),
+        finalPrice: 800,
+      },
+      'JackSpa',
+    );
+
+    expect(JSON.stringify(message)).toContain('แจ้งเตือนนัดหมายใกล้ถึงเวลา');
+  });
 });
+

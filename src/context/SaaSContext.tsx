@@ -40,13 +40,6 @@ import {
   CustomerPackage,
   BlackoutDate,
 } from '../types';
-import {
-  INITIAL_TENANTS,
-  INITIAL_SERVICES,
-  INITIAL_SERVICE_ADDONS,
-  INITIAL_STAFFS,
-  INITIAL_COURTS,
-} from '../data/mockData';
 
 const toCamelCase = (str: string) => {
   return str.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
@@ -203,32 +196,6 @@ const generateUUID = (): string => {
     return v.toString(16);
   });
 };
-
-const BOOKINGS_STORAGE_KEY = 'saas_local_bookings_v1';
-
-function getLocalStoredBookings(): Booking[] {
-  try {
-    const raw = localStorage.getItem(BOOKINGS_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
-    }
-  } catch (e) {
-    // Ignore storage error
-  }
-  return [];
-}
-
-function saveLocalStoredBooking(booking: Booking) {
-  try {
-    const existing = getLocalStoredBookings();
-    const filtered = existing.filter((b) => b.id !== booking.id);
-    const updated = [booking, ...filtered];
-    localStorage.setItem(BOOKINGS_STORAGE_KEY, JSON.stringify(updated));
-  } catch (e) {
-    // Ignore storage error
-  }
-}
 
 const SaaSContext = createContext<SaaSContextType | undefined>(undefined);
 
@@ -389,7 +356,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           fetchedTenants = camelizeKeys(tenantsData) as Tenant[];
         }
 
-        const effectiveTenants = fetchedTenants.length > 0 ? fetchedTenants : INITIAL_TENANTS;
+        const effectiveTenants = fetchedTenants;
         setTenants(effectiveTenants);
 
         if (effectiveTenants.length > 0) {
@@ -433,13 +400,13 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (servicesData && servicesData.length > 0) {
           setServices(camelizeKeys(servicesData) as Service[]);
         } else {
-          setServices(INITIAL_SERVICES);
+          setServices([]);
         }
 
         if (addonsData && addonsData.length > 0) {
           setServiceAddons(camelizeKeys(addonsData) as ServiceAddon[]);
         } else {
-          setServiceAddons(INITIAL_SERVICE_ADDONS);
+          setServiceAddons([]);
         }
 
         if (staffData && staffData.length > 0) {
@@ -454,21 +421,17 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           }
           setStaffs(formattedStaff);
         } else {
-          setStaffs(INITIAL_STAFFS);
+          setStaffs([]);
         }
 
         if (courtsData && courtsData.length > 0) {
           setCourts(camelizeKeys(courtsData) as Court[]);
         } else {
-          setCourts(INITIAL_COURTS);
+          setCourts([]);
         }
         if (hoursData) setBusinessHours(camelizeKeys(hoursData) as BusinessHour[]);
         if (bookingsData) {
-          const remoteBookings = camelizeKeys(bookingsData) as Booking[];
-          const localBookings = getLocalStoredBookings();
-          const remoteIds = new Set(remoteBookings.map((b) => b.id));
-          const mergedBookings = [...remoteBookings, ...localBookings.filter((b) => !remoteIds.has(b.id))];
-          setBookings(mergedBookings);
+          setBookings(camelizeKeys(bookingsData) as Booking[]);
         }
         if (policiesData) setCancellationPolicies(camelizeKeys(policiesData) as CancellationPolicy[]);
         if (reviewsData) setReviews(camelizeKeys(reviewsData) as Review[]);
@@ -550,11 +513,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         const { data: bookingsData } = await query;
         if (bookingsData) {
-          const remoteBookings = camelizeKeys(bookingsData) as Booking[];
-          const localBookings = getLocalStoredBookings();
-          const remoteIds = new Set(remoteBookings.map((b) => b.id));
-          const mergedBookings = [...remoteBookings, ...localBookings.filter((b) => !remoteIds.has(b.id))];
-          setBookings(mergedBookings);
+          setBookings(camelizeKeys(bookingsData) as Booking[]);
         }
       } catch (e) {
         // Ignore background poll errors
@@ -849,7 +808,6 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const savedBooking = mapBookingApiResponse(response, service, localStaff, localCourt);
 
-      saveLocalStoredBooking(savedBooking);
       setBookings((prev) => [savedBooking, ...prev]);
       setError(null);
       

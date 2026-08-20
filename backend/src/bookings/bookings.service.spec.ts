@@ -14,6 +14,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBookingCommand } from './dto/create-booking-command.dto';
 import { ErrorCode } from '../common/constants/error-codes';
+import { AuditService } from '../common/audit/audit.service';
 
 describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
   let service: BookingsService;
@@ -134,6 +135,7 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
         update: jest.fn(),
       },
       pointTransaction: { create: jest.fn() },
+      auditLog: { create: jest.fn() },
     };
 
     const mockPrismaService = {
@@ -145,10 +147,17 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
         findFirst: jest.fn(),
         update: jest.fn(),
       },
+      auditLog: {
+        create: jest.fn(),
+      },
     };
 
     const mockAvailabilityService = {
       calculateAvailability: jest.fn(),
+    };
+
+    const mockAuditService = {
+      record: jest.fn().mockResolvedValue({ id: 'audit-log-uuid' }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -156,6 +165,7 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
         BookingsService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: AvailabilityService, useValue: mockAvailabilityService },
+        { provide: AuditService, useValue: mockAuditService },
       ],
     }).compile();
 
@@ -1073,6 +1083,7 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
         data: {
           status: 'cancelled',
           cancelledAt: expect.any(Date),
+          cancellationReason: null,
         },
       });
     });

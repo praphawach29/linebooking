@@ -3,6 +3,8 @@ import {
   createCustomerBooking,
   createMerchantBooking,
   getCustomerBookings,
+  exportCustomerData,
+  eraseCustomerData,
   rescheduleMerchantBooking,
   updateMerchantBookingStatus,
   verifyMerchantBookingPayment,
@@ -16,6 +18,7 @@ import {
   type LineTokenOptions,
   type MerchantSessionProvider,
 } from './booking-auth';
+import { invalidateCustomerProfileCache } from './customer-profile-cache';
 
 interface BookingClientOptions {
   apiUrl?: string;
@@ -42,13 +45,15 @@ export async function createCustomerBookingWithLiff(
     options.liffId,
     options.lineTokenOptions,
   );
-  return createCustomerBooking(input, {
+  const result = await createCustomerBooking(input, {
     tenantId: options.tenantId,
     accessToken,
     apiUrl: options.apiUrl,
     fetcher: options.fetcher,
     signal: options.signal,
   });
+  invalidateCustomerProfileCache(options.tenantId);
+  return result;
 }
 
 export async function getCustomerBookingsWithLiff(
@@ -65,6 +70,40 @@ export async function getCustomerBookingsWithLiff(
     fetcher: options.fetcher,
     signal: options.signal,
   });
+}
+
+export async function exportCustomerDataWithLiff(
+  options: CustomerBookingClientOptions,
+): Promise<any> {
+  const accessToken = await getLineIdToken(
+    options.liffId,
+    options.lineTokenOptions,
+  );
+  return exportCustomerData({
+    tenantId: options.tenantId,
+    accessToken,
+    apiUrl: options.apiUrl,
+    fetcher: options.fetcher,
+    signal: options.signal,
+  });
+}
+
+export async function eraseCustomerDataWithLiff(
+  options: CustomerBookingClientOptions,
+): Promise<{ success: boolean; message: string }> {
+  const accessToken = await getLineIdToken(
+    options.liffId,
+    options.lineTokenOptions,
+  );
+  const result = await eraseCustomerData({
+    tenantId: options.tenantId,
+    accessToken,
+    apiUrl: options.apiUrl,
+    fetcher: options.fetcher,
+    signal: options.signal,
+  });
+  invalidateCustomerProfileCache(options.tenantId);
+  return result;
 }
 
 export async function createMerchantBookingWithSession(

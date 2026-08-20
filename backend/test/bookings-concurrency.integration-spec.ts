@@ -4,6 +4,7 @@ import * as crypto from 'crypto';
 import { BookingsService } from '../src/bookings/bookings.service';
 import { AvailabilityService } from '../src/bookings/availability.service';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { AuditService } from '../src/common/audit/audit.service';
 import { CreateBookingCommand } from '../src/bookings/dto/create-booking-command.dto';
 
 describe('Real PostgreSQL Concurrency Integration Tests (Step 8)', () => {
@@ -135,9 +136,11 @@ describe('Real PostgreSQL Concurrency Integration Tests (Step 8)', () => {
 
     prismaServiceAdapter = prismaClient as unknown as PrismaService;
     availabilityService = new AvailabilityService(prismaServiceAdapter);
+    const auditService = new AuditService(prismaServiceAdapter);
     bookingsService = new BookingsService(
       prismaServiceAdapter,
       availabilityService,
+      auditService,
     );
 
     // 3. Seed Staff Tenant

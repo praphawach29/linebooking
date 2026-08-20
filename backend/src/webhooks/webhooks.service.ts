@@ -2,6 +2,7 @@ import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AuditService } from '../common/audit/audit.service';
 
 @Injectable()
 export class WebhooksService {
@@ -10,6 +11,7 @@ export class WebhooksService {
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
+    private auditService: AuditService,
   ) {}
 
   async handleOmiseWebhook(payload: any) {
@@ -31,6 +33,10 @@ export class WebhooksService {
         });
 
         if (payment.bookingId) {
+          const previousBooking = await this.prisma.booking.findUnique({
+            where: { id: payment.bookingId },
+          });
+
           // Update booking status
           const booking = await this.prisma.booking.update({
             where: { id: payment.bookingId },
@@ -39,7 +45,27 @@ export class WebhooksService {
               status: 'confirmed'
             },
           });
+
           if (booking.tenantId) {
+            await this.auditService.record({
+              tenantId: booking.tenantId,
+              actorId: null,
+              actorType: 'webhook',
+              action: 'booking_confirmed',
+              entityType: 'booking',
+              entityId: booking.id,
+              beforeState: {
+                status: previousBooking?.status,
+                paymentStatus: previousBooking?.paymentStatus,
+              },
+              afterState: {
+                status: 'confirmed',
+                paymentStatus: 'paid',
+                chargeId,
+              },
+              reason: 'Payment confirmed via Omise Webhook',
+            });
+
             await this.notifications.queueBookingEvent(
               booking.tenantId,
               booking.id,

@@ -369,3 +369,91 @@ export const chargeSubscriptionViaBackend = async (payload: {
     return { ok: false, error: err.message || 'เชื่อมต่อ Backend ไม่ได้' };
   }
 };
+
+/**
+ * Super Admin: ดึงรายงานตรวจสอบกระทบยอดระหว่าง Omise และ Database (Reconciliation)
+ */
+export const fetchOmiseReconciliation = async (): Promise<{
+  ok: boolean;
+  data?: {
+    totalChargesChecked: number;
+    totalInvoicesChecked: number;
+    discrepancyCount: number;
+    discrepancies: Array<{
+      type: string;
+      description: string;
+      invoiceId?: string;
+      chargeId?: string;
+      dbStatus?: string;
+      omiseStatus?: string;
+      dbAmount?: number;
+      omiseAmount?: number;
+      chargeCreatedAt?: string;
+      invoiceCreatedAt?: string;
+    }>;
+  };
+  error?: string;
+}> => {
+  if (!API_URL) return { ok: false, error: 'API_URL not configured' };
+  try {
+    const res = await fetch(`${API_URL}/billing/reconciliation`, {
+      method: 'GET',
+      headers: {
+        ...(await authHeader()),
+      },
+    });
+    const json = await res.json();
+    if (!res.ok) return { ok: false, error: json.message || 'Failed to fetch reconciliation' };
+    return { ok: true, data: json };
+  } catch (err: any) {
+    return { ok: false, error: err.message || 'Connection error' };
+  }
+};
+
+/**
+ * Super Admin: ซิงค์สถานะใบแจ้งหนี้ให้ตรงกับ Omise Charge จริง
+ */
+export const syncInvoiceWithOmise = async (
+  invoiceId: string,
+): Promise<{ ok: boolean; invoice?: any; error?: string }> => {
+  if (!API_URL) return { ok: false, error: 'API_URL not configured' };
+  try {
+    const res = await fetch(`${API_URL}/billing/reconciliation/sync/${invoiceId}`, {
+      method: 'POST',
+      headers: {
+        ...(await authHeader()),
+      },
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) return { ok: false, error: json.message || 'Sync failed' };
+    return { ok: true, invoice: json.invoice };
+  } catch (err: any) {
+    return { ok: false, error: err.message || 'Connection error' };
+  }
+};
+
+/**
+ * Super Admin: ขอคืนเงิน Subscription Invoice ผ่าน Omise Refund API
+ */
+export const refundInvoiceViaBackend = async (
+  invoiceId: string,
+  reason: string,
+): Promise<{ ok: boolean; refund?: any; error?: string }> => {
+  if (!API_URL) return { ok: false, error: 'API_URL not configured' };
+  try {
+    const res = await fetch(`${API_URL}/billing/invoices/${invoiceId}/refund`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(await authHeader()),
+      },
+      body: JSON.stringify({ reason }),
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) return { ok: false, error: json.message || 'Refund failed' };
+    return { ok: true, refund: json.refund };
+  } catch (err: any) {
+    return { ok: false, error: err.message || 'Connection error' };
+  }
+};
+

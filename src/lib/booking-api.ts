@@ -269,6 +269,43 @@ export function linkCustomerPhone(
   );
 }
 
+export function exportCustomerData(
+  options: AuthenticatedBookingRequestOptions,
+): Promise<any> {
+  return requestJson(
+    '/customer/membership/data-export',
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${options.accessToken}`,
+        'x-tenant-id': options.tenantId,
+      },
+      signal: options.signal,
+    },
+    'customer',
+    options,
+  );
+}
+
+export function eraseCustomerData(
+  options: AuthenticatedBookingRequestOptions,
+): Promise<{ success: boolean; message: string }> {
+  return requestJson(
+    '/customer/membership/data-erasure',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${options.accessToken}`,
+        'x-tenant-id': options.tenantId,
+        'Content-Type': 'application/json',
+      },
+      signal: options.signal,
+    },
+    'customer',
+    options,
+  );
+}
+
 export function createMerchantBooking(
   input: CreateMerchantBookingInput,
   options: AuthenticatedBookingRequestOptions,
@@ -426,10 +463,33 @@ async function requestJson<T>(
   const fetcher = options.fetcher ?? fetch;
   let response: Response;
 
+  // Resilient 10-second default request timeout
+  let timeoutId: any = null;
+  let effectiveSignal = options.signal;
+  if (!effectiveSignal && typeof AbortController !== 'undefined') {
+    const controller = new AbortController();
+    timeoutId = setTimeout(() => controller.abort(), 10000);
+    effectiveSignal = controller.signal;
+  }
+
   try {
-    response = await fetcher(`${getApiUrl(options.apiUrl)}${path}`, init);
-  } catch (error) {
+    response = await fetcher(`${getApiUrl(options.apiUrl)}${path}`, {
+      ...init,
+      signal: effectiveSignal,
+    });
+  } catch (error: any) {
     if (error instanceof BookingApiError) throw error;
+    if (error?.name === 'AbortError') {
+      throw new BookingApiError(
+        {
+          statusCode: 0,
+          code: 'REQUEST_TIMEOUT',
+          message: 'The booking service took too long to respond. Please check your connection and try again.',
+          details: 'Request timed out after 10000ms',
+        },
+        actor,
+      );
+    }
     throw new BookingApiError(
       {
         statusCode: 0,
@@ -439,6 +499,8 @@ async function requestJson<T>(
       },
       actor,
     );
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
   }
 
   const payload = await readJson(response);

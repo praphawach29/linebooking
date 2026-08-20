@@ -17,6 +17,9 @@ import {
 import { countPendingSlips } from '../../lib/slips';
 import { AdminLayout, AdminTab } from './AdminLayout';
 import { AdminSlipReview } from './AdminSlipReview';
+import { AdminFailedDeliveries } from './AdminFailedDeliveries';
+import { AdminReconciliation } from './AdminReconciliation';
+import { AdminPilotValidation } from './AdminPilotValidation';
 import {
   ShieldCheck,
   Building2,
@@ -167,12 +170,15 @@ export const AdminDashboard: React.FC = () => {
 
   const pageTitles: Record<AdminTab, { title: string; subtitle: string }> = {
     overview: { title: 'ภาพรวมแพลตฟอร์ม', subtitle: 'สรุปผู้เช่า รายได้ และการใช้งานทั้งระบบ' },
+    pilot_validation: { title: 'Pilot & Launch Validation', subtitle: 'ติดตามตัวชี้วัดความพร้อมของแพลตฟอร์มและผลการทดสอบ Pilot 5 รูปแบบธุรกิจ' },
     tenants: { title: 'ร้านค้าทั้งหมด', subtitle: 'จัดการผู้เช่า เปลี่ยนแพ็กเกจ และระงับการใช้งาน' },
     users: { title: 'ผู้ใช้งานระบบ', subtitle: 'บัญชีทุกประเภทในระบบ' },
     plans: { title: 'แพ็กเกจค่าบริการ', subtitle: 'รายละเอียดแพ็กเกจที่เปิดขาย' },
     gateway: { title: 'ตั้งค่ารับชำระเงิน', subtitle: 'PromptPay, Omise, ราคาแพ็กเกจ และการตรวจสลิป' },
     invoices: { title: 'ใบแจ้งหนี้', subtitle: 'ประวัติการเรียกเก็บค่าแพ็กเกจของทุกร้าน' },
+    reconciliation: { title: 'กระทบยอดการเงิน (Omise vs DB)', subtitle: 'ตรวจสอบความถูกต้องของยอดชำระและสถานะระหว่าง Gateway กับฐานข้อมูล' },
     slips: { title: 'รออนุมัติสลิป', subtitle: 'ตรวจสอบสลิปโอนเงินที่ร้านค้าแนบเข้ามา' },
+    failed_deliveries: { title: 'LINE Queue & Dead-Letter Queue (DLQ)', subtitle: 'ตรวจสอบและยิงซ้ำข้อความแจ้งเตือนที่ส่งไม่สำเร็จ' },
     system: { title: 'System Health', subtitle: 'สถานะเซิร์ฟเวอร์ Database และ Backend Services' },
   };
 
@@ -303,6 +309,11 @@ export const AdminDashboard: React.FC = () => {
               ไปตรวจสอบ →
             </span>
           </button>
+        )}
+
+        {/* Tab: Pilot & Launch Release Validation */}
+        {activeSubTab === 'pilot_validation' && (
+          <AdminPilotValidation />
         )}
 
         {/* Tab 1: Tenants List (Clean Light Card & Table) */}
@@ -971,9 +982,19 @@ export const AdminDashboard: React.FC = () => {
           </div>
         )}
 
+        {/* Tab: กระทบยอดการเงิน Omise vs DB */}
+        {activeSubTab === 'reconciliation' && (
+          <AdminReconciliation />
+        )}
+
         {/* Tab: ตรวจสอบสลิปโอนเงิน */}
         {activeSubTab === 'slips' && (
           <AdminSlipReview onCountChange={setPendingSlipCount} />
+        )}
+
+        {/* Tab: LINE Message Queue & Dead-Letter Queue (DLQ) */}
+        {activeSubTab === 'failed_deliveries' && (
+          <AdminFailedDeliveries />
         )}
 
         {/* Tab 4: System Health */}

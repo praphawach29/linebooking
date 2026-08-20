@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 
 import { calculateServicePrice } from '../../lib/pricing-calculator';
+import { LegalModal, LegalModalType } from '../legal/LegalModals';
 
 interface LiffBookingSummaryProps {
   service: Service;
@@ -133,6 +134,8 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
 
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [validationError, setValidationError] = useState('');
+  const [legalModal, setLegalModal] = useState<LegalModalType>(null);
+  const [pdpaConsent, setPdpaConsent] = useState(true);
 
   const handleOptionChange = (addon: ServiceAddon, optionName: string) => {
     setAddonOptionChoice((prev) => ({ ...prev, [addon.id]: optionName }));
@@ -206,6 +209,12 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
+    if (!pdpaConsent) {
+      setValidationError('กรุณายินยอมนโยบายความเป็นส่วนตัว (PDPA) เพื่อดำเนินการจองต่อ');
+      setShowSummaryModal(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     setValidationError('');
     onGoToPayment({
       selectedAddons,
@@ -243,29 +252,30 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 text-[13px] text-slate-600 pt-1 relative z-10">
-          <div className="flex items-start gap-2.5 bg-slate-50 p-3 rounded-2xl border border-slate-100">
-            <div className="bg-primary/10 p-1.5 rounded-lg text-primary mt-0.5">
-                <Calendar className="w-4 h-4 flex-shrink-0" />
+        <div className="grid grid-cols-2 gap-2.5 text-[13px] text-slate-600 pt-1 relative z-10">
+          <div className="flex items-start gap-2 bg-slate-50 p-2.5 sm:p-3 rounded-2xl border border-slate-100 min-w-0">
+            <div className="bg-primary/10 p-1.5 rounded-lg text-primary mt-0.5 shrink-0">
+              <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
-            <div>
-              <span className="text-[11px] text-slate-500 font-bold block mb-0.5">วันที่จอง</span>
-              <span className="font-black text-foreground">{formatDateThai(date)}</span>
+            <div className="min-w-0 flex-1">
+              <span className="text-[10px] text-slate-500 font-bold block mb-0.5">วันที่จอง</span>
+              <span className="font-black text-foreground text-[11.5px] sm:text-[12.5px] leading-tight block truncate">
+                {formatDateThai(date)}
+              </span>
             </div>
           </div>
 
-          <div className="flex items-start gap-2.5 bg-slate-50 p-3 rounded-2xl border border-slate-100">
-             <div className="bg-primary/10 p-1.5 rounded-lg text-primary mt-0.5">
-                <Clock className="w-4 h-4 flex-shrink-0" />
+          <div className="flex items-start gap-2 bg-slate-50 p-2.5 sm:p-3 rounded-2xl border border-slate-100 min-w-0">
+            <div className="bg-primary/10 p-1.5 rounded-lg text-primary mt-0.5 shrink-0">
+              <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
-            <div>
-              <span className="text-[11px] text-slate-500 font-bold block mb-0.5">เวลารอบ & ระยะเวลา</span>
-              <span className="font-black text-foreground block text-[12px]">
+            <div className="min-w-0 flex-1">
+              <span className="text-[10px] text-slate-500 font-bold block mb-0.5">เวลารอบ & ระยะเวลา</span>
+              <span className="font-black text-foreground block text-[11.5px] sm:text-[12.5px] leading-tight truncate">
                 {time} น.
               </span>
-              <span className="text-[10px] font-bold text-primary block mt-0.5">
-                ({bookingHours} ชม. = {totalDurationMinutes} นาที
-                {addonsExtraDuration > 0 && ` +${addonsExtraDuration}น.`})
+              <span className="text-[9.5px] font-bold text-primary block mt-0.5 truncate">
+                ({bookingHours} ชม. · {totalDurationMinutes} นาที{addonsExtraDuration > 0 && ` +${addonsExtraDuration}น.`})
               </span>
             </div>
           </div>
@@ -448,22 +458,24 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
         </div>
 
         {liffProfile.isLoggedIn || liffProfile.isAuthorized ? (
-          <div className="bg-emerald-50/90 border border-emerald-300 p-3 rounded-2xl flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 min-w-0">
+          <div className="bg-emerald-50/90 border border-emerald-300 p-2.5 sm:p-3 rounded-2xl flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
               {liffProfile.pictureUrl ? (
-                <img src={liffProfile.pictureUrl} alt={liffProfile.displayName} className="w-8 h-8 rounded-full border border-emerald-400/60 object-cover shrink-0" />
+                <img src={liffProfile.pictureUrl} alt={liffProfile.displayName} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-emerald-400/60 object-cover shrink-0" />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-[#06C755] text-white font-black text-xs flex items-center justify-center shrink-0">LINE</div>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#06C755] text-white font-black text-[10px] flex items-center justify-center shrink-0">LINE</div>
               )}
-              <div className="min-w-0">
-                <p className="font-extrabold text-[12px] text-emerald-900 flex items-center gap-1 truncate">
+              <div className="min-w-0 flex-1">
+                <p className="font-extrabold text-[11.5px] sm:text-[12px] text-emerald-900 flex items-center gap-1 truncate">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0 inline" />
-                  <span>ยืนยันสิทธิ์จองแล้ว ({liffProfile.displayName})</span>
+                  <span className="truncate">ยืนยันสิทธิ์จองแล้ว ({liffProfile.displayName})</span>
                 </p>
-                <p className="text-[10px] text-emerald-700 font-medium truncate">บันทึกสิทธิ์เรียบร้อย พร้อมทำการจองได้ทันที</p>
+                <p className="text-[9.5px] sm:text-[10px] text-emerald-700 font-medium truncate">
+                  บันทึกสิทธิ์เรียบร้อย พร้อมทำการจองได้ทันที
+                </p>
               </div>
             </div>
-            <span className="text-[9px] font-black text-emerald-800 bg-white px-2 py-1 rounded-lg border border-emerald-200 shadow-xs shrink-0">
+            <span className="text-[8.5px] sm:text-[9px] font-black text-emerald-800 bg-white px-2 py-0.5 sm:py-1 rounded-lg border border-emerald-200 shadow-xs shrink-0 whitespace-nowrap">
               สิทธิ์ยืนยันแล้ว
             </span>
           </div>
@@ -678,6 +690,35 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
           </div>
         </div>
 
+        {/* PDPA Consent Checkbox */}
+        <div className="flex items-start gap-2 px-1 pt-1 pb-0.5">
+          <input
+            type="checkbox"
+            id="pdpa-consent-check"
+            checked={pdpaConsent}
+            onChange={(e) => setPdpaConsent(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+          />
+          <label htmlFor="pdpa-consent-check" className="text-[10.5px] text-slate-500 leading-snug cursor-pointer">
+            ยินยอมการเก็บและใช้ข้อมูลส่วนบุคคลตาม{' '}
+            <button
+              type="button"
+              onClick={() => setLegalModal('privacy')}
+              className="text-primary underline font-bold"
+            >
+              นโยบายความเป็นส่วนตัว (PDPA)
+            </button>{' '}
+            และ{' '}
+            <button
+              type="button"
+              onClick={() => setLegalModal('terms')}
+              className="text-primary underline font-bold"
+            >
+              ข้อกำหนดการใช้บริการ
+            </button>
+          </label>
+        </div>
+
         {validationError && (
           <div className="bg-red-50 text-red-600 px-4 py-3 rounded-2xl border border-red-100 text-[12px] font-bold flex items-center gap-2 animate-fadeIn">
             <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center shrink-0">
@@ -791,6 +832,9 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
           </div>
         </div>
       )}
+
+      {/* Legal Modal Popup */}
+      <LegalModal type={legalModal} onClose={() => setLegalModal(null)} />
     </div>
   );
 };

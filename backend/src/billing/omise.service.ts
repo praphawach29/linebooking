@@ -145,4 +145,21 @@ export class OmiseService {
       currency: currency.toLowerCase(),
     });
   }
+
+  /**
+   * คืนเงิน (Refund) ให้กับ Charge
+   * @param chargeId รหัส charge ที่ต้องการคืนเงิน
+   * @param amountBaht จำนวนเงินที่ต้องการคืน (หากไม่ระบุจะคืนเต็มจำนวน)
+   */
+  createRefund(chargeId: string, amountBaht?: number) {
+    const body = amountBaht ? { amount: Math.round(amountBaht * 100) } : undefined;
+    return this.request(`/charges/${chargeId}/refunds`, 'POST', body);
+  }
+
+  /**
+   * ดึงรายการ Charges ล่าสุดจาก Omise เพื่อการกระทบยอด (Reconciliation)
+   */
+  listCharges(limit = 50) {
+    return this.request(`/charges?limit=${limit}&order=reverse_chronological`, 'GET');
+  }
 }

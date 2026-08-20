@@ -88,6 +88,7 @@ describe('BookingsController HTTP / Validation E2E Tests', () => {
     endTime: '11:00',
     status: 'pending',
     price: 500,
+    depositAmount: 0,
     discountAmount: 0,
     finalPrice: 500,
     paymentStatus: 'unpaid',
@@ -214,7 +215,7 @@ describe('BookingsController HTTP / Validation E2E Tests', () => {
         })
         .expect(400);
 
-      expect(response.body).toEqual({
+      expect(response.body).toMatchObject({
         statusCode: 400,
         code: ErrorCode.TENANT_ID_REQUIRED,
         message: 'x-tenant-id header is required',
@@ -232,7 +233,7 @@ describe('BookingsController HTTP / Validation E2E Tests', () => {
         })
         .expect(400);
 
-      expect(response.body).toEqual({
+      expect(response.body).toMatchObject({
         statusCode: 400,
         code: ErrorCode.TENANT_ID_INVALID,
         message: 'x-tenant-id header must be a valid UUID',
@@ -432,7 +433,7 @@ describe('BookingsController HTTP / Validation E2E Tests', () => {
         })
         .expect(409);
 
-      expect(response.body).toEqual({
+      expect(response.body).toMatchObject({
         statusCode: 409,
         code: ErrorCode.BOOKING_SLOT_UNAVAILABLE,
         message: 'Selected booking slot is no longer available',

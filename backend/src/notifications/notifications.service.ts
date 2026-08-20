@@ -1,8 +1,15 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnApplicationBootstrap,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { LineMessagingClient } from './line-messaging.client';
+import { AuditService } from '../common/audit/audit.service';
 import {
   LineBookingEvent,
   LineQuotaStatus,
@@ -18,6 +25,7 @@ export class NotificationsService implements OnApplicationBootstrap {
     @InjectQueue(NOTIFICATIONS_QUEUE) private readonly notificationQueue: Queue,
     private readonly prisma: PrismaService,
     private readonly lineClient: LineMessagingClient,
+    private readonly auditService: AuditService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -76,7 +84,7 @@ export class NotificationsService implements OnApplicationBootstrap {
     }
   }
 
-  private async enqueueDelivery(deliveryId: string, replaceStaleJob = false): Promise<void> {
+  async enqueueDelivery(deliveryId: string, replaceStaleJob = false): Promise<void> {
     if (replaceStaleJob) {
       const existingJob = await this.notificationQueue.getJob(deliveryId);
       if (existingJob) {
@@ -101,6 +109,161 @@ export class NotificationsService implements OnApplicationBootstrap {
         removeOnFail: 500,
       },
     );
+  }
+
+  async getFailedDeliveries(options?: {
+    tenantId?: string;
+    limit?: number;
+    offset?: number;
+    eventType?: string;
+  }) {
+    const limit = Math.min(options?.limit ?? 50, 100);
+    const offset = options?.offset ?? 0;
+
+    const where: any = {
+      status: 'failed',
+    };
+    if (options?.tenantId) {
+      where.tenantId = options.tenantId;
+    }
+    if (options?.eventType) {
+      where.eventType = options.eventType;
+    }
+
+    const [deliveries, total] = await Promise.all([
+      this.prisma.lineMessageDelivery.findMany({
+        where,
+        orderBy: { updatedAt: 'desc' },
+        take: limit,
+        skip: offset,
+        include: {
+          tenant: { select: { id: true, name: true, slug: true } },
+          user: { select: { id: true, displayName: true, phone: true, lineUserId: true } },
+          booking: {
+            select: {
+              id: true,
+              ref_no: true,
+              service_name: true,
+              bookingDate: true,
+              startTime: true,
+              status: true,
+            },
+          },
+        },
+      }),
+      this.prisma.lineMessageDelivery.count({ where }),
+    ]);
+
+    return { deliveries, total, limit, offset };
+  }
+
+  async retryDelivery(
+    deliveryId: string,
+    actor?: { id?: string; role?: string },
+  ) {
+    const delivery = await this.prisma.lineMessageDelivery.findUnique({
+      where: { id: deliveryId },
+      include: { tenant: true },
+    });
+
+    if (!delivery) {
+      throw new NotFoundException('Delivery job not found');
+    }
+
+    if (delivery.status !== 'failed') {
+      throw new BadRequestException(
+        `Cannot retry delivery with status ${delivery.status}. Only failed deliveries can be retried.`,
+      );
+    }
+
+    await this.prisma.lineMessageDelivery.update({
+      where: { id: deliveryId },
+      data: {
+        status: 'queued',
+        attempts: 0,
+        errorCode: null,
+        errorMessage: null,
+        scheduledAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    await this.enqueueDelivery(deliveryId, true);
+
+    await this.auditService.record({
+      tenantId: delivery.tenantId,
+      actorId: actor?.id || null,
+      actorType: (actor?.role as any) || 'merchant_admin',
+      action: 'notification_retried',
+      entityType: 'line_message_delivery',
+      entityId: delivery.id,
+      beforeState: {
+        status: 'failed',
+        errorCode: delivery.errorCode,
+        errorMessage: delivery.errorMessage,
+        attempts: delivery.attempts,
+      },
+      afterState: { status: 'queued', attempts: 0 },
+      reason: 'Manual retry triggered by admin/merchant',
+    });
+
+    return {
+      success: true,
+      deliveryId,
+      status: 'queued',
+      message: 'Delivery job re-enqueued successfully',
+    };
+  }
+
+  async retryAllFailedDeliveries(
+    tenantId?: string,
+    actor?: { id?: string; role?: string },
+  ) {
+    const where: any = { status: 'failed' };
+    if (tenantId) {
+      where.tenantId = tenantId;
+    }
+
+    const failedDeliveries = await this.prisma.lineMessageDelivery.findMany({
+      where,
+      select: { id: true, tenantId: true },
+      take: 100,
+    });
+
+    for (const delivery of failedDeliveries) {
+      await this.prisma.lineMessageDelivery.update({
+        where: { id: delivery.id },
+        data: {
+          status: 'queued',
+          attempts: 0,
+          errorCode: null,
+          errorMessage: null,
+          scheduledAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+      await this.enqueueDelivery(delivery.id, true);
+    }
+
+    if (failedDeliveries.length > 0 && tenantId) {
+      await this.auditService.record({
+        tenantId,
+        actorId: actor?.id || null,
+        actorType: (actor?.role as any) || 'merchant_admin',
+        action: 'notifications_bulk_retried',
+        entityType: 'line_message_delivery',
+        entityId: tenantId,
+        beforeState: { retriedCount: failedDeliveries.length },
+        afterState: { status: 'queued' },
+        reason: 'Bulk retry triggered by admin',
+      });
+    }
+
+    return {
+      success: true,
+      retriedCount: failedDeliveries.length,
+      message: `Successfully re-enqueued ${failedDeliveries.length} failed delivery jobs`,
+    };
   }
 
   async getLineQuotaStatus(tenantId: string): Promise<LineQuotaStatus> {

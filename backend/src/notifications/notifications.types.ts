@@ -2,10 +2,12 @@ export const NOTIFICATIONS_QUEUE = 'notifications';
 
 export type LineBookingEvent =
   | 'booking_created'
+  | 'payment_confirmed'
   | 'booking_confirmed'
   | 'booking_checked_in'
   | 'booking_rescheduled'
-  | 'booking_cancelled';
+  | 'booking_cancelled'
+  | 'booking_reminder';
 
 export type LineQuotaWarningLevel =
   'normal' | 'notice' | 'warning' | 'critical' | 'exceeded';

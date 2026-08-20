@@ -14,6 +14,7 @@ import { CreateBookingCommand } from './dto/create-booking-command.dto';
 import { BookingResponseDto } from './dto/booking-response.dto';
 import { ErrorCode } from '../common/constants/error-codes';
 import { computeMembershipTier } from '../common/utils/membership-tier';
+import { AuditService } from '../common/audit/audit.service';
 
 type BookingPayload = Prisma.BookingGetPayload<Record<string, never>>;
 
@@ -24,6 +25,7 @@ export class BookingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly availabilityService: AvailabilityService,
+    private readonly auditService: AuditService,
   ) {}
 
   async getCustomerBookings(
@@ -52,6 +54,7 @@ export class BookingsService {
     bookingId: string,
     status: 'pending' | 'confirmed' | 'checked_in' | 'completed' | 'cancelled' | 'no_show',
     reason?: string,
+    actor?: { id?: string; role?: string },
   ): Promise<BookingResponseDto> {
     const booking = await this.prisma.booking.findFirst({
       where: { id: bookingId, tenantId },
@@ -185,6 +188,29 @@ export class BookingsService {
         }
       }
 
+      await this.auditService.record(
+        {
+          tenantId,
+          actorId: actor?.id || null,
+          actorType: (actor?.role as any) || 'merchant_admin',
+          action: `booking_${status}`,
+          entityType: 'booking',
+          entityId: booking.id,
+          beforeState: {
+            status: booking.status,
+            refNo: booking.ref_no,
+          },
+          afterState: {
+            status: updated.status,
+            refNo: updated.ref_no,
+            pointsEarned: pointsEarned > 0 ? pointsEarned : undefined,
+            packageRemaining,
+          },
+          reason: status === 'cancelled' ? reason?.trim() || null : null,
+        },
+        tx,
+      );
+
       const response = this.toBookingResponse(updated);
       if (pointsEarned > 0) response.pointsEarned = pointsEarned;
       if (packageRemaining !== undefined) response.packageRemaining = packageRemaining;
@@ -196,6 +222,7 @@ export class BookingsService {
   async checkInBookingAsMerchant(
     tenantId: string,
     rawCode: string,
+    actor?: { id?: string; role?: string },
   ): Promise<BookingResponseDto> {
     const refNo = rawCode
       .trim()
@@ -231,6 +258,8 @@ export class BookingsService {
       tenantId,
       booking.id,
       'checked_in',
+      undefined,
+      actor,
     );
   }
 
@@ -239,6 +268,7 @@ export class BookingsService {
     bookingId: string,
     bookingDate: string,
     startTime: string,
+    actor?: { id?: string; role?: string },
   ): Promise<BookingResponseDto> {
     return this.prisma.$transaction(
       async (tx) => {
@@ -300,6 +330,31 @@ export class BookingsService {
             staffId: slot.staffId,
           },
         });
+
+        await this.auditService.record(
+          {
+            tenantId,
+            actorId: actor?.id || null,
+            actorType: (actor?.role as any) || 'merchant_admin',
+            action: 'booking_rescheduled',
+            entityType: 'booking',
+            entityId: booking.id,
+            beforeState: {
+              bookingDate: booking.bookingDate,
+              startTime: booking.startTime,
+              endTime: booking.endTime,
+              staffId: booking.staffId,
+            },
+            afterState: {
+              bookingDate: updated.bookingDate,
+              startTime: updated.startTime,
+              endTime: updated.endTime,
+              staffId: updated.staffId,
+            },
+          },
+          tx,
+        );
+
         return this.toBookingResponse(updated);
       },
       {
@@ -814,7 +869,12 @@ export class BookingsService {
     );
   }
 
-  async cancelBookingAsMerchant(tenantId: string, bookingId: string) {
+  async cancelBookingAsMerchant(
+    tenantId: string,
+    bookingId: string,
+    reason?: string,
+    actor?: { id?: string; role?: string },
+  ) {
     if (!tenantId) {
       throw new BadRequestException({
         statusCode: 400,
@@ -843,10 +903,28 @@ export class BookingsService {
       });
     }
 
-    return this.prisma.booking.update({
+    const updated = await this.prisma.booking.update({
       where: { id: bookingId },
-      data: { status: 'cancelled', cancelledAt: new Date() },
+      data: {
+        status: 'cancelled',
+        cancelledAt: new Date(),
+        cancellationReason: reason?.trim() || null,
+      },
     });
+
+    await this.auditService.record({
+      tenantId,
+      actorId: actor?.id || null,
+      actorType: (actor?.role as any) || 'merchant_admin',
+      action: 'booking_cancelled',
+      entityType: 'booking',
+      entityId: booking.id,
+      beforeState: { status: booking.status, refNo: booking.ref_no },
+      afterState: { status: 'cancelled', refNo: booking.ref_no },
+      reason: reason || null,
+    });
+
+    return updated;
   }
 
   /**
@@ -859,6 +937,7 @@ export class BookingsService {
   async verifyBookingPaymentAsMerchant(
     tenantId: string,
     bookingId: string,
+    actor?: { id?: string; role?: string },
   ): Promise<BookingResponseDto> {
     if (!tenantId) {
       throw new BadRequestException({
@@ -891,6 +970,17 @@ export class BookingsService {
     const updated = await this.prisma.booking.update({
       where: { id: bookingId },
       data: { paymentStatus: 'paid' },
+    });
+
+    await this.auditService.record({
+      tenantId,
+      actorId: actor?.id || null,
+      actorType: (actor?.role as any) || 'merchant_admin',
+      action: 'payment_verified',
+      entityType: 'booking',
+      entityId: booking.id,
+      beforeState: { paymentStatus: booking.paymentStatus, refNo: booking.ref_no },
+      afterState: { paymentStatus: 'paid', refNo: booking.ref_no },
     });
 
     return this.toBookingResponse(updated);

@@ -2,6 +2,7 @@ import React, { ReactNode, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
   Activity,
+  BellRing,
   Building2,
   CreditCard,
   DollarSign,
@@ -10,6 +11,8 @@ import {
   Megaphone,
   Menu,
   Receipt,
+  RefreshCw,
+  Rocket,
   ShieldCheck,
   Sparkles,
   Users,
@@ -19,12 +22,15 @@ import {
 
 export type AdminTab =
   | 'overview'
+  | 'pilot_validation'
   | 'tenants'
   | 'users'
   | 'plans'
   | 'gateway'
   | 'invoices'
+  | 'reconciliation'
   | 'slips'
+  | 'failed_deliveries'
   | 'system';
 
 interface NavItem {
@@ -65,7 +71,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   const navGroups: { title: string; items: NavItem[] }[] = [
     {
       title: 'ภาพรวม',
-      items: [{ id: 'overview', label: 'แดชบอร์ด', icon: Activity }],
+      items: [
+        { id: 'overview', label: 'แดชบอร์ด', icon: Activity },
+        { id: 'pilot_validation', label: 'Pilot & Launch', icon: Rocket },
+      ],
     },
     {
       title: 'ผู้เช่า',
@@ -80,12 +89,16 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         { id: 'plans', label: 'แพ็กเกจค่าบริการ', icon: DollarSign },
         { id: 'gateway', label: 'ตั้งค่ารับชำระเงิน', icon: CreditCard },
         { id: 'invoices', label: 'ใบแจ้งหนี้', icon: Receipt },
+        { id: 'reconciliation', label: 'กระทบยอด (Omise)', icon: RefreshCw },
         { id: 'slips', label: 'รออนุมัติสลิป', icon: FileText, badge: pendingSlipCount },
       ],
     },
     {
       title: 'ระบบ',
-      items: [{ id: 'system', label: 'System Health', icon: Zap }],
+      items: [
+        { id: 'failed_deliveries', label: 'LINE Queue (DLQ)', icon: BellRing },
+        { id: 'system', label: 'System Health', icon: Zap },
+      ],
     },
   ];
 

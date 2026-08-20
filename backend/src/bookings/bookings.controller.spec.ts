@@ -357,6 +357,8 @@ describe('BookingsController (Unit Tests)', () => {
       expect(bookingsService.cancelBookingAsMerchant).toHaveBeenCalledWith(
         tenantId,
         bookingId,
+        undefined,
+        undefined,
       );
     });
 
@@ -373,6 +375,7 @@ describe('BookingsController (Unit Tests)', () => {
       expect(bookingsService.checkInBookingAsMerchant).toHaveBeenCalledWith(
         tenantId,
         'CHECKIN-BK-TEST',
+        undefined,
       );
       expect(notificationsService.queueBookingEvent).toHaveBeenCalledWith(
         tenantId,

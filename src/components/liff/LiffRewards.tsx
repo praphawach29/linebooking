@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Gift, ChevronLeft, Search, Star, Clock, AlertCircle } from 'lucide-react';
 import { useSaaS } from '../../context/SaaSContext';
 import { Reward } from '../../types';
+import { invalidateCustomerProfileCache } from '../../lib/customer-profile-cache';
 
 interface LiffRewardsProps {
   onBack: () => void;
@@ -25,6 +26,9 @@ const LiffRewards: React.FC<LiffRewardsProps> = ({ onBack }) => {
     const success = redeemReward(selectedReward.id, currentUser.id);
     if (success) {
       setRedeemStatus('success');
+      if (activeTenant?.id) {
+        invalidateCustomerProfileCache(activeTenant.id);
+      }
     } else {
       setRedeemStatus('error');
     }

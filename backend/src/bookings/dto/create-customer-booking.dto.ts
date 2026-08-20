@@ -72,6 +72,6 @@ export class CreateCustomerBookingDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(2_000_000)
+  @MaxLength(10_000_000)
   paymentSlipUrl?: string;
 }

@@ -3,6 +3,7 @@ import { Booking } from '../../types';
 import { useSaaS } from '../../context/SaaSContext';
 import { LiffDateTimePicker } from './LiffDateTimePicker';
 import { X, Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { invalidateCustomerProfileCache } from '../../lib/customer-profile-cache';
 
 interface LiffRescheduleModalProps {
   booking: Booking;
@@ -56,6 +57,7 @@ export const LiffRescheduleModal: React.FC<LiffRescheduleModalProps> = ({ bookin
       const endTimeStr = `${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`;
       
       await rescheduleBooking(booking.id, selectedDate, selectedTime, endTimeStr);
+      invalidateCustomerProfileCache(booking.tenantId);
       onSuccess();
     } catch (err: any) {
       setError(err.message || 'Failed to reschedule / ไม่สามารถเลื่อนคิวได้');

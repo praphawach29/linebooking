@@ -141,8 +141,34 @@ export class BillingController {
   }
 
   // ---------------------------------------------------------------
-  // Ops (Super Admin เท่านั้น)
+  // Ops & Reconciliation (Super Admin เท่านั้น)
   // ---------------------------------------------------------------
+
+  /** คืนเงินใบแจ้งหนี้ */
+  @Post('invoices/:id/refund')
+  @UseGuards(PlatformAdminGuard)
+  refundInvoice(
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+    @CurrentUser() user: AppUser,
+  ) {
+    return this.subscriptions.refundInvoice(id, reason || 'Admin requested refund', user.dbUserId);
+  }
+
+  /** ตรวจสอบความถูกต้องของยอดระหว่าง Omise และ Database (Reconciliation) */
+  @Get('reconciliation')
+  @UseGuards(PlatformAdminGuard)
+  getReconciliation(@Query('limit') limit?: string) {
+    const lim = limit ? parseInt(limit, 10) : 50;
+    return this.billingService.reconcileWithOmise(lim);
+  }
+
+  /** สั่ง Sync รายการที่สถานะไม่ตรงกันระหว่าง Omise และ DB */
+  @Post('reconciliation/sync/:id')
+  @UseGuards(PlatformAdminGuard)
+  syncReconciliationInvoice(@Param('id') id: string) {
+    return this.billingService.syncInvoiceFromOmise(id);
+  }
 
   /** สั่งรอบเก็บเงินด้วยมือ — ใช้ตอนทดสอบหรือกู้สถานการณ์เมื่อ cron พลาด */
   @Post('run-collection')

@@ -1,18 +1,32 @@
 import { NotificationsService } from './notifications.service';
 
-describe('NotificationsService LINE quota', () => {
+describe('NotificationsService LINE quota & DLQ', () => {
   const queue = { add: jest.fn(), getJob: jest.fn() };
   const prisma = {
     tenant: { findUnique: jest.fn() },
     lineQuotaSnapshot: { upsert: jest.fn(), findUnique: jest.fn() },
-    lineMessageDelivery: { aggregate: jest.fn(), findMany: jest.fn() },
+    lineMessageDelivery: {
+      aggregate: jest.fn(),
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      count: jest.fn(),
+    },
   };
   const lineClient = { getQuota: jest.fn() };
+  const mockAuditService = {
+    record: jest.fn().mockResolvedValue({ id: 'audit-log-uuid' }),
+  };
   let service: NotificationsService;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new NotificationsService(queue as any, prisma as any, lineClient as any);
+    service = new NotificationsService(
+      queue as any,
+      prisma as any,
+      lineClient as any,
+      mockAuditService as any,
+    );
     prisma.tenant.findUnique.mockResolvedValue({ lineChannelAccessToken: 'token' });
     prisma.lineMessageDelivery.findMany.mockResolvedValue([]);
     queue.getJob.mockResolvedValue(null);
@@ -54,6 +68,69 @@ describe('NotificationsService LINE quota', () => {
       'line-booking-event',
       { deliveryId: 'delivery-1' },
       expect.objectContaining({ jobId: 'delivery-1' }),
+    );
+  });
+
+  it('retrieves paginated failed deliveries (DLQ)', async () => {
+    prisma.lineMessageDelivery.findMany.mockResolvedValueOnce([
+      { id: 'failed-1', status: 'failed', errorCode: '400' },
+    ]);
+    prisma.lineMessageDelivery.count.mockResolvedValueOnce(1);
+
+    const result = await service.getFailedDeliveries({
+      tenantId: 'tenant-1',
+      limit: 10,
+      offset: 0,
+    });
+
+    expect(result.total).toBe(1);
+    expect(result.deliveries.length).toBe(1);
+    expect(prisma.lineMessageDelivery.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ status: 'failed', tenantId: 'tenant-1' }),
+      }),
+    );
+  });
+
+  it('retries a failed delivery, resets attempt counter, and writes audit log', async () => {
+    prisma.lineMessageDelivery.findUnique.mockResolvedValueOnce({
+      id: 'delivery-failed-123',
+      tenantId: 'tenant-1',
+      status: 'failed',
+      errorCode: '500',
+      attempts: 3,
+      tenant: { id: 'tenant-1' },
+    });
+    prisma.lineMessageDelivery.update.mockResolvedValueOnce({
+      id: 'delivery-failed-123',
+      status: 'queued',
+    });
+
+    const result = await service.retryDelivery('delivery-failed-123', {
+      id: 'admin-1',
+      role: 'platform_admin',
+    });
+
+    expect(result.success).toBe(true);
+    expect(prisma.lineMessageDelivery.update).toHaveBeenCalledWith({
+      where: { id: 'delivery-failed-123' },
+      data: expect.objectContaining({
+        status: 'queued',
+        attempts: 0,
+        errorCode: null,
+      }),
+    });
+    expect(queue.add).toHaveBeenCalledWith(
+      'line-booking-event',
+      { deliveryId: 'delivery-failed-123' },
+      expect.any(Object),
+    );
+    expect(mockAuditService.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: 'tenant-1',
+        action: 'notification_retried',
+        entityId: 'delivery-failed-123',
+      }),
     );
   });
 

@@ -5,10 +5,14 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { computeMembershipTier } from '../common/utils/membership-tier';
+import { AuditService } from '../common/audit/audit.service';
 
 @Injectable()
 export class MembershipsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditService: AuditService,
+  ) {}
 
   /**
    * Merges a separate, phone-linked account (e.g. created by a walk-in
@@ -320,5 +324,210 @@ export class MembershipsService {
         reward,
       };
     });
+  }
+
+  async adjustCustomerPointsAsMerchant(
+    tenantId: string,
+    targetUserId: string,
+    pointsDelta: number,
+    reason?: string,
+    actor?: { id?: string; role?: string },
+  ) {
+    if (!tenantId) {
+      throw new BadRequestException('Tenant ID is required');
+    }
+    if (!targetUserId) {
+      throw new BadRequestException('Target customer user ID is required');
+    }
+    if (
+      typeof pointsDelta !== 'number' ||
+      isNaN(pointsDelta) ||
+      pointsDelta === 0
+    ) {
+      throw new BadRequestException('Points delta must be a non-zero number');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      let membership = await tx.membership.findUnique({
+        where: { tenantId_userId: { tenantId, userId: targetUserId } },
+      });
+
+      const previousPoints = membership?.points || 0;
+      const previousTotalEarned = membership?.totalPointsEarned || 0;
+      const previousTier = membership?.tier || 'bronze';
+
+      const newPoints = Math.max(0, previousPoints + pointsDelta);
+      const newTotalEarned =
+        pointsDelta > 0
+          ? previousTotalEarned + pointsDelta
+          : previousTotalEarned;
+      const newTier = computeMembershipTier(newTotalEarned);
+
+      if (!membership) {
+        membership = await tx.membership.create({
+          data: {
+            tenantId,
+            userId: targetUserId,
+            points: newPoints,
+            totalPointsEarned: newTotalEarned,
+            tier: newTier,
+          },
+        });
+      } else {
+        membership = await tx.membership.update({
+          where: { id: membership.id },
+          data: {
+            points: newPoints,
+            totalPointsEarned: newTotalEarned,
+            tier: newTier,
+          },
+        });
+      }
+
+      const pointTx = await tx.pointTransaction.create({
+        data: {
+          membershipId: membership.id,
+          points: pointsDelta,
+          type: pointsDelta >= 0 ? 'ADJUST_ADD' : 'ADJUST_DEDUCT',
+          description: reason?.trim() || 'Manual adjustment by merchant',
+        },
+      });
+
+      await this.auditService.record(
+        {
+          tenantId,
+          actorId: actor?.id || null,
+          actorType: (actor?.role as any) || 'merchant_admin',
+          action: 'points_adjusted',
+          entityType: 'membership',
+          entityId: membership.id,
+          beforeState: {
+            points: previousPoints,
+            totalPointsEarned: previousTotalEarned,
+            tier: previousTier,
+          },
+          afterState: {
+            points: newPoints,
+            totalPointsEarned: newTotalEarned,
+            tier: newTier,
+            pointsDelta,
+          },
+          reason: reason?.trim() || null,
+        },
+        tx,
+      );
+
+      return {
+        success: true,
+        membership,
+        pointTransaction: pointTx,
+      };
+    });
+  }
+
+  /**
+   * PDPA - สิทธิในการขอเข้าถึงและรับสำเนาข้อมูลส่วนบุคคล (Data Portability / Export)
+   */
+  async exportCustomerData(tenantId: string, userId: string) {
+    const [user, membership, bookings] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          displayName: true,
+          phone: true,
+          avatarUrl: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.membership.findUnique({
+        where: { tenantId_userId: { tenantId, userId } },
+        include: {
+          pointTransactions: {
+            orderBy: { createdAt: 'desc' },
+            take: 50,
+          },
+          reward_redemptions: {
+            include: {
+              rewards: { select: { name: true, pointsRequired: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.booking.findMany({
+        where: { tenantId, userId },
+        orderBy: { bookingDate: 'desc' },
+        take: 100,
+        select: {
+          ref_no: true,
+          service_name: true,
+          court_name: true,
+          bookingDate: true,
+          startTime: true,
+          endTime: true,
+          status: true,
+          finalPrice: true,
+          paymentStatus: true,
+          createdAt: true,
+        },
+      }),
+    ]);
+
+    return {
+      exportedAt: new Date().toISOString(),
+      tenantId,
+      profile: user,
+      membership,
+      bookings,
+    };
+  }
+
+  /**
+   * PDPA - สิทธิในการขอลบหรือทำลายข้อมูลส่วนบุคคล (Right to Erasure / Anonymization)
+   */
+  async eraseCustomerData(tenantId: string, userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('ไม่พบข้อมูลผู้ใช้');
+
+    const anonymizedName = `Anonymized User ${userId.slice(0, 8)}`;
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        displayName: anonymizedName,
+        phone: null,
+        avatarUrl: null,
+        lineUserId: user.lineUserId ? `deleted_${Date.now()}_${userId.slice(0, 6)}` : null,
+      },
+    });
+
+    await this.prisma.booking.updateMany({
+      where: { userId },
+      data: {
+        user_name: anonymizedName,
+        user_phone: null,
+        user_avatar: null,
+        notes: null,
+        paymentSlipUrl: null,
+      },
+    });
+
+    await this.auditService.record({
+      tenantId,
+      actorId: userId,
+      actorType: 'customer',
+      action: 'customer_data_erased_pdpa',
+      entityType: 'user',
+      entityId: userId,
+      beforeState: { displayName: user.displayName, phone: user.phone },
+      afterState: { displayName: anonymizedName, phone: null },
+      reason: 'Customer exercised PDPA Right to Erasure',
+    });
+
+    return {
+      success: true,
+      message: 'ข้อมูลส่วนบุคคลของคุณได้รับการลบและทำให้นิรนามเรียบร้อยแล้วตามสิทธิ PDPA',
+      anonymizedAt: new Date().toISOString(),
+    };
   }
 }

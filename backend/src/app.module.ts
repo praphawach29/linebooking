@@ -1,5 +1,7 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { BullModule } from '@nestjs/bullmq';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -12,6 +14,9 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { BillingModule } from './billing/billing.module';
 import { SupabaseModule } from './common/supabase/supabase.module';
+import { AuditModule } from './common/audit/audit.module';
+import { HealthModule } from './health/health.module';
+import { CorrelationLoggingMiddleware } from './common/middleware/correlation-logging.middleware';
 
 function getRedisConnection() {
   const redisUrl = process.env.REDIS_URL;
@@ -36,12 +41,40 @@ function getRedisConnection() {
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60000, // 60 seconds
+        limit: 60,  // 60 requests per minute default
+      },
+    ]),
     BullModule.forRoot({
       connection: getRedisConnection(),
     }),
-    AuthModule, PrismaModule, ServicesModule, BookingsModule, MerchantModule, MembershipsModule, WebhooksModule, NotificationsModule, SupabaseModule, BillingModule
+    AuditModule,
+    AuthModule,
+    PrismaModule,
+    ServicesModule,
+    BookingsModule,
+    MerchantModule,
+    MembershipsModule,
+    WebhooksModule,
+    NotificationsModule,
+    SupabaseModule,
+    BillingModule,
+    HealthModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(CorrelationLoggingMiddleware).forRoutes('*');
+  }
+}

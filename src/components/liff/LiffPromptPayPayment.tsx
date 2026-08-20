@@ -285,8 +285,8 @@ export const LiffPromptPayPayment: React.FC<LiffPromptPayPaymentProps> = ({
 
           <div className="flex items-center justify-between gap-2 border-t border-slate-200/70 pt-2.5">
             <span className="text-slate-500 font-bold text-[11.5px] shrink-0">หมายเลขพร้อมเพย์:</span>
-            <div className="flex items-center gap-1.5 min-w-0 bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-2xs">
-              <span className="font-mono font-black text-emerald-600 text-[12.5px] sm:text-sm tracking-wide truncate">
+            <div className="flex items-center gap-1.5 shrink-0 bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-2xs">
+              <span className="font-mono font-black text-emerald-600 text-[12px] sm:text-[13px] tracking-wide select-all">
                 {promptpayNo}
               </span>
               <button

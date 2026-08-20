@@ -252,29 +252,32 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5 text-[13px] text-slate-600 pt-1 relative z-10">
-          <div className="flex items-start gap-2 bg-slate-50 p-2.5 sm:p-3 rounded-2xl border border-slate-100 min-w-0">
-            <div className="bg-primary/10 p-1.5 rounded-lg text-primary mt-0.5 shrink-0">
-              <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+        {/* Horizontal Booking Date & Time Schedule Card */}
+        <div className="bg-slate-50/90 rounded-2xl border border-slate-200/80 p-3.5 space-y-2.5 relative z-10 shadow-2xs">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-slate-600 shrink-0">
+              <div className="bg-primary/10 p-1.5 rounded-lg text-primary">
+                <Calendar className="w-4 h-4" />
+              </div>
+              <span className="text-[12px] font-bold text-slate-500">วันที่จอง</span>
             </div>
-            <div className="min-w-0 flex-1">
-              <span className="text-[10px] text-slate-500 font-bold block mb-0.5">วันที่จอง</span>
-              <span className="font-black text-foreground text-[11.5px] sm:text-[12.5px] leading-tight block truncate">
-                {formatDateThai(date)}
-              </span>
-            </div>
+            <span className="font-black text-[13px] text-foreground text-right">
+              {formatDateThai(date)}
+            </span>
           </div>
 
-          <div className="flex items-start gap-2 bg-slate-50 p-2.5 sm:p-3 rounded-2xl border border-slate-100 min-w-0">
-            <div className="bg-primary/10 p-1.5 rounded-lg text-primary mt-0.5 shrink-0">
-              <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <div className="flex items-center justify-between gap-2 border-t border-slate-200/60 pt-2.5">
+            <div className="flex items-center gap-2 text-slate-600 shrink-0">
+              <div className="bg-primary/10 p-1.5 rounded-lg text-primary">
+                <Clock className="w-4 h-4" />
+              </div>
+              <span className="text-[12px] font-bold text-slate-500">เวลารอบ</span>
             </div>
-            <div className="min-w-0 flex-1">
-              <span className="text-[10px] text-slate-500 font-bold block mb-0.5">เวลารอบ & ระยะเวลา</span>
-              <span className="font-black text-foreground block text-[11.5px] sm:text-[12.5px] leading-tight truncate">
+            <div className="text-right">
+              <span className="font-black text-[13px] text-foreground block">
                 {time} น.
               </span>
-              <span className="text-[9.5px] font-bold text-primary block mt-0.5 truncate">
+              <span className="text-[10px] font-bold text-primary block mt-0.5">
                 ({bookingHours} ชม. · {totalDurationMinutes} นาที{addonsExtraDuration > 0 && ` +${addonsExtraDuration}น.`})
               </span>
             </div>
@@ -560,20 +563,20 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
           {enabledPaymentMethods.includes('promptpay') && (
           <div
             onClick={() => setPaymentMethod('promptpay')}
-            className={`p-4 rounded-2xl border flex items-center gap-4 cursor-pointer transition-all duration-300 ${
+            className={`p-3.5 sm:p-4 rounded-2xl border flex items-center gap-3.5 cursor-pointer transition-all duration-300 ${
               paymentMethod === 'promptpay'
                 ? 'bg-primary/5 border-primary ring-2 ring-primary/20 shadow-sm scale-[1.01]'
                 : 'bg-white border-slate-200 hover:border-slate-300'
             }`}
           >
-            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md flex-shrink-0">
-              <QrCode className="w-6 h-6" />
+            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md shrink-0">
+              <QrCode className="w-5 h-5" />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <p className="text-[13px] font-black text-foreground">PromptPay QR Code</p>
-              <p className="text-[11px] text-slate-500 font-medium">สแกนผ่านแอปธนาคาร ยืนยันคิวทันที</p>
+              <p className="text-[11px] text-slate-500 font-medium truncate">สแกนจ่ายผ่าน Mobile Banking</p>
             </div>
-             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
+             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ${
                 paymentMethod === 'promptpay' ? 'border-primary' : 'border-slate-300'
               }`}>
                   {paymentMethod === 'promptpay' && <div className="w-2.5 h-2.5 bg-primary rounded-full"></div>}
@@ -585,20 +588,20 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
           {enabledPaymentMethods.includes('credit_card') && (
           <div
             onClick={() => setPaymentMethod('credit_card')}
-            className={`p-4 rounded-2xl border flex items-center gap-4 cursor-pointer transition-all duration-300 ${
+            className={`p-3.5 sm:p-4 rounded-2xl border flex items-center gap-3.5 cursor-pointer transition-all duration-300 ${
               paymentMethod === 'credit_card'
                 ? 'bg-primary/5 border-primary ring-2 ring-primary/20 shadow-sm scale-[1.01]'
                 : 'bg-white border-slate-200 hover:border-slate-300'
             }`}
           >
-            <div className="w-10 h-10 rounded-xl bg-slate-800 text-white flex items-center justify-center shadow-md flex-shrink-0">
-              <CreditCard className="w-6 h-6" />
+            <div className="w-10 h-10 rounded-xl bg-slate-800 text-white flex items-center justify-center shadow-md shrink-0">
+              <CreditCard className="w-5 h-5" />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <p className="text-[13px] font-black text-foreground">บัตรเครดิต / เดบิต</p>
-              <p className="text-[11px] text-slate-500 font-medium">รองรับ Visa, Mastercard, JCB</p>
+              <p className="text-[11px] text-slate-500 font-medium truncate">รองรับบัตรเครดิตและเดบิตทุกธนาคาร</p>
             </div>
-             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
+             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ${
                 paymentMethod === 'credit_card' ? 'border-primary' : 'border-slate-300'
               }`}>
                   {paymentMethod === 'credit_card' && <div className="w-2.5 h-2.5 bg-primary rounded-full"></div>}
@@ -610,20 +613,20 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
           {enabledPaymentMethods.includes('cash') && (
           <div
             onClick={() => setPaymentMethod('cash')}
-            className={`p-4 rounded-2xl border flex items-center gap-4 cursor-pointer transition-all duration-300 ${
+            className={`p-3.5 sm:p-4 rounded-2xl border flex items-center gap-3.5 cursor-pointer transition-all duration-300 ${
               paymentMethod === 'cash'
                 ? 'bg-primary/5 border-primary ring-2 ring-primary/20 shadow-sm scale-[1.01]'
                 : 'bg-white border-slate-200 hover:border-slate-300'
             }`}
           >
-            <div className="w-10 h-10 rounded-xl bg-success text-white flex items-center justify-center shadow-md flex-shrink-0">
-              <Banknote className="w-6 h-6" />
+            <div className="w-10 h-10 rounded-xl bg-success text-white flex items-center justify-center shadow-md shrink-0">
+              <Banknote className="w-5 h-5" />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <p className="text-[13px] font-black text-foreground">ชำระเงินสดหน้างาน</p>
-              <p className="text-[11px] text-slate-500 font-medium">ชำระเต็มจำนวน ณ วันเข้าใช้บริการ</p>
+              <p className="text-[11px] text-slate-500 font-medium truncate">ชำระยอดเต็ม ณ วันเข้ารับบริการ</p>
             </div>
-             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
+             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ${
                 paymentMethod === 'cash' ? 'border-primary' : 'border-slate-300'
               }`}>
                   {paymentMethod === 'cash' && <div className="w-2.5 h-2.5 bg-primary rounded-full"></div>}

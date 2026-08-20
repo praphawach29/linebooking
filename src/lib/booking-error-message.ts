@@ -17,6 +17,9 @@ const bookingErrorMessages: Record<string, string> = {
   SERVICE_NOT_FOUND: 'ไม่พบบริการที่เลือก กรุณากลับไปเลือกบริการใหม่',
   RESOURCE_NOT_FOUND: 'ไม่พบสนามหรือพนักงานที่เลือก กรุณากลับไปเลือกใหม่',
   VALIDATION_FAILED: 'ข้อมูลการจองไม่ครบหรือไม่ถูกต้อง กรุณาตรวจสอบแล้วลองใหม่',
+  REQUEST_TIMEOUT: 'การเชื่อมต่อใช้เวลานานกว่าปกติ กรุณาลองใหม่อีกครั้ง',
+  NETWORK_ERROR: 'ไม่สามารถเชื่อมต่อระบบจองได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่',
+  PAYLOAD_TOO_LARGE: 'ไฟล์รูปสลิปมีขนาดใหญ่เกินไป กรุณาลดขนาดแล้วลองใหม่',
 };
 
 export function getBookingSubmitErrorMessage(error: unknown): string {

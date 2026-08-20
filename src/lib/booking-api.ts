@@ -463,12 +463,12 @@ async function requestJson<T>(
   const fetcher = options.fetcher ?? fetch;
   let response: Response;
 
-  // Resilient 10-second default request timeout
+  // Resilient 45-second default request timeout to accommodate cold starts and slip uploads on mobile networks
   let timeoutId: any = null;
   let effectiveSignal = options.signal;
   if (!effectiveSignal && typeof AbortController !== 'undefined') {
     const controller = new AbortController();
-    timeoutId = setTimeout(() => controller.abort(), 10000);
+    timeoutId = setTimeout(() => controller.abort(), 45000);
     effectiveSignal = controller.signal;
   }
 
@@ -485,7 +485,7 @@ async function requestJson<T>(
           statusCode: 0,
           code: 'REQUEST_TIMEOUT',
           message: 'The booking service took too long to respond. Please check your connection and try again.',
-          details: 'Request timed out after 10000ms',
+          details: 'Request timed out after 45000ms',
         },
         actor,
       );

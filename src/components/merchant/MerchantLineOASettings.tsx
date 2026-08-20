@@ -89,6 +89,35 @@ export const MerchantLineOASettings: React.FC = () => {
 
   const [saved, setSaved] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [isTestingToken, setIsTestingToken] = useState(false);
+  const [testTokenResult, setTestTokenResult] = useState<{ success: boolean; botName?: string; error?: string } | null>(null);
+
+  const handleTestToken = async () => {
+    if (!channelAccessToken) return;
+    setIsTestingToken(true);
+    setTestTokenResult(null);
+    try {
+      const res = await fetch('https://api.line.me/v2/bot/info', {
+        headers: { Authorization: `Bearer ${channelAccessToken.trim()}` },
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.displayName) {
+        setTestTokenResult({ success: true, botName: data.displayName });
+      } else {
+        setTestTokenResult({
+          success: false,
+          error: data?.message || 'Token ไม่ถูกต้อง หรือเป็น Token ของ LINE Login Channel (ต้องใช้ Messaging API Token)',
+        });
+      }
+    } catch (err: any) {
+      setTestTokenResult({
+        success: false,
+        error: err?.message || 'ไม่สามารถเชื่อมต่อ LINE API ได้',
+      });
+    } finally {
+      setIsTestingToken(false);
+    }
+  };
 
   const backendOrigin = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
   const webhookUrl = `${backendOrigin}/webhooks/line?tenant=${activeTenant.slug}`;
@@ -696,15 +725,62 @@ export const MerchantLineOASettings: React.FC = () => {
           </div>
 
           <div>
-            <label className="block font-bold text-slate-700 mb-1">LINE Channel Access Token (Long-lived) *</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="font-bold text-slate-700">LINE Channel Access Token (Long-lived) *</label>
+              <button
+                type="button"
+                onClick={handleTestToken}
+                disabled={isTestingToken || !channelAccessToken}
+                className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200 transition-colors flex items-center gap-1 disabled:opacity-50"
+              >
+                {isTestingToken ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>กำลังทดสอบ...</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>ทดสอบเชื่อมต่อ LINE Token</span>
+                  </>
+                )}
+              </button>
+            </div>
             <textarea
               required
               rows={3}
               value={channelAccessToken}
-              onChange={(e) => setChannelAccessToken(e.target.value)}
+              onChange={(e) => {
+                setChannelAccessToken(e.target.value);
+                setTestTokenResult(null);
+              }}
               placeholder="eyJhbGciOiJIUzI1NiJ9..."
               className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono text-xs"
             />
+            {testTokenResult && (
+              <div
+                className={`mt-2 p-2.5 rounded-xl border text-xs font-bold flex items-center gap-2 animate-in fade-in duration-200 ${
+                  testTokenResult.success
+                    ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                    : 'bg-rose-50 border-rose-300 text-rose-800'
+                }`}
+              >
+                {testTokenResult.success ? (
+                  <>
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>✅ เชื่อมต่อสำเร็จ! บัญชี LINE Official Account: <strong>{testTokenResult.botName}</strong> พร้อมส่ง Flex Message แล้ว</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-rose-600 font-bold shrink-0">✕</span>
+                    <span>❌ {testTokenResult.error}</span>
+                  </>
+                )}
+              </div>
+            )}
+            <p className="text-[10px] text-slate-400 mt-1">
+              * ต้องเป็น Token จากแท็บ <strong>Messaging API</strong> (ไม่ใช่ LINE Login) เพื่อให้ระบบส่ง Flex Message หาผู้ใช้ได้
+            </p>
           </div>
 
           <div>

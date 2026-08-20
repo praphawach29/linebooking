@@ -234,7 +234,7 @@ export const LiffBookingConfirmation: React.FC<LiffBookingConfirmationProps> = (
           className="w-full bg-white hover:bg-slate-50 text-slate-700 font-bold py-3.5 px-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-center gap-2 transition-all hover:border-primary/30 hover:text-primary text-[13px]"
         >
           <Calendar className="w-4 h-4 text-primary" />
-          <span>{downloadedIcs ? 'ดาวน์โหลดไฟล์ .ics สำเร็จ!' : 'เพิ่มลงปฏิทิน (Google / Apple Calendar)'}</span>
+          <span>{downloadedIcs ? 'ดาวน์โหลดไฟล์ .ics สำเร็จ!' : 'เพิ่มลงปฏิทิน'}</span>
         </button>
 
         <div className="flex gap-3">

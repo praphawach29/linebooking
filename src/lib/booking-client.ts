@@ -77,7 +77,9 @@ export async function createCustomerBookingWithLiff(
 
       const startH = parseInt(input.startTime.split(':')[0], 10) || 10;
       const endH = startH + (input.bookingHours || 1);
-      const endTime = `${String(endH).padStart(2, '0')}:00`;
+      const endTime = input.endTime || `${String(endH).padStart(2, '0')}:00`;
+      const finalPrice = input.finalPrice ?? input.price ?? 0;
+      const depositAmount = input.depositAmount ?? 0;
 
       const fallbackBooking: BookingApiResponse = {
         id,
@@ -87,22 +89,22 @@ export async function createCustomerBookingWithLiff(
         userName: input.customerName || 'ลูกค้า LINE',
         userPhone: input.customerPhone || '',
         serviceId: input.serviceId,
-        serviceName: 'บริการ',
+        serviceName: input.serviceName || 'บริการ',
         serviceDuration: (input.bookingHours || 1) * 60,
-        servicePrice: 0,
+        servicePrice: input.price ?? 0,
         staffId: input.staffId ?? null,
-        staffName: null,
+        staffName: input.staffName ?? null,
         courtId: input.courtId ?? null,
-        courtName: null,
+        courtName: input.courtName ?? null,
         bookingDate: input.bookingDate,
         startTime: input.startTime,
         endTime,
         bookingHours: input.bookingHours ?? 1,
         status: input.paymentMethod === 'cash' ? 'confirmed' : 'pending',
-        price: 0,
+        price: input.price ?? finalPrice,
         discountAmount: 0,
-        finalPrice: 0,
-        depositAmount: 0,
+        finalPrice,
+        depositAmount,
         paymentStatus: input.paymentMethod === 'cash' ? 'paid' : (input.paymentSlipUrl ? 'pending_verification' : 'unpaid'),
         paymentMethod: input.paymentMethod,
         paymentSlipUrl: input.paymentSlipUrl,
@@ -113,20 +115,26 @@ export async function createCustomerBookingWithLiff(
       };
 
       try {
-        await supabase.from('bookings').insert([{
+        const { error: insertErr } = await supabase.from('bookings').insert([{
           id: fallbackBooking.id,
           ref_no: fallbackBooking.refNo,
           tenant_id: fallbackBooking.tenantId,
           user_name: fallbackBooking.userName,
           user_phone: fallbackBooking.userPhone,
           service_id: fallbackBooking.serviceId,
+          service_name: fallbackBooking.serviceName,
           staff_id: fallbackBooking.staffId,
+          staff_name: fallbackBooking.staffName,
           court_id: fallbackBooking.courtId,
+          court_name: fallbackBooking.courtName,
           booking_date: fallbackBooking.bookingDate,
           start_time: fallbackBooking.startTime,
           end_time: fallbackBooking.endTime,
           booking_hours: fallbackBooking.bookingHours,
           status: fallbackBooking.status,
+          price: fallbackBooking.price,
+          final_price: fallbackBooking.finalPrice,
+          deposit_amount: fallbackBooking.depositAmount,
           payment_method: fallbackBooking.paymentMethod,
           payment_status: fallbackBooking.paymentStatus,
           payment_slip_url: fallbackBooking.paymentSlipUrl,
@@ -134,6 +142,9 @@ export async function createCustomerBookingWithLiff(
           check_in_code: fallbackBooking.checkInCode,
           source: 'line_liff',
         }]);
+        if (insertErr) {
+          console.warn('Direct Supabase insert note:', insertErr.message || insertErr);
+        }
       } catch (insertErr) {
         console.warn('Direct Supabase insert failed:', insertErr);
       }

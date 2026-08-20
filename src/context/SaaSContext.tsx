@@ -794,14 +794,32 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const localStaff = tenantStaffs.find((item) => item.id === data.staffId) || tenantStaffs[0];
     const localCourt = tenantCourts.find((item) => item.id === data.courtId);
 
+    const courtExtra = localCourt?.extraPricePerHour || 0;
+    const unitPricePerHour = (service?.price ?? 1200) + courtExtra;
+    const hours = data.bookingHours || 1;
+    const addonsTotal = data.selectedAddons?.reduce((s, a) => s + (a?.price ?? 0), 0) || 0;
+    const totalPrice = (unitPricePerHour * hours) + addonsTotal;
+    const depositPct = activeTenant.settings?.depositPercentage ?? 50;
+    const depositAmount = data.paymentMethod === 'cash' ? 0 : Math.round((totalPrice * depositPct) / 100);
+
+    const [startHourNum, startMinNum] = cleanStartTime.split(':').map(Number);
+    const totalMinutes = ((startHourNum || 10) * 60 + (startMinNum || 0)) + (hours * 60);
+    const endH = Math.floor(totalMinutes / 60);
+    const endM = totalMinutes % 60;
+    const calculatedEndTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+
     try {
       const phone = data.customerPhone?.replace(/[\s-]/g, '') || undefined;
       const input = {
         serviceId: data.serviceId,
+        serviceName: service?.name || 'บริการ',
         staffId: data.staffId,
+        staffName: localStaff?.name,
         courtId: data.courtId,
+        courtName: localCourt?.name,
         bookingDate: data.bookingDate,
         startTime: cleanStartTime,
+        endTime: calculatedEndTime,
         bookingHours: data.bookingHours,
         customerName: data.customerName,
         customerPhone: phone,
@@ -809,6 +827,9 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         paymentMethod: data.paymentMethod,
         depositPaid: data.depositPaid,
         paymentSlipUrl: data.paymentSlipUrl,
+        price: totalPrice,
+        finalPrice: totalPrice,
+        depositAmount: depositAmount,
       };
       const isMerchant = data.source === 'walk_in' || data.source === 'admin';
       let response: BookingApiResponse;

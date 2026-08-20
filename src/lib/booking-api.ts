@@ -55,10 +55,14 @@ export class BookingApiError extends Error {
 
 export interface CreateCustomerBookingInput {
   serviceId: string;
+  serviceName?: string;
   staffId?: string;
+  staffName?: string;
   courtId?: string;
+  courtName?: string;
   bookingDate: string;
   startTime: string;
+  endTime?: string;
   bookingHours?: number;
   customerName?: string;
   customerPhone?: string;
@@ -66,6 +70,9 @@ export interface CreateCustomerBookingInput {
   paymentMethod?: string;
   depositPaid?: boolean;
   paymentSlipUrl?: string;
+  price?: number;
+  finalPrice?: number;
+  depositAmount?: number;
 }
 
 export interface CreateMerchantBookingInput

@@ -28,9 +28,9 @@ export function mapBookingApiResponse(
     startTime: response.startTime,
     endTime: response.endTime,
     status: response.status as BookingStatus,
-    price: response.price,
+    price: response.price || (service?.price ? service.price * (response.bookingHours || 1) : response.price),
     discountAmount: response.discountAmount,
-    finalPrice: response.finalPrice,
+    finalPrice: response.finalPrice || response.price || (service?.price ? service.price * (response.bookingHours || 1) : response.finalPrice),
     depositAmount: response.depositAmount,
     paymentStatus: response.paymentStatus as Booking['paymentStatus'],
     paymentMethod: isPaymentMethod(response.paymentMethod)

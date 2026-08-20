@@ -16,6 +16,9 @@ import {
   Scissors,
   Loader2,
   RefreshCw,
+  Maximize2,
+  ZoomIn,
+  Eye,
 } from 'lucide-react';
 import { LiffRescheduleModal } from '../liff/LiffRescheduleModal';
 
@@ -32,6 +35,7 @@ export const MerchantBookingDetailModal: React.FC<MerchantBookingDetailModalProp
   const [cancelReason, setCancelReason] = useState('');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [showSlipZoom, setShowSlipZoom] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [targetStatus, setTargetStatus] = useState<BookingStatus | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -114,44 +118,35 @@ export const MerchantBookingDetailModal: React.FC<MerchantBookingDetailModalProp
         </div>
 
         {/* Modal Body */}
-        <div className="p-5 overflow-y-auto space-y-4 flex-1">
+        <div className="p-5 overflow-y-auto space-y-4 flex-1 [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent]">
 
           {/* Error Banner */}
           {errorMsg && (
-            <div className="bg-red-50 text-red-700 border border-red-200 p-3 rounded-2xl flex items-center justify-between font-medium">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
-                <span>{errorMsg}</span>
-              </div>
-              <button
-                onClick={() => setErrorMsg(null)}
-                className="text-red-400 hover:text-red-600 font-bold ml-2"
-              >
-                ✕
-              </button>
+            <div className="bg-red-50 text-red-700 p-3 rounded-2xl border border-red-200 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+              <span>{errorMsg}</span>
             </div>
           )}
           
-          {/* Status Switcher Strip */}
-          <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/80 space-y-2">
+          {/* Quick Actions (Status Toggles) */}
+          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-3">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
               สถานะคิวปัจจุบัน & ปรับเปลี่ยนสถานะ
             </span>
-            <div className="flex gap-1.5 flex-wrap">
+            
+            {/* Action Group 1: Standard Progression */}
+            <div className="grid grid-cols-4 gap-1.5">
               <button
                 onClick={() => handleStatusChange('confirmed')}
                 disabled={isUpdating}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 disabled:opacity-60 ${
+                className={`px-2 py-1.5 rounded-xl font-bold transition-all flex items-center justify-center gap-1 disabled:opacity-60 ${
                   booking.status === 'confirmed'
                     ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'bg-white text-slate-700 border border-slate-200 hover:border-emerald-500'
+                    : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
                 }`}
               >
                 {isUpdating && targetStatus === 'confirmed' ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>กำลังบันทึก...</span>
-                  </>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
                   'ยืนยันคิวแล้ว'
                 )}
@@ -160,17 +155,14 @@ export const MerchantBookingDetailModal: React.FC<MerchantBookingDetailModalProp
               <button
                 onClick={() => handleStatusChange('checked_in')}
                 disabled={isUpdating}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 disabled:opacity-60 ${
+                className={`px-2 py-1.5 rounded-xl font-bold transition-all flex items-center justify-center gap-1 disabled:opacity-60 ${
                   booking.status === 'checked_in'
                     ? 'bg-blue-600 text-white shadow-xs'
-                    : 'bg-white text-slate-700 border border-slate-200 hover:border-blue-500'
+                    : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
                 }`}
               >
                 {isUpdating && targetStatus === 'checked_in' ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>กำลังบันทึก...</span>
-                  </>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
                   'เช็คอินหน้าร้าน'
                 )}
@@ -179,38 +171,32 @@ export const MerchantBookingDetailModal: React.FC<MerchantBookingDetailModalProp
               <button
                 onClick={() => handleStatusChange('completed')}
                 disabled={isUpdating}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 disabled:opacity-60 ${
+                className={`px-2 py-1.5 rounded-xl font-bold transition-all flex items-center justify-center gap-1 disabled:opacity-60 ${
                   booking.status === 'completed'
-                    ? 'bg-slate-800 text-white shadow-xs'
-                    : 'bg-white text-slate-700 border border-slate-200 hover:border-slate-800'
+                    ? 'bg-purple-600 text-white shadow-xs'
+                    : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
                 }`}
               >
                 {isUpdating && targetStatus === 'completed' ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>กำลังบันทึก...</span>
-                  </>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
                   'เสร็จสิ้นบริการ'
                 )}
               </button>
-
+              
               <button
                 onClick={() => handleStatusChange('cancelled')}
                 disabled={isUpdating}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 disabled:opacity-60 ${
+                className={`px-2 py-1.5 rounded-xl font-bold transition-all flex items-center justify-center gap-1 disabled:opacity-60 ${
                   booking.status === 'cancelled'
                     ? 'bg-red-600 text-white shadow-xs'
                     : 'bg-white text-red-600 border border-red-200 hover:bg-red-50'
                 }`}
               >
                 {isUpdating && targetStatus === 'cancelled' ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>กำลังบันทึก...</span>
-                  </>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
-                  'ยกเลิกคิว'
+                  'ยกเลิก'
                 )}
               </button>
             </div>
@@ -301,12 +287,31 @@ export const MerchantBookingDetailModal: React.FC<MerchantBookingDetailModalProp
 
             {booking.paymentSlipUrl && (
               <div className="pt-2 border-t border-slate-200 space-y-2">
-                <span className="text-[11px] font-bold text-slate-500">สลิปที่ลูกค้าแนบมา:</span>
-                <img
-                  src={booking.paymentSlipUrl}
-                  alt="สลิปการโอนเงิน"
-                  className="w-full max-h-64 object-contain rounded-2xl border border-slate-200 bg-white"
-                />
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-600">หลักฐานสลิปการโอนเงิน:</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowSlipZoom(true)}
+                    className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                  >
+                    <ZoomIn className="w-3.5 h-3.5" />
+                    ดูรูปขนาดใหญ่
+                  </button>
+                </div>
+                <div
+                  onClick={() => setShowSlipZoom(true)}
+                  className="relative group cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white max-h-56 flex items-center justify-center"
+                >
+                  <img
+                    src={booking.paymentSlipUrl}
+                    alt="สลิปการโอนเงิน"
+                    className="w-full h-auto max-h-56 object-contain transition-transform duration-200 group-hover:scale-102"
+                  />
+                  <div className="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold text-xs gap-1.5 backdrop-blur-[2px]">
+                    <Maximize2 className="w-4 h-4" />
+                    <span>คลิกเพื่อดูรูปเต็มจอ</span>
+                  </div>
+                </div>
                 {errorMsg && <p className="text-[11px] font-bold text-rose-600">{errorMsg}</p>}
                 {booking.paymentStatus !== 'paid' && (
                   <button
@@ -384,18 +389,58 @@ export const MerchantBookingDetailModal: React.FC<MerchantBookingDetailModalProp
           </div>
         )}
 
-      {showRescheduleModal && (
-        <LiffRescheduleModal
-          booking={booking}
-          onClose={() => setShowRescheduleModal(false)}
-          onSuccess={() => {
-            setShowRescheduleModal(false);
-            onClose(); // Close details modal to refresh data
-          }}
-        />
-      )}
+        {showRescheduleModal && (
+          <LiffRescheduleModal
+            booking={booking}
+            onClose={() => setShowRescheduleModal(false)}
+            onSuccess={() => {
+              setShowRescheduleModal(false);
+              onClose(); // Close details modal to refresh data
+            }}
+          />
+        )}
 
       </div>
+
+      {/* Fullscreen Slip Lightbox Modal */}
+      {showSlipZoom && booking.paymentSlipUrl && (
+        <div 
+          className="fixed inset-0 bg-black/90 z-60 flex flex-col items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setShowSlipZoom(false)}
+        >
+          <div className="absolute top-4 right-4 flex items-center gap-3">
+            <a
+              href={booking.paymentSlipUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 backdrop-blur-md transition-colors"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              เปิดแท็บใหม่
+            </a>
+            <button
+              onClick={() => setShowSlipZoom(false)}
+              className="bg-white/20 hover:bg-white/30 text-white p-1.5 rounded-full backdrop-blur-md transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div 
+            className="max-w-2xl max-h-[85vh] p-2 bg-slate-900/50 rounded-2xl border border-white/10 overflow-hidden flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={booking.paymentSlipUrl}
+              alt="สลิปโอนเงินขนาดเต็ม"
+              className="max-w-full max-h-[80vh] object-contain rounded-xl shadow-2xl"
+            />
+          </div>
+          <p className="text-slate-400 text-xs mt-3">
+            คลิกที่ว่างหรือกดปุ่ม ✕ เพื่อปิด
+          </p>
+        </div>
+      )}
     </div>
   );
 };

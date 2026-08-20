@@ -332,11 +332,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           supabase.from('staff_services').select('*'),
           supabase.from('courts').select('*'),
           supabase.from('business_hours').select('*'),
-          // Fetch bookings: if merchant, filter by their tenant_id to ensure visibility
-          // even if RLS policies are inconsistent between migrations
-          isAuthenticated && userTenantId
-            ? supabase.from('bookings').select('*').eq('tenant_id', userTenantId).order('created_at', { ascending: false })
-            : Promise.resolve({ data: null }), // Fix: use null to avoid wiping customer bookings
+          supabase.from('bookings').select('*').order('created_at', { ascending: false }),
           supabase.from('cancellation_policies').select('*'),
           supabase.from('reviews').select('*'),
           supabase.from('rewards').select('*'),

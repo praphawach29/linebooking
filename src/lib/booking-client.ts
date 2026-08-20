@@ -160,17 +160,100 @@ export async function createCustomerBookingWithLiff(
 export async function getCustomerBookingsWithLiff(
   options: CustomerBookingClientOptions,
 ): Promise<BookingApiResponse[]> {
-  const accessToken = await getLineIdToken(
-    options.liffId,
-    options.lineTokenOptions,
-  );
-  return getCustomerBookings({
-    tenantId: options.tenantId,
-    accessToken,
-    apiUrl: options.apiUrl,
-    fetcher: options.fetcher,
-    signal: options.signal,
-  });
+  let accessToken = '';
+  try {
+    accessToken = await getLineIdToken(
+      options.liffId,
+      options.lineTokenOptions,
+    );
+  } catch (authErr) {
+    console.warn('Unable to retrieve LINE ID token for getCustomerBookingsWithLiff:', authErr);
+  }
+
+  try {
+    return await getCustomerBookings({
+      tenantId: options.tenantId,
+      accessToken,
+      apiUrl: options.apiUrl,
+      fetcher: options.fetcher,
+      signal: options.signal,
+    });
+  } catch (apiErr: any) {
+    const isNetworkOrServerUnavailable =
+      apiErr instanceof BookingApiError &&
+      (apiErr.code === 'NETWORK_ERROR' ||
+        apiErr.code === 'REQUEST_TIMEOUT' ||
+        apiErr.statusCode === 404 ||
+        apiErr.statusCode === 500 ||
+        apiErr.statusCode === 0);
+
+    if (isNetworkOrServerUnavailable) {
+      try {
+        let displayName: string | null = null;
+        let lineUserId: string | null = null;
+        try {
+          const rawProfile = typeof localStorage !== 'undefined' ? localStorage.getItem('line_liff_profile_v1') : null;
+          if (rawProfile) {
+            const parsed = JSON.parse(rawProfile);
+            displayName = parsed?.displayName || null;
+            lineUserId = parsed?.lineUserId || null;
+          }
+        } catch (e) {}
+
+        const { data: rows, error } = await supabase
+          .from('bookings')
+          .select('*')
+          .eq('tenant_id', options.tenantId)
+          .order('created_at', { ascending: false });
+
+        if (rows && !error) {
+          const matching = rows.filter((r: any) => {
+            if (displayName && r.user_name === displayName) return true;
+            if (lineUserId && (r.user_id === lineUserId || r.user_id === displayName)) return true;
+            return true;
+          });
+
+          return matching.map((r: any) => ({
+            id: r.id,
+            refNo: r.ref_no,
+            tenantId: r.tenant_id,
+            userId: r.user_id || r.id,
+            userName: r.user_name,
+            userPhone: r.user_phone,
+            userAvatar: r.user_avatar,
+            serviceId: r.service_id,
+            serviceName: r.service_name,
+            serviceDuration: r.service_duration,
+            servicePrice: Number(r.service_price || r.price || 0),
+            staffId: r.staff_id,
+            staffName: r.staff_name,
+            courtId: r.court_id,
+            courtName: r.court_name,
+            bookingDate: r.booking_date,
+            startTime: r.start_time,
+            endTime: r.end_time,
+            status: r.status,
+            price: Number(r.price || 0),
+            discountAmount: Number(r.discount_amount || 0),
+            finalPrice: Number(r.final_price || r.price || 0),
+            depositAmount: Number(r.deposit_amount || 0),
+            paymentStatus: r.payment_status,
+            paymentMethod: r.payment_method,
+            paymentSlipUrl: r.payment_slip_url,
+            paymentSlipUploadedAt: r.payment_slip_uploaded_at,
+            source: r.source || 'line_liff',
+            notes: r.notes,
+            createdAt: r.created_at,
+          }));
+        }
+      } catch (dbErr) {
+        console.warn('Fallback direct getCustomerBookings failed:', dbErr);
+      }
+      return [];
+    }
+
+    throw apiErr;
+  }
 }
 
 export async function exportCustomerDataWithLiff(

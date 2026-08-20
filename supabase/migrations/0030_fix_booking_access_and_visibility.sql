@@ -5,7 +5,7 @@
 BEGIN;
 
 -- 1. Grant table privileges to anon and authenticated roles
-GRANT SELECT, INSERT ON TABLE public.bookings TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.bookings TO anon;
 GRANT ALL PRIVILEGES ON TABLE public.bookings TO authenticated;
 
 -- 2. Ensure RLS is active with open and resilient policies

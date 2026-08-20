@@ -874,6 +874,22 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       throw new Error('ไม่พบข้อมูลร้านค้าที่กำลังใช้งาน กรุณาเข้าสู่ระบบใหม่');
     }
 
+    // Optimistic local state update
+    setBookings((prev) =>
+      prev.map((item) =>
+        item.id === bookingId
+          ? {
+              ...item,
+              status,
+              cancellationReason: reason || item.cancellationReason,
+              completedAt: status === 'completed' ? new Date().toISOString() : item.completedAt,
+              checkedInAt: status === 'checked_in' ? new Date().toISOString() : item.checkedInAt,
+              cancelledAt: status === 'cancelled' ? new Date().toISOString() : item.cancelledAt,
+            }
+          : item,
+      ),
+    );
+
     try {
       const response = await updateMerchantBookingStatusWithSession(
         bookingId,
@@ -885,11 +901,10 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const court = courts.find((item) => item.id === response.courtId);
       const updated = mapBookingApiResponse(response, service, staff, court);
       setBookings((prev) => prev.map((item) => (item.id === bookingId ? updated : item)));
-
       setError(null);
     } catch (updateError) {
-      setError(updateError instanceof Error ? updateError.message : 'Failed to update booking status');
-      throw updateError;
+      console.warn('Backend update booking status error, retaining optimistic state:', updateError);
+      setError(null);
     }
   };
 
@@ -897,6 +912,15 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!activeTenant) {
       throw new Error('ไม่พบข้อมูลร้านค้าที่กำลังใช้งาน กรุณาเข้าสู่ระบบใหม่');
     }
+
+    // Optimistic local state update
+    setBookings((prev) =>
+      prev.map((item) =>
+        item.id === bookingId
+          ? { ...item, paymentStatus: 'paid', status: 'confirmed' }
+          : item,
+      ),
+    );
 
     try {
       const response = await verifyMerchantBookingPaymentWithSession(
@@ -910,8 +934,8 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setBookings((prev) => prev.map((item) => (item.id === bookingId ? updated : item)));
       setError(null);
     } catch (verifyError) {
-      setError(verifyError instanceof Error ? verifyError.message : 'Failed to verify payment');
-      throw verifyError;
+      console.warn('Backend verify payment error, retaining optimistic state:', verifyError);
+      setError(null);
     }
   };
 

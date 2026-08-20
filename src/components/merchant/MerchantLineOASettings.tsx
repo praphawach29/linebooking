@@ -97,12 +97,14 @@ export const MerchantLineOASettings: React.FC = () => {
     setIsTestingToken(true);
     setTestTokenResult(null);
     try {
-      const res = await fetch('https://api.line.me/v2/bot/info', {
-        headers: { Authorization: `Bearer ${channelAccessToken.trim()}` },
+      const res = await fetch('/api/line-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: channelAccessToken.trim() }),
       });
       const data = await res.json().catch(() => null);
-      if (res.ok && data?.displayName) {
-        setTestTokenResult({ success: true, botName: data.displayName });
+      if (res.ok && data?.bot?.displayName) {
+        setTestTokenResult({ success: true, botName: data.bot.displayName });
       } else {
         setTestTokenResult({
           success: false,
@@ -112,7 +114,7 @@ export const MerchantLineOASettings: React.FC = () => {
     } catch (err: any) {
       setTestTokenResult({
         success: false,
-        error: err?.message || 'ไม่สามารถเชื่อมต่อ LINE API ได้',
+        error: err?.message || 'ไม่สามารถเชื่อมต่อระบบทดสอบ LINE ได้',
       });
     } finally {
       setIsTestingToken(false);

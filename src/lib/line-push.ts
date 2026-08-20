@@ -140,25 +140,24 @@ export async function sendLineFlexPush(
   }
 
   try {
-    const res = await fetch('https://api.line.me/v2/bot/message/push', {
+    // 1. Try serverless proxy endpoint to avoid CORS issues
+    const res = await fetch('/api/line-push', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${channelAccessToken.trim()}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        token: channelAccessToken.trim(),
         to: toUserId.trim(),
         messages: [flexMessage],
       }),
     });
 
-    const data = await res.json().catch(() => null);
-    if (!res.ok) {
-      console.warn('LINE Messaging API push error:', data);
-      return { success: false, error: data?.message || `HTTP ${res.status}` };
+    if (res.ok) {
+      return { success: true };
     }
 
-    return { success: true };
+    const data = await res.json().catch(() => null);
+    console.warn('LINE push serverless error:', data);
+    return { success: false, error: data?.message || `HTTP ${res.status}` };
   } catch (err: any) {
     console.warn('LINE push request failed:', err);
     return { success: false, error: err?.message || 'Network error' };

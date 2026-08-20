@@ -461,26 +461,18 @@ export const LiffBookingSummary: React.FC<LiffBookingSummaryProps> = ({
         </div>
 
         {liffProfile.isLoggedIn || liffProfile.isAuthorized ? (
-          <div className="bg-emerald-50/90 border border-emerald-300 p-2.5 sm:p-3 rounded-2xl flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-              {liffProfile.pictureUrl ? (
-                <img src={liffProfile.pictureUrl} alt={liffProfile.displayName} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-emerald-400/60 object-cover shrink-0" />
-              ) : (
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#06C755] text-white font-black text-[10px] flex items-center justify-center shrink-0">LINE</div>
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="font-extrabold text-[11.5px] sm:text-[12px] text-emerald-900 flex items-center gap-1 truncate">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0 inline" />
-                  <span className="truncate">ยืนยันสิทธิ์จองแล้ว ({liffProfile.displayName})</span>
-                </p>
-                <p className="text-[9.5px] sm:text-[10px] text-emerald-700 font-medium truncate">
-                  บันทึกสิทธิ์เรียบร้อย พร้อมทำการจองได้ทันที
-                </p>
-              </div>
+          <div className="bg-emerald-50/90 border border-emerald-300 p-2.5 sm:p-3 rounded-2xl flex items-center gap-3 shadow-xs">
+            {liffProfile.pictureUrl ? (
+              <img src={liffProfile.pictureUrl} alt={liffProfile.displayName} className="w-8 h-8 rounded-full border border-emerald-400/60 object-cover shrink-0" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-[#06C755] text-white font-black text-[10px] flex items-center justify-center shrink-0">LINE</div>
+            )}
+            <div className="min-w-0 flex-1 flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span className="font-black text-[13px] text-emerald-900 truncate">
+                ยืนยันสิทธิ์การจองแล้ว
+              </span>
             </div>
-            <span className="text-[8.5px] sm:text-[9px] font-black text-emerald-800 bg-white px-2 py-0.5 sm:py-1 rounded-lg border border-emerald-200 shadow-xs shrink-0 whitespace-nowrap">
-              สิทธิ์ยืนยันแล้ว
-            </span>
           </div>
         ) : (
           <div className="bg-amber-50 border border-amber-300 p-3.5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-xs">

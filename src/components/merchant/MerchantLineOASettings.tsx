@@ -38,6 +38,26 @@ export const MerchantLineOASettings: React.FC = () => {
     activeTenant.settings.lineBookingConfirmationEnabled ?? true
   );
 
+  // Individual Notification Event Toggles
+  const [notifyCreated, setNotifyCreated] = useState<boolean>(
+    activeTenant.settings.lineNotificationEvents?.bookingCreated ?? true
+  );
+  const [notifyConfirmed, setNotifyConfirmed] = useState<boolean>(
+    activeTenant.settings.lineNotificationEvents?.bookingConfirmed ?? true
+  );
+  const [notifyPayment, setNotifyPayment] = useState<boolean>(
+    activeTenant.settings.lineNotificationEvents?.paymentConfirmed ?? true
+  );
+  const [notifyReminder, setNotifyReminder] = useState<boolean>(
+    activeTenant.settings.lineNotificationEvents?.bookingReminder ?? true
+  );
+  const [notifyCancelled, setNotifyCancelled] = useState<boolean>(
+    activeTenant.settings.lineNotificationEvents?.bookingCancelled ?? true
+  );
+  const [notifyCheckedIn, setNotifyCheckedIn] = useState<boolean>(
+    activeTenant.settings.lineNotificationEvents?.bookingCheckedIn ?? true
+  );
+
   const [quota, setQuota] = useState<LineQuotaStatus | null>(null);
   const [quotaLoading, setQuotaLoading] = useState(false);
   const [quotaError, setQuotaError] = useState<string | null>(null);
@@ -139,6 +159,14 @@ export const MerchantLineOASettings: React.FC = () => {
         lineReminderEnabled,
         lineReminderHoursBefore,
         lineBookingConfirmationEnabled,
+        lineNotificationEvents: {
+          bookingCreated: notifyCreated,
+          bookingConfirmed: notifyConfirmed,
+          paymentConfirmed: notifyPayment,
+          bookingReminder: notifyReminder,
+          bookingCancelled: notifyCancelled,
+          bookingCheckedIn: notifyCheckedIn,
+        },
       },
       {
         lineChannelId: channelId,
@@ -365,26 +393,144 @@ export const MerchantLineOASettings: React.FC = () => {
             </div>
           )}
 
-          {/* Instant Confirmation Toggle */}
-          <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between gap-4">
-            <div className="space-y-0.5">
-              <label className="text-xs font-bold text-slate-900">
-                ส่งข้อความยืนยันการจองคิวทันทีหลังชำระมัดจำ (Instant Booking Confirmation)
-              </label>
-              <p className="text-[11px] text-slate-500">
-                ส่งสลิปอิเล็กทรอนิกส์พร้อมปุ่มบันทึกลงปฏิทินใน LINE แชทของลูกค้า
-              </p>
-            </div>
+          {/* Notification Event Preferences Header */}
+          <div className="pt-3 border-t border-slate-100">
+            <h3 className="font-bold text-xs text-slate-800 flex items-center gap-1.5 mb-2">
+              <Bell className="w-3.5 h-3.5 text-emerald-600" />
+              <span>เลือกหัวข้อการแจ้งเตือน LINE Flex Message ที่ต้องการเปิดใช้งาน:</span>
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              
+              {/* 1. Booking Created */}
+              <div className="p-3 bg-slate-50 hover:bg-slate-100/80 rounded-2xl border border-slate-200 flex items-center justify-between gap-3 transition-colors">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-amber-600 font-bold text-xs">📨 รับคำขอจองใหม่</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    ส่งแจ้งเตือนลูกค้าทันทีเมื่อส่งคำขอจองคิวสำเร็จ
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={notifyCreated}
+                    onChange={(e) => setNotifyCreated(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
+              </div>
 
-            <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
-              <input
-                type="checkbox"
-                checked={lineBookingConfirmationEnabled}
-                onChange={(e) => setLineBookingConfirmationEnabled(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-            </label>
+              {/* 2. Booking Confirmed */}
+              <div className="p-3 bg-slate-50 hover:bg-slate-100/80 rounded-2xl border border-slate-200 flex items-center justify-between gap-3 transition-colors">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-emerald-600 font-bold text-xs">🎟️ ยืนยัน / อนุมัติการจอง</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    ส่งบัตรคิวพร้อม QR Code เช็กอินเมื่อแอดมินกดยืนยันคิว
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={notifyConfirmed}
+                    onChange={(e) => setNotifyConfirmed(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
+              </div>
+
+              {/* 3. Payment Confirmed */}
+              <div className="p-3 bg-slate-50 hover:bg-slate-100/80 rounded-2xl border border-slate-200 flex items-center justify-between gap-3 transition-colors">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sky-600 font-bold text-xs">💳 ยืนยันการชำระเงินมัดจำ</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    ส่งสลิปอิเล็กทรอนิกส์ยืนยันเมื่อตรวจสอบสลิปโอนเงินสำเร็จ
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={notifyPayment}
+                    onChange={(e) => setNotifyPayment(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
+              </div>
+
+              {/* 4. Booking Reminder */}
+              <div className="p-3 bg-slate-50 hover:bg-slate-100/80 rounded-2xl border border-slate-200 flex items-center justify-between gap-3 transition-colors">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-indigo-600 font-bold text-xs">⏰ เตือนความจำก่อนเวลานัด</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    ส่งข้อความเตือนความจำล่วงหน้า {lineReminderHoursBefore} ชม.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={notifyReminder}
+                    onChange={(e) => {
+                      setNotifyReminder(e.target.checked);
+                      setLineReminderEnabled(e.target.checked);
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
+              </div>
+
+              {/* 5. Booking Cancelled */}
+              <div className="p-3 bg-slate-50 hover:bg-slate-100/80 rounded-2xl border border-slate-200 flex items-center justify-between gap-3 transition-colors">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-rose-600 font-bold text-xs">❌ แจ้งเตือนเมื่อยกเลิกคิว</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    ส่งข้อความแจ้งลูกค้าเมื่อแอดมินหรือลูกค้ายกเลิกการจอง
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={notifyCancelled}
+                    onChange={(e) => setNotifyCancelled(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
+              </div>
+
+              {/* 6. Checked-In */}
+              <div className="p-3 bg-slate-50 hover:bg-slate-100/80 rounded-2xl border border-slate-200 flex items-center justify-between gap-3 transition-colors">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-teal-600 font-bold text-xs">✅ แจ้งเตือนเมื่อเช็กอินสำเร็จ</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    ส่งข้อความต้อนรับเมื่อสแกน QR Code เช็กอินหน้าร้าน
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={notifyCheckedIn}
+                    onChange={(e) => setNotifyCheckedIn(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
+              </div>
+
+            </div>
           </div>
 
           {/* Message Preview Banner */}

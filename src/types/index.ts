@@ -115,6 +115,14 @@ export interface Tenant {
     lineReminderEnabled?: boolean;
     lineReminderHoursBefore?: number;
     lineBookingConfirmationEnabled?: boolean;
+    lineNotificationEvents?: {
+      bookingCreated?: boolean;
+      bookingConfirmed?: boolean;
+      paymentConfirmed?: boolean;
+      bookingReminder?: boolean;
+      bookingCancelled?: boolean;
+      bookingCheckedIn?: boolean;
+    };
     linePushMessageCount?: number;
     linePushMessageMonth?: string;
     bookingLimit?: {

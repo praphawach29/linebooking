@@ -18,6 +18,7 @@ import {
 import {
   BookingResponseDto,
   CheckInBookingDto,
+  CleanupStalePendingBookingsDto,
   CreateCustomerBookingDto,
   CreateMerchantBookingDto,
   GetAvailableSlotsQueryDto,
@@ -135,6 +136,21 @@ export class BookingsController {
       'booking_created',
     );
     return booking;
+  }
+
+  @Post('maintenance/cleanup-stale')
+  @UseGuards(SupabaseAuthGuard, TenantAccessGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  async cleanupStalePendingBookings(
+    @TenantId() tenantId: string,
+    @Body() dto: CleanupStalePendingBookingsDto,
+    @CurrentUser() user?: AppUser,
+  ): Promise<{ deletedCount: number }> {
+    return this.bookingsService.cleanupStalePendingBookingsAsMerchant(
+      tenantId,
+      dto.bookingIds,
+      user ? { id: user.dbUserId, role: user.role } : undefined,
+    );
   }
 
   @Patch(':id/verify-payment')

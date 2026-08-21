@@ -42,8 +42,12 @@ export class EnvironmentVariables {
   SUPABASE_ANON_KEY!: string;
 
   @IsString()
-  @IsNotEmpty({ message: 'SUPABASE_SERVICE_ROLE_KEY is required for server operations.' })
-  SUPABASE_SERVICE_ROLE_KEY!: string;
+  @IsOptional()
+  SUPABASE_SECRET_KEY?: string;
+
+  @IsString()
+  @IsOptional()
+  SUPABASE_SERVICE_ROLE_KEY?: string;
 
   @IsString()
   @IsOptional()
@@ -82,6 +86,19 @@ export function validateEnv(config: Record<string, unknown>): EnvironmentVariabl
   const errors: ValidationError[] = validateSync(validatedConfig, {
     skipMissingProperties: false,
   });
+
+  if (
+    !validatedConfig.SUPABASE_SECRET_KEY?.trim() &&
+    !validatedConfig.SUPABASE_SERVICE_ROLE_KEY?.trim()
+  ) {
+    errors.push({
+      property: 'SUPABASE_SECRET_KEY',
+      constraints: {
+        isNotEmpty:
+          'SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY is required for server operations.',
+      },
+    });
+  }
 
   if (errors.length > 0) {
     const formattedErrors = errors

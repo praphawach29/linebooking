@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   BookingApiError,
+  cleanupStalePendingBookings,
   createCustomerBooking,
   createMerchantBooking,
   getCustomerBookings,
@@ -178,6 +179,36 @@ describe('booking-api', () => {
       startTime: '10:00',
       staffId: '55555555-5555-4555-8555-555555555555',
     });
+  });
+
+  it('cleans stale bookings through the authenticated backend endpoint', async () => {
+    let capturedUrl = '';
+    let capturedInit: RequestInit | undefined;
+    const bookingId = '66666666-6666-4666-8666-666666666666';
+    const fetcher: typeof fetch = async (url, init) => {
+      capturedUrl = String(url);
+      capturedInit = init;
+      return jsonResponse({ deletedCount: 1 }, 201);
+    };
+
+    const result = await cleanupStalePendingBookings([bookingId], {
+      tenantId,
+      accessToken: 'supabase-access-token',
+      apiUrl,
+      fetcher,
+    });
+
+    assert.equal(capturedUrl, `${apiUrl}/bookings/maintenance/cleanup-stale`);
+    assert.equal(capturedInit?.method, 'POST');
+    assert.equal(
+      new Headers(capturedInit?.headers).get('Authorization'),
+      'Bearer supabase-access-token',
+    );
+    assert.equal(new Headers(capturedInit?.headers).get('x-tenant-id'), tenantId);
+    assert.deepEqual(JSON.parse(String(capturedInit?.body)), {
+      bookingIds: [bookingId],
+    });
+    assert.deepEqual(result, { deletedCount: 1 });
   });
 
   it('sends the tenant header when fetching availability', async () => {

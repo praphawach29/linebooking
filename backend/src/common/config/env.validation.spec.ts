@@ -22,6 +22,27 @@ describe('validateEnv (Environment Schema Validation)', () => {
     expect(validated.CORS_ORIGINS).toBe(validConfig.CORS_ORIGINS);
   });
 
+  it('accepts the current Supabase secret key without a legacy service-role key', () => {
+    const config = {
+      ...validConfig,
+      SUPABASE_SECRET_KEY: 'sb_secret_backend',
+    };
+    delete (config as Partial<typeof validConfig>).SUPABASE_SERVICE_ROLE_KEY;
+
+    const validated = validateEnv(config);
+
+    expect(validated.SUPABASE_SECRET_KEY).toBe('sb_secret_backend');
+  });
+
+  it('fails fast when neither Supabase server key is configured', () => {
+    const invalidConfig = { ...validConfig };
+    delete (invalidConfig as Partial<typeof validConfig>).SUPABASE_SERVICE_ROLE_KEY;
+
+    expect(() => validateEnv(invalidConfig)).toThrow(
+      /SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY/,
+    );
+  });
+
   it('fails fast and throws when DATABASE_URL is missing', () => {
     const invalidConfig = { ...validConfig };
     delete (invalidConfig as any).DATABASE_URL;

@@ -100,6 +100,7 @@ describe('BookingsController HTTP / Validation E2E Tests', () => {
   const mockBookingsService = {
     createBookingAtomic: jest.fn(),
     cancelBookingAsMerchant: jest.fn(),
+    cleanupStalePendingBookingsAsMerchant: jest.fn(),
   };
 
   const mockLineIdTokenGuard = {
@@ -307,6 +308,42 @@ describe('BookingsController HTTP / Validation E2E Tests', () => {
   });
 
   describe('Step 9 POST booking contracts', () => {
+    it('201: cleans stale bookings through the merchant tenant boundary', async () => {
+      const bookingId = '66666666-6666-4666-8666-666666666666';
+      mockBookingsService.cleanupStalePendingBookingsAsMerchant.mockResolvedValueOnce({
+        deletedCount: 1,
+      });
+
+      const response = await request(app.getHttpServer())
+        .post('/bookings/maintenance/cleanup-stale')
+        .set('authorization', 'Bearer supabase-access-token')
+        .set('x-tenant-id', validTenantId)
+        .send({ bookingIds: [bookingId] })
+        .expect(201);
+
+      expect(response.body).toEqual({ deletedCount: 1 });
+      expect(
+        bookingsService.cleanupStalePendingBookingsAsMerchant,
+      ).toHaveBeenCalledWith(validTenantId, [bookingId], {
+        id: '55555555-5555-4555-8555-555555555555',
+        role: 'merchant_admin',
+      });
+    });
+
+    it('400: rejects an invalid cleanup booking ID', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/bookings/maintenance/cleanup-stale')
+        .set('authorization', 'Bearer supabase-access-token')
+        .set('x-tenant-id', validTenantId)
+        .send({ bookingIds: ['not-a-uuid'] })
+        .expect(400);
+
+      expect(response.body.code).toBe(ErrorCode.VALIDATION_FAILED);
+      expect(
+        mockBookingsService.cleanupStalePendingBookingsAsMerchant,
+      ).not.toHaveBeenCalled();
+    });
+
     it('201: creates a LINE customer booking through the atomic service', async () => {
       mockBookingsService.createBookingAtomic.mockResolvedValueOnce(
         mockBookingResponse,

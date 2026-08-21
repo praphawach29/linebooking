@@ -3,6 +3,7 @@ import { beforeEach, describe, it } from 'node:test';
 import {
   createCustomerBookingWithLiff,
   createMerchantBookingWithSession,
+  cleanStalePendingBookingsWithSession,
   getCustomerBookingsWithLiff,
 } from './booking-client';
 import { resetBookingAuthStateForTests } from './booking-auth';
@@ -131,5 +132,36 @@ describe('booking-client actor integration', () => {
 
     assert.equal(path, '/bookings/merchant');
     assert.equal(authorization, 'Bearer supabase-access-token');
+  });
+
+  it('uses the merchant API instead of a browser cleanup RPC', async () => {
+    let path = '';
+    let authorization = '';
+    const bookingId = '66666666-6666-4666-8666-666666666666';
+    const fetcher: typeof fetch = async (url, init) => {
+      path = new URL(String(url)).pathname;
+      authorization = new Headers(init?.headers).get('Authorization') ?? '';
+      return new Response(JSON.stringify({ deletedCount: 1 }), {
+        status: 201,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    };
+
+    const deletedCount = await cleanStalePendingBookingsWithSession(
+      [bookingId],
+      {
+        tenantId,
+        sessionProvider: async () => ({
+          data: { session: { access_token: 'supabase-access-token' } },
+          error: null,
+        }),
+        apiUrl,
+        fetcher,
+      },
+    );
+
+    assert.equal(path, '/bookings/maintenance/cleanup-stale');
+    assert.equal(authorization, 'Bearer supabase-access-token');
+    assert.equal(deletedCount, 1);
   });
 });

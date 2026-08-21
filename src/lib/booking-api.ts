@@ -92,6 +92,7 @@ export interface BookingApiResponse {
   serviceName?: string | null;
   serviceDuration?: number | null;
   servicePrice?: number | null;
+  bookingHours?: number | null;
   staffId?: string | null;
   staffName?: string | null;
   courtId?: string | null;
@@ -110,6 +111,7 @@ export interface BookingApiResponse {
   paymentSlipUploadedAt?: string | null;
   source: string;
   notes?: string | null;
+  checkInCode?: string | null;
   cancellationReason?: string | null;
   cancelledAt?: string | null;
   checkedInAt?: string | null;
@@ -335,6 +337,27 @@ export function createMerchantBooking(
     ...customerBody(input),
   };
   return createBookingRequest('/bookings/merchant', body, 'merchant', options);
+}
+
+export function cleanupStalePendingBookings(
+  bookingIds: string[],
+  options: AuthenticatedBookingRequestOptions,
+): Promise<{ deletedCount: number }> {
+  return requestJson<{ deletedCount: number }>(
+    '/bookings/maintenance/cleanup-stale',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${options.accessToken}`,
+        'Content-Type': 'application/json',
+        'x-tenant-id': options.tenantId,
+      },
+      body: JSON.stringify({ bookingIds }),
+      signal: options.signal,
+    },
+    'merchant',
+    options,
+  );
 }
 
 export function updateMerchantBookingStatus(

@@ -3,10 +3,11 @@ import { readFile } from 'node:fs/promises';
 import { describe, it } from 'node:test';
 
 const migrationUrl = new URL(
-  '../../supabase/migrations/0019_restore_production_rls.sql',
+  '../../supabase/migrations/0033_restore_sensitive_table_boundary.sql',
   import.meta.url,
 );
 const contextUrl = new URL('../context/SaaSContext.tsx', import.meta.url);
+const bookingClientUrl = new URL('./booking-client.ts', import.meta.url);
 
 describe('production RLS hardening', () => {
   it('removes anon policies and table grants from sensitive tables', async () => {
@@ -34,23 +35,44 @@ describe('production RLS hardening', () => {
       );
     }
 
-    assert.doesNotMatch(
-      sql,
-      /CREATE\s+POLICY[\s\S]+(?:TO\s+anon|USING\s*\(\s*true\s*\))/i,
-    );
+    const policyStatements = sql.match(/CREATE\s+POLICY[\s\S]*?;/gi) ?? [];
+    assert.ok(policyStatements.length > 0);
+    for (const statement of policyStatements) {
+      assert.doesNotMatch(statement, /TO\s+(?:PUBLIC|anon)\b/i);
+      assert.doesNotMatch(statement, /USING\s*\(\s*true\s*\)/i);
+      assert.doesNotMatch(statement, /WITH\s+CHECK\s*\(\s*true\s*\)/i);
+    }
   });
 
-  it('disables the unauthenticated booking-history RPC', async () => {
+  it('disables browser execution of stale-booking cleanup', async () => {
     const sql = await readFile(migrationUrl, 'utf8');
 
     assert.match(
       sql,
-      /REVOKE ALL PRIVILEGES ON FUNCTION public\.get_my_bookings\(TEXT\) FROM PUBLIC/i,
+      /REVOKE ALL PRIVILEGES ON FUNCTION public\.cleanup_stale_pending_bookings\(uuid, integer\) FROM PUBLIC/i,
     );
     assert.match(
       sql,
-      /REVOKE ALL PRIVILEGES ON FUNCTION public\.get_my_bookings\(TEXT\) FROM anon/i,
+      /REVOKE ALL PRIVILEGES ON FUNCTION public\.cleanup_stale_pending_bookings\(uuid, integer\) FROM anon/i,
     );
+  });
+
+  it('routes stale-booking cleanup through the authenticated backend', async () => {
+    const source = await readFile(bookingClientUrl, 'utf8');
+
+    assert.match(source, /cleanupStalePendingBookings\(staleIds,/);
+    assert.match(source, /getMerchantAccessToken\(options\.sessionProvider\)/);
+    assert.doesNotMatch(source, /\.rpc\(['"]cleanup_stale_pending_bookings/);
+  });
+
+  it('keeps merchant policies tenant scoped and customer mutations closed', async () => {
+    const sql = await readFile(migrationUrl, 'utf8');
+
+    assert.match(sql, /CREATE POLICY tenants_owner_read[\s\S]*my_tenant_ids/i);
+    assert.match(sql, /CREATE POLICY bookings_tenant_read[\s\S]*my_tenant_ids/i);
+    assert.match(sql, /GRANT SELECT ON TABLE public\.users TO authenticated/i);
+    assert.match(sql, /GRANT SELECT ON TABLE public\.bookings TO authenticated/i);
+    assert.doesNotMatch(sql, /GRANT[^;]*INSERT[^;]*public\.(?:users|bookings)/i);
   });
 
   it('retains only filtered public booking views', async () => {

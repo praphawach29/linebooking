@@ -14,7 +14,10 @@ import { CreateBookingCommand } from './dto/create-booking-command.dto';
 import { BookingResponseDto } from './dto/booking-response.dto';
 import { ErrorCode } from '../common/constants/error-codes';
 import { computeMembershipTier } from '../common/utils/membership-tier';
-import { AuditService } from '../common/audit/audit.service';
+import {
+  AuditService,
+  type ActorType,
+} from '../common/audit/audit.service';
 
 type BookingPayload = Prisma.BookingGetPayload<Record<string, never>>;
 
@@ -47,6 +50,46 @@ export class BookingsService {
     });
 
     return bookings.map((booking) => this.toBookingResponse(booking));
+  }
+
+  async cleanupStalePendingBookingsAsMerchant(
+    tenantId: string,
+    bookingIds: string[],
+    actor?: { id?: string; role?: ActorType },
+  ): Promise<{ deletedCount: number }> {
+    const uniqueBookingIds = [...new Set(bookingIds)];
+    const bangkokDate = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Bangkok',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+    const [year, month, day] = bangkokDate.split('-').map(Number);
+    const startOfToday = new Date(Date.UTC(year, month - 1, day));
+
+    const result = await this.prisma.booking.deleteMany({
+      where: {
+        tenantId,
+        id: { in: uniqueBookingIds },
+        status: 'pending',
+        bookingDate: { lt: startOfToday },
+      },
+    });
+
+    await this.auditService.record({
+      tenantId,
+      actorId: actor?.id,
+      actorType: actor?.role || 'merchant_admin',
+      action: 'booking_stale_cleanup',
+      entityType: 'booking',
+      entityId: 'bulk',
+      afterState: {
+        requestedBookingIds: uniqueBookingIds,
+        deletedCount: result.count,
+      },
+    });
+
+    return { deletedCount: result.count };
   }
 
   async updateBookingStatusAsMerchant(

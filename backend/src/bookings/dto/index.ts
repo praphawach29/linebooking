@@ -6,3 +6,4 @@ export * from './create-booking-command.dto';
 export * from './update-booking-status.dto';
 export * from './reschedule-booking.dto';
 export * from './check-in-booking.dto';
+export * from './cleanup-stale-pending-bookings.dto';

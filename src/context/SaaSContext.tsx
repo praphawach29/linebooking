@@ -17,6 +17,7 @@ import {
 } from '../lib/booking-client';
 import { buildBookingFlexMessage, sendLineFlexPush } from '../lib/line-push';
 import { mapBookingApiResponse } from '../lib/booking-mapper';
+import { toLocalDateStr } from '../lib/date-utils';
 import {
   Tenant,
   Service,
@@ -447,8 +448,8 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             .filter((b) => b.status === 'pending' && b.bookingDate <= cutoffStr)
             .map((b) => b.id);
 
-          if (staleDbIds.length > 0 && tenantFilter) {
-            void cleanStalePendingBookingsWithSession(staleDbIds, { tenantId: tenantFilter });
+          if (staleDbIds.length > 0 && userTenantId) {
+            void cleanStalePendingBookingsWithSession(staleDbIds, { tenantId: userTenantId });
           }
         }
         if (policiesData) setCancellationPolicies(camelizeKeys(policiesData) as CancellationPolicy[]);

@@ -146,6 +146,7 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
         findMany: jest.fn(),
         findFirst: jest.fn(),
         update: jest.fn(),
+        deleteMany: jest.fn(),
       },
       auditLog: {
         create: jest.fn(),
@@ -197,6 +198,27 @@ describe('BookingsService.createBookingAtomic (Unit Tests)', () => {
   });
 
   describe('merchant booking mutations', () => {
+    it('cleans only selected stale pending bookings in the validated tenant', async () => {
+      const staleBookingId = '77777777-7777-4777-8777-777777777777';
+      prisma.booking.deleteMany.mockResolvedValueOnce({ count: 1 });
+
+      const result = await service.cleanupStalePendingBookingsAsMerchant(
+        tenantId,
+        [staleBookingId, staleBookingId],
+        { id: customerUserId, role: 'merchant_admin' },
+      );
+
+      expect(prisma.booking.deleteMany).toHaveBeenCalledWith({
+        where: {
+          tenantId,
+          id: { in: [staleBookingId] },
+          status: 'pending',
+          bookingDate: { lt: expect.any(Date) },
+        },
+      });
+      expect(result).toEqual({ deletedCount: 1 });
+    });
+
     it('validates and persists a server-owned status transition', async () => {
       prisma.booking.findFirst.mockResolvedValueOnce(mockCreatedBooking);
       mockTx.booking.update.mockResolvedValueOnce({

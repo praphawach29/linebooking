@@ -1,6 +1,7 @@
 import {
   BookingApiError,
   checkInMerchantBooking,
+  cleanupStalePendingBookings,
   createCustomerBooking,
   createMerchantBooking,
   getCustomerBookings,
@@ -527,15 +528,13 @@ export async function cleanStalePendingBookingsWithSession(
   options: MerchantBookingClientOptions,
 ): Promise<number> {
   if (!staleIds || staleIds.length === 0) return 0;
-  try {
-    const { error } = await supabase
-      .rpc('cleanup_stale_pending_bookings', {
-        p_tenant_id: options.tenantId,
-        p_days: 1,
-      });
-    if (!error) return staleIds.length;
-  } catch (e) {
-    // ignore
-  }
-  return staleIds.length;
+  const accessToken = await getMerchantAccessToken(options.sessionProvider);
+  const result = await cleanupStalePendingBookings(staleIds, {
+    tenantId: options.tenantId,
+    accessToken,
+    apiUrl: options.apiUrl,
+    fetcher: options.fetcher,
+    signal: options.signal,
+  });
+  return result.deletedCount;
 }

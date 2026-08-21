@@ -81,11 +81,20 @@ export async function createCustomerBookingWithLiff(
       const finalPrice = input.finalPrice ?? input.price ?? 0;
       const depositAmount = input.depositAmount ?? 0;
 
+      let lineUserId: string | null = null;
+      try {
+        const rawProfile = typeof localStorage !== 'undefined' ? localStorage.getItem('line_liff_profile_v1') : null;
+        if (rawProfile) {
+          const p = JSON.parse(rawProfile);
+          lineUserId = p?.lineUserId || p?.userId || null;
+        }
+      } catch (e) {}
+
       const fallbackBooking: BookingApiResponse = {
         id,
         refNo,
         tenantId: options.tenantId,
-        userId: id,
+        userId: lineUserId || id,
         userName: input.customerName || 'ลูกค้า LINE',
         userPhone: input.customerPhone || '',
         serviceId: input.serviceId,

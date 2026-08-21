@@ -858,8 +858,8 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setBookings((prev) => [savedBooking, ...prev]);
       setError(null);
 
-      // Trigger automatic LINE Flex Push Notification if token configured
-      if (activeTenant.lineChannelAccessToken) {
+      // Trigger automatic LINE Flex Push Notification
+      if (activeTenant) {
         let customerLineUserId = currentUser?.lineUserId;
         if (!customerLineUserId) {
           try {
@@ -870,6 +870,20 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
           } catch (e) {}
         }
+        if (!customerLineUserId && savedBooking.userId && savedBooking.userId.startsWith('U')) {
+          customerLineUserId = savedBooking.userId;
+        }
+        if (!customerLineUserId && typeof window !== 'undefined' && (window as any).liff) {
+          try {
+            const liffObj = (window as any).liff;
+            if (liffObj.isLoggedIn && liffObj.isLoggedIn()) {
+              const decoded = liffObj.getDecodedIDToken ? liffObj.getDecodedIDToken() : null;
+              if (decoded && decoded.sub) {
+                customerLineUserId = decoded.sub;
+              }
+            }
+          } catch (e) {}
+        }
         if (customerLineUserId && customerLineUserId.startsWith('U')) {
           const flexMsg = buildBookingFlexMessage(
             'booking_created',
@@ -877,7 +891,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             activeTenant.name,
             activeTenant.liffId,
           );
-          void sendLineFlexPush(activeTenant.lineChannelAccessToken, customerLineUserId, flexMsg);
+          void sendLineFlexPush(activeTenant.lineChannelAccessToken, customerLineUserId, flexMsg, activeTenant.id);
         }
       }
       
@@ -915,7 +929,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     );
 
     // Trigger LINE Flex Message on status update
-    if (activeTenant.lineChannelAccessToken) {
+    if (activeTenant) {
       let customerLineUserId = existing.userId;
       if (!customerLineUserId || !customerLineUserId.startsWith('U')) {
         try {
@@ -941,7 +955,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           activeTenant.name,
           activeTenant.liffId,
         );
-        void sendLineFlexPush(activeTenant.lineChannelAccessToken, customerLineUserId, flexMsg);
+        void sendLineFlexPush(activeTenant.lineChannelAccessToken, customerLineUserId, flexMsg, activeTenant.id);
       }
     }
 
@@ -979,7 +993,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     );
 
     // Trigger LINE Flex Message on payment verification
-    if (activeTenant.lineChannelAccessToken && existing) {
+    if (activeTenant && existing) {
       let customerLineUserId = existing.userId;
       if (!customerLineUserId || !customerLineUserId.startsWith('U')) {
         try {
@@ -997,7 +1011,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           activeTenant.name,
           activeTenant.liffId,
         );
-        void sendLineFlexPush(activeTenant.lineChannelAccessToken, customerLineUserId, flexMsg);
+        void sendLineFlexPush(activeTenant.lineChannelAccessToken, customerLineUserId, flexMsg, activeTenant.id);
       }
     }
 

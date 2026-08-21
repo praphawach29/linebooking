@@ -131,21 +131,25 @@ export function buildBookingFlexMessage(
 }
 
 export async function sendLineFlexPush(
-  channelAccessToken: string,
+  channelAccessToken: string | undefined | null,
   toUserId: string,
   flexMessage: Record<string, unknown>,
+  tenantId?: string,
 ): Promise<{ success: boolean; error?: string }> {
-  if (!channelAccessToken || !toUserId) {
-    return { success: false, error: 'Missing channelAccessToken or toUserId' };
+  if (!toUserId) {
+    return { success: false, error: 'Missing toUserId' };
+  }
+  if (!channelAccessToken && !tenantId) {
+    return { success: false, error: 'Missing channelAccessToken and tenantId' };
   }
 
   try {
-    // 1. Try serverless proxy endpoint to avoid CORS issues
     const res = await fetch('/api/line-push', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        token: channelAccessToken.trim(),
+        token: channelAccessToken ? channelAccessToken.trim() : undefined,
+        tenantId,
         to: toUserId.trim(),
         messages: [flexMessage],
       }),

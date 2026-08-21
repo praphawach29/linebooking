@@ -274,10 +274,9 @@ export function buildBookingFlexMessage(
         {
           type: 'text',
           text: tenantName,
-          color: '#FFFFFF',
+          color: '#FEF3C7',
           size: 'xs',
           weight: 'bold',
-          opacity: '90%',
         },
         {
           type: 'text',

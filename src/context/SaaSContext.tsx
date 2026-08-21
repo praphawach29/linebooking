@@ -886,6 +886,19 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               }
             } catch (e) {}
           }
+          if (!customerLineUserId && savedBooking.userPhone) {
+            try {
+              const { data: uData } = await supabase
+                .from('users')
+                .select('line_user_id')
+                .eq('phone', savedBooking.userPhone)
+                .not('line_user_id', 'is', null)
+                .limit(1);
+              if (uData && uData[0]?.line_user_id) {
+                customerLineUserId = uData[0].line_user_id;
+              }
+            } catch (e) {}
+          }
           if (customerLineUserId && customerLineUserId.startsWith('U')) {
             const flexMsg = buildBookingFlexMessage(
               'booking_created',
@@ -944,45 +957,62 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           : true;
 
       if (isEnabled) {
-        let customerLineUserId = existing.userId;
-        if (!customerLineUserId || !customerLineUserId.startsWith('U')) {
-          const matchedUser = users.find(
-            (u) =>
-              (u.id && u.id === existing.userId) ||
-              (u.name && u.name === existing.userName) ||
-              (u.phone && existing.userPhone && u.phone === existing.userPhone),
-          );
-          if (matchedUser?.lineUserId && matchedUser.lineUserId.startsWith('U')) {
-            customerLineUserId = matchedUser.lineUserId;
+        void (async () => {
+          let customerLineUserId = existing.userId && existing.userId.startsWith('U') ? existing.userId : null;
+          if (!customerLineUserId && existing.userPhone) {
+            try {
+              const { data: uData } = await supabase
+                .from('users')
+                .select('line_user_id')
+                .eq('phone', existing.userPhone)
+                .not('line_user_id', 'is', null)
+                .limit(1);
+              if (uData && uData[0]?.line_user_id) {
+                customerLineUserId = uData[0].line_user_id;
+              }
+            } catch (e) {}
           }
-        }
-        if (!customerLineUserId || !customerLineUserId.startsWith('U')) {
-          try {
-            const rawProfile = typeof localStorage !== 'undefined' ? localStorage.getItem('line_liff_profile_v1') : null;
-            if (rawProfile) {
-              const p = JSON.parse(rawProfile);
-              customerLineUserId = p?.lineUserId || p?.userId;
-            }
-          } catch (e) {}
-        }
-        if (customerLineUserId && customerLineUserId.startsWith('U')) {
-          const event =
-            status === 'confirmed'
-              ? 'booking_confirmed'
-              : status === 'cancelled'
-              ? 'booking_cancelled'
-              : status === 'completed'
-              ? 'booking_checked_in'
-              : 'booking_confirmed';
-          const service = services.find((s) => s.id === existing.serviceId);
-          const flexMsg = buildBookingFlexMessage(
-            event,
-            { ...existing, status, serviceImageUrl: service?.imageUrl },
-            activeTenant.name,
-            activeTenant.liffId,
-          );
-          void sendLineFlexPush(activeTenant.lineChannelAccessToken, customerLineUserId, flexMsg, activeTenant.id);
-        }
+          if (!customerLineUserId && existing.userName) {
+            try {
+              const { data: uData } = await supabase
+                .from('users')
+                .select('line_user_id')
+                .eq('display_name', existing.userName)
+                .not('line_user_id', 'is', null)
+                .limit(1);
+              if (uData && uData[0]?.line_user_id) {
+                customerLineUserId = uData[0].line_user_id;
+              }
+            } catch (e) {}
+          }
+          if (!customerLineUserId) {
+            try {
+              const rawProfile = typeof localStorage !== 'undefined' ? localStorage.getItem('line_liff_profile_v1') : null;
+              if (rawProfile) {
+                const p = JSON.parse(rawProfile);
+                customerLineUserId = p?.lineUserId || p?.userId;
+              }
+            } catch (e) {}
+          }
+          if (customerLineUserId && customerLineUserId.startsWith('U')) {
+            const event =
+              status === 'confirmed'
+                ? 'booking_confirmed'
+                : status === 'cancelled'
+                ? 'booking_cancelled'
+                : status === 'completed'
+                ? 'booking_checked_in'
+                : 'booking_confirmed';
+            const service = services.find((s) => s.id === existing.serviceId);
+            const flexMsg = buildBookingFlexMessage(
+              event,
+              { ...existing, status, serviceImageUrl: service?.imageUrl },
+              activeTenant.name,
+              activeTenant.liffId,
+            );
+            void sendLineFlexPush(activeTenant.lineChannelAccessToken, customerLineUserId, flexMsg, activeTenant.id);
+          }
+        })();
       }
     }
 
@@ -1023,37 +1053,54 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (activeTenant && existing) {
       const notifyEvents = activeTenant.settings?.lineNotificationEvents;
       if (notifyEvents?.paymentConfirmed !== false || notifyEvents?.bookingConfirmed !== false) {
-        let customerLineUserId = existing.userId;
-        if (!customerLineUserId || !customerLineUserId.startsWith('U')) {
-          const matchedUser = users.find(
-            (u) =>
-              (u.id && u.id === existing.userId) ||
-              (u.name && u.name === existing.userName) ||
-              (u.phone && existing.userPhone && u.phone === existing.userPhone),
-          );
-          if (matchedUser?.lineUserId && matchedUser.lineUserId.startsWith('U')) {
-            customerLineUserId = matchedUser.lineUserId;
+        void (async () => {
+          let customerLineUserId = existing.userId && existing.userId.startsWith('U') ? existing.userId : null;
+          if (!customerLineUserId && existing.userPhone) {
+            try {
+              const { data: uData } = await supabase
+                .from('users')
+                .select('line_user_id')
+                .eq('phone', existing.userPhone)
+                .not('line_user_id', 'is', null)
+                .limit(1);
+              if (uData && uData[0]?.line_user_id) {
+                customerLineUserId = uData[0].line_user_id;
+              }
+            } catch (e) {}
           }
-        }
-        if (!customerLineUserId || !customerLineUserId.startsWith('U')) {
-          try {
-            const rawProfile = typeof localStorage !== 'undefined' ? localStorage.getItem('line_liff_profile_v1') : null;
-            if (rawProfile) {
-              const p = JSON.parse(rawProfile);
-              customerLineUserId = p?.lineUserId || p?.userId;
-            }
-          } catch (e) {}
-        }
-        if (customerLineUserId && customerLineUserId.startsWith('U')) {
-          const service = services.find((s) => s.id === existing.serviceId);
-          const flexMsg = buildBookingFlexMessage(
-            'payment_confirmed',
-            { ...existing, paymentStatus: 'paid', status: 'confirmed', serviceImageUrl: service?.imageUrl },
-            activeTenant.name,
-            activeTenant.liffId,
-          );
-          void sendLineFlexPush(activeTenant.lineChannelAccessToken, customerLineUserId, flexMsg, activeTenant.id);
-        }
+          if (!customerLineUserId && existing.userName) {
+            try {
+              const { data: uData } = await supabase
+                .from('users')
+                .select('line_user_id')
+                .eq('display_name', existing.userName)
+                .not('line_user_id', 'is', null)
+                .limit(1);
+              if (uData && uData[0]?.line_user_id) {
+                customerLineUserId = uData[0].line_user_id;
+              }
+            } catch (e) {}
+          }
+          if (!customerLineUserId) {
+            try {
+              const rawProfile = typeof localStorage !== 'undefined' ? localStorage.getItem('line_liff_profile_v1') : null;
+              if (rawProfile) {
+                const p = JSON.parse(rawProfile);
+                customerLineUserId = p?.lineUserId || p?.userId;
+              }
+            } catch (e) {}
+          }
+          if (customerLineUserId && customerLineUserId.startsWith('U')) {
+            const service = services.find((s) => s.id === existing.serviceId);
+            const flexMsg = buildBookingFlexMessage(
+              'payment_confirmed',
+              { ...existing, paymentStatus: 'paid', status: 'confirmed', serviceImageUrl: service?.imageUrl },
+              activeTenant.name,
+              activeTenant.liffId,
+            );
+            void sendLineFlexPush(activeTenant.lineChannelAccessToken, customerLineUserId, flexMsg, activeTenant.id);
+          }
+        })();
       }
     }
 

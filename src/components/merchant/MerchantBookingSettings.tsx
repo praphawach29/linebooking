@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 import { useSaaS } from '../../context/SaaSContext';
-import { Settings, Save, Plus, Trash2, ShieldAlert, Clock, CalendarDays } from 'lucide-react';
+import { Settings, Save, Plus, Trash2, ShieldAlert, Clock, CalendarDays, Eraser, Sparkles, CheckCircle2, Loader2 } from 'lucide-react';
 import { CancellationPolicy } from '../../types';
 import { MerchantBlackoutDates } from './MerchantBlackoutDates';
 
 export const MerchantBookingSettings: React.FC = () => {
-  const { activeTenant, updateTenantSettings, cancellationPolicies, updateCancellationPolicies } = useSaaS();
+  const { activeTenant, updateTenantSettings, cancellationPolicies, updateCancellationPolicies, cleanStalePendingBookings } = useSaaS();
   
   const [autoConfirm, setAutoConfirm] = useState(activeTenant.settings.autoConfirm ?? true);
   const [maxAdvanceBookingDays, setMaxAdvanceBookingDays] = useState(activeTenant.settings.maxAdvanceBookingDays ?? 30);
   const [maxAdvanceBookingUnit, setMaxAdvanceBookingUnit] = useState<'days'|'hours'>(activeTenant.settings.maxAdvanceBookingUnit ?? 'days');
   const [minLeadTimeHours, setMinLeadTimeHours] = useState(activeTenant.settings.minLeadTimeHours ?? 0);
   const [googleMapUrl, setGoogleMapUrl] = useState(activeTenant.settings.googleMapUrl || '');
+  const [autoCleanDays, setAutoCleanDays] = useState<number>(activeTenant.settings.autoCleanStaleBookingsDays ?? 1);
+  const [isCleaning, setIsCleaning] = useState(false);
+  const [cleanCount, setCleanCount] = useState<number | null>(null);
   
   // LINE Settings
   const [lineChannelAccessToken, setLineChannelAccessToken] = useState(activeTenant.lineChannelAccessToken || '');
@@ -50,6 +53,20 @@ export const MerchantBookingSettings: React.FC = () => {
     }));
   };
 
+  const handleManualClean = async () => {
+    setIsCleaning(true);
+    setCleanCount(null);
+    try {
+      const deleted = await cleanStalePendingBookings(autoCleanDays);
+      setCleanCount(deleted);
+      setTimeout(() => setCleanCount(null), 4000);
+    } catch (e) {
+      console.error('Manual clean error:', e);
+    } finally {
+      setIsCleaning(false);
+    }
+  };
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     updateTenantSettings({
@@ -58,6 +75,7 @@ export const MerchantBookingSettings: React.FC = () => {
       maxAdvanceBookingUnit,
       minLeadTimeHours: Number(minLeadTimeHours),
       googleMapUrl,
+      autoCleanStaleBookingsDays: Number(autoCleanDays),
       bookingLimit: {
         enabled: bookingLimitEnabled,
         amount: Number(bookingLimitAmount),
@@ -256,6 +274,89 @@ export const MerchantBookingSettings: React.FC = () => {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Auto-clean Stale Pending Bookings Section */}
+            <div className="pt-6 border-t border-slate-100 space-y-4 mt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-slate-800 font-bold">
+                  <Eraser className="w-5 h-5 text-amber-500" />
+                  <span>ลบการจองที่ค้างรอยืนยันที่เลยกำหนดอัตโนมัติ (Auto-clean Expired Queues)</span>
+                </div>
+                <span className="text-[11px] font-bold px-2.5 py-1 bg-amber-50 text-amber-700 rounded-lg border border-amber-200">
+                  ลดความแออัดของคิว
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 -mt-2">
+                ระบบจะลบหรือล้างรายการจองที่ค้างอยู่ในสถานะ <span className="font-semibold text-amber-600">"รอยืนยัน (Pending)"</span> ที่เลยวันนัดหมายมาแล้วออกให้โดยอัตโนมัติ เพื่อไม่ให้ยอดตัวเลขค้างบนแดชบอร์ด
+              </p>
+
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <label className="text-xs font-bold text-slate-700">
+                    ระยะเวลาที่เลยกำหนดก่อนลบออก:
+                  </label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {[
+                      { val: 1, label: '1 วัน (แนะนำ)' },
+                      { val: 2, label: '2 วัน' },
+                      { val: 3, label: '3 วัน' },
+                      { val: 7, label: '7 วัน' },
+                      { val: 0, label: 'ปิดใช้งาน' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.val}
+                        type="button"
+                        onClick={() => setAutoCleanDays(opt.val)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                          autoCleanDays === opt.val
+                            ? 'bg-amber-500 text-white shadow-xs'
+                            : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-500">
+                    {autoCleanDays > 0
+                      ? `✨ ระบบจะเคลียร์คิวที่เลยกำหนด ${autoCleanDays} วันขึ้นไปทุกครั้งที่เปิดหน้าแดชบอร์ด`
+                      : '⚠️ ระบบจะไม่ลบคิวเก่าอัตโนมัติ'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleManualClean}
+                    disabled={isCleaning}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white rounded-xl font-bold text-xs transition-all shadow-xs disabled:opacity-50"
+                  >
+                    {isCleaning ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        กำลังล้างคิวเก่า...
+                      </>
+                    ) : (
+                      <>
+                        <Eraser className="w-3.5 h-3.5" />
+                        ล้างคิวที่ค้างเลยกำหนดตอนนี้
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {cleanCount !== null && (
+                  <div className="p-2.5 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>
+                      {cleanCount > 0
+                        ? `ล้างรายการจองที่ค้างเลยกำหนดสำเร็จ ${cleanCount} รายการเรียบร้อยแล้ว!`
+                        : 'ไม่พบรายการจองที่ค้างเลยกำหนด ทุกรายการเป็นปัจจุบันแล้วครับ'}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -135,6 +135,8 @@ export interface Tenant {
     enableCourtSelection?: boolean;
     resourceTerm?: string;
     bookingFlowConfig?: BookingFlowConfig;
+    /** Number of days past due to auto-delete/clean unconfirmed pending bookings. Default 1 day. 0 = disabled. */
+    autoCleanStaleBookingsDays?: number;
     /** Merchant-customized overrides for wording — see TenantTerminology / getTenantTerminology() */
     terminology?: Partial<TenantTerminology>;
     /** Which payment methods customers may choose at checkout. Unset = ['promptpay', 'cash'] (card requires a connected gateway before it can be enabled). */

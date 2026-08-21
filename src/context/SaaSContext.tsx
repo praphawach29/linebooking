@@ -13,6 +13,7 @@ import {
   verifyMerchantBookingPaymentWithSession,
   checkInMerchantBookingWithSession,
   rescheduleMerchantBookingWithSession,
+  cleanStalePendingBookingsWithSession,
 } from '../lib/booking-client';
 import { buildBookingFlexMessage, sendLineFlexPush } from '../lib/line-push';
 import { mapBookingApiResponse } from '../lib/booking-mapper';
@@ -176,6 +177,7 @@ interface SaaSContextType {
    * หลัง migration 0007 ตาราง bookings อ่านสาธารณะไม่ได้แล้ว ต้องผ่าน RPC ที่คืนเฉพาะของเจ้าตัว
    */
   fetchMyBookings: (lineUserId?: string, phone?: string) => Promise<Booking[]>;
+  cleanStalePendingBookings: (daysPast?: number) => Promise<number>;
 
   // Loyalty & Reward Actions
   fetchMembership: (userId: string) => Membership | undefined;
@@ -429,7 +431,25 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
         if (hoursData) setBusinessHours(camelizeKeys(hoursData) as BusinessHour[]);
         if (bookingsData) {
-          setBookings(camelizeKeys(bookingsData) as Booking[]);
+          const rawBookings = camelizeKeys(bookingsData) as Booking[];
+          // Auto filter out stale pending bookings that are >= 1 day past
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const cutoffDate = new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000);
+          const cutoffStr = toLocalDateStr(cutoffDate);
+
+          const validBookings = rawBookings.filter(
+            (b) => !(b.status === 'pending' && b.bookingDate <= cutoffStr)
+          );
+          setBookings(validBookings);
+
+          const staleDbIds = rawBookings
+            .filter((b) => b.status === 'pending' && b.bookingDate <= cutoffStr)
+            .map((b) => b.id);
+
+          if (staleDbIds.length > 0 && tenantFilter) {
+            void cleanStalePendingBookingsWithSession(staleDbIds, { tenantId: tenantFilter });
+          }
         }
         if (policiesData) setCancellationPolicies(camelizeKeys(policiesData) as CancellationPolicy[]);
         if (reviewsData) setReviews(camelizeKeys(reviewsData) as Review[]);
@@ -511,7 +531,24 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         const { data: bookingsData } = await query;
         if (bookingsData) {
-          setBookings(camelizeKeys(bookingsData) as Booking[]);
+          const rawBookings = camelizeKeys(bookingsData) as Booking[];
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const cutoffDate = new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000);
+          const cutoffStr = toLocalDateStr(cutoffDate);
+
+          const validBookings = rawBookings.filter(
+            (b) => !(b.status === 'pending' && b.bookingDate <= cutoffStr)
+          );
+          setBookings(validBookings);
+
+          const staleDbIds = rawBookings
+            .filter((b) => b.status === 'pending' && b.bookingDate <= cutoffStr)
+            .map((b) => b.id);
+
+          if (staleDbIds.length > 0 && tenantFilter) {
+            void cleanStalePendingBookingsWithSession(staleDbIds, { tenantId: tenantFilter });
+          }
         }
       } catch (e) {
         // Ignore background poll errors
@@ -1797,6 +1834,37 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (error) console.error('Error adding customer package:', error.message);
   };
 
+  const cleanStalePendingBookings = async (daysPast?: number): Promise<number> => {
+    if (!activeTenant) return 0;
+    const days = daysPast ?? activeTenant.settings.autoCleanStaleBookingsDays ?? 1;
+    if (days === 0) return 0;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const cutoffDate = new Date(today.getTime() - days * 24 * 60 * 60 * 1000);
+    const cutoffStr = toLocalDateStr(cutoffDate);
+
+    const staleList = bookings.filter(
+      (b) => b.tenantId === activeTenant.id && b.status === 'pending' && b.bookingDate <= cutoffStr
+    );
+
+    if (staleList.length === 0) return 0;
+
+    const staleIds = staleList.map((b) => b.id);
+    console.log(`[Auto-Clean] Removing ${staleIds.length} stale pending booking(s) older than ${cutoffStr}...`);
+
+    // Optimistically remove from state immediately
+    setBookings((prev) => prev.filter((b) => !staleIds.includes(b.id)));
+
+    try {
+      await cleanStalePendingBookingsWithSession(staleIds, { tenantId: activeTenant.id });
+    } catch (err) {
+      console.warn('cleanStalePendingBookings error:', err);
+    }
+
+    return staleIds.length;
+  };
+
   return (
     <SaaSContext.Provider
       value={{
@@ -1850,6 +1918,7 @@ export const SaaSProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         updateCancellationPolicies,
         addReview,
         fetchMyBookings,
+        cleanStalePendingBookings,
         fetchMembership,
         redeemReward,
         completeBooking,

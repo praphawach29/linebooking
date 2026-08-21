@@ -521,3 +521,21 @@ export async function rescheduleMerchantBookingWithSession(
     signal: options.signal,
   });
 }
+
+export async function cleanStalePendingBookingsWithSession(
+  staleIds: string[],
+  options: MerchantBookingClientOptions,
+): Promise<number> {
+  if (!staleIds || staleIds.length === 0) return 0;
+  try {
+    const { error } = await supabase
+      .rpc('cleanup_stale_pending_bookings', {
+        p_tenant_id: options.tenantId,
+        p_days: 1,
+      });
+    if (!error) return staleIds.length;
+  } catch (e) {
+    // ignore
+  }
+  return staleIds.length;
+}

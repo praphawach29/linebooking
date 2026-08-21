@@ -72,8 +72,8 @@ export const MerchantLayout: React.FC = () => {
     }
   }, [authUser, navigate]);
 
-  const todayStr = toLocalDateStr(new Date());
-  const todayBookingsCount = bookings.filter((b) => b.bookingDate === todayStr).length;
+  // Only count pending bookings that are waiting for merchant review/confirmation
+  const pendingBookingsCount = bookings.filter((b) => b.status === 'pending').length;
 
   const quotaInfo = activeTenant ? getTenantQuotaInfo(activeTenant, bookings, staffs, courts) : null;
 
@@ -106,12 +106,12 @@ export const MerchantLayout: React.FC = () => {
           {!isCollapsed && <span className="truncate">{label}</span>}
         </div>
         {!isCollapsed && badge !== undefined && badge > 0 && (
-          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full min-w-[20px] text-center ${isActive ? 'bg-white text-emerald-700' : 'bg-primary/20 text-blue-300'}`}>
+          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full min-w-[20px] text-center ${isActive ? 'bg-amber-400 text-slate-950 shadow-xs' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'}`}>
             {badge > 99 ? '99+' : badge}
           </span>
         )}
         {isCollapsed && badge !== undefined && badge > 0 && (
-          <span className="w-2 h-2 rounded-full bg-emerald-400 absolute right-2 top-2"></span>
+          <span className="w-2 h-2 rounded-full bg-amber-400 absolute right-2 top-2 animate-pulse"></span>
         )}
       </button>
     );
@@ -121,7 +121,7 @@ export const MerchantLayout: React.FC = () => {
     {
       title: 'การทำงานหลัก',
       items: [
-        { tab: 'dashboard', icon: LayoutDashboard, label: 'แดชบอร์ด', badge: todayBookingsCount },
+        { tab: 'dashboard', icon: LayoutDashboard, label: 'แดชบอร์ด', badge: pendingBookingsCount },
         { tab: 'calendar', icon: Calendar, label: 'ปฏิทินคิวงาน' },
         { tab: 'walkin', icon: PlusCircle, label: 'เพิ่มคิว Walk-in' },
         { tab: 'checkin', icon: ScanLine, label: 'สแกนเช็กอิน' },
